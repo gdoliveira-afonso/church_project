@@ -12,8 +12,9 @@ import { publicFormView } from './views/public-form.js';
 import { formListView, formBuilderView } from './views/form-builder.js';
 import { calendarView } from './views/calendar.js';
 
-function guard(fn) { return (p) => { if (!store.isLoggedIn()) { navigate('/login'); return } fn(p) } }
-function roleGuard(roles, fn) { return (p) => { if (!store.isLoggedIn()) { navigate('/login'); return } if (!store.hasRole(...roles)) { navigate('/dashboard'); return } fn(p) } }
+function restoreTheme() { const t = localStorage.getItem('theme'); if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark'); } }
+function guard(fn) { return (p) => { if (!store.isLoggedIn()) { navigate('/login'); return } restoreTheme(); fn(p) } }
+function roleGuard(roles, fn) { return (p) => { if (!store.isLoggedIn()) { navigate('/login'); return } if (!store.hasRole(...roles)) { navigate('/dashboard'); return } restoreTheme(); fn(p) } }
 
 route('/login', loginView);
 route('/form/public', publicFormView);

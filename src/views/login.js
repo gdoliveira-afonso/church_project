@@ -5,6 +5,7 @@ import { navigate } from '../router.js';
 export function loginView() {
   const app = document.getElementById('app');
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('sidebar-hidden');
+  document.documentElement.classList.remove('dark');
 
   // Get active login forms from store
   const loginForms = store.forms.filter(f => f.showOnLogin && f.status === 'ativo');
@@ -26,7 +27,7 @@ export function loginView() {
         </div>` : '';
 
   app.innerHTML = `
-  <div class="flex flex-col md:flex-row flex-1 min-h-screen">
+  <div class="flex flex-col md:flex-row flex-1 h-full w-full">
     <div class="hidden md:flex md:flex-1 bg-gradient-to-br from-primary/20 via-primary/5 to-slate-50 flex-col items-center justify-center p-12 relative overflow-hidden">
       <div class="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/3"></div>
       <div class="absolute bottom-0 left-0 w-72 h-72 bg-primary/5 rounded-full translate-y-1/3 -translate-x-1/4"></div>
@@ -41,12 +42,12 @@ export function loginView() {
         </div>
       </div>
     </div>
-    <div class="flex flex-col flex-1 md:max-w-lg">
-      <div class="relative w-full h-44 bg-gradient-to-br from-primary/30 to-primary/5 md:hidden">
+    <div class="flex flex-col flex-1 w-full md:max-w-lg overflow-y-auto bg-white/50 md:bg-white no-scrollbar">
+      <div class="relative w-full h-44 shrink-0 bg-gradient-to-br from-primary/30 to-primary/5 md:hidden">
         <div class="absolute inset-0 bg-gradient-to-t from-white to-transparent"></div>
         <div class="absolute -bottom-7 left-1/2 -translate-x-1/2"><div class="w-16 h-16 bg-white rounded-2xl shadow-lg flex items-center justify-center"><span class="material-symbols-outlined text-primary text-3xl">church</span></div></div>
       </div>
-      <div class="flex-1 flex flex-col justify-center px-8 py-10 md:py-0 max-w-sm mx-auto w-full">
+      <div class="flex-1 flex flex-col justify-center px-8 py-8 max-w-sm mx-auto w-full shrink-0">
         <div class="text-center mb-8 mt-4 md:mt-0">
           <h1 class="text-2xl font-extrabold text-slate-900 mb-1 md:text-3xl">Gestão Celular</h1>
           <p class="text-sm text-slate-500">Bem-vindo, faça login para continuar.</p>

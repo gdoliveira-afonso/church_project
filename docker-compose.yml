@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  crm_web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crm_celular_app
+    restart: always
+    ports:
+      # O lado esquerdo é a porta na máquina local (Servidor/Host). O direito é do Container.
+      - "80:80"
+    environment:
+      - NODE_ENV=production

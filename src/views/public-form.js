@@ -15,6 +15,7 @@ const FIELD_TYPE_MAP = {
 export function publicFormView(params) {
   const app = document.getElementById('app');
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('sidebar-hidden');
+  document.documentElement.classList.remove('dark');
 
   // Get form ID from params
   const formId = params?.id;
@@ -35,13 +36,13 @@ export function publicFormView(params) {
   const cc = colorMap[c] || colorMap.blue;
 
   app.innerHTML = `
-  <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
-    <header class="bg-white border-b border-slate-100 px-4 py-3 flex items-center gap-3">
+  <div class="h-full w-full overflow-y-auto bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col no-scrollbar">
+    <header class="bg-white border-b border-slate-100 px-4 py-3 shrink-0 flex items-center gap-3">
       <a href="#/login" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition"><span class="material-symbols-outlined text-slate-500">arrow_back</span></a>
       <div class="w-8 h-8 rounded-lg bg-${cc[1]} flex items-center justify-center text-${cc[2]}"><span class="material-symbols-outlined text-lg">${form.icon || 'description'}</span></div>
       <h1 class="text-sm font-bold">${form.name}</h1>
     </header>
-    <div class="flex-1 flex items-start justify-center p-4 md:p-8">
+    <div class="flex-1 flex items-start justify-center p-4 md:p-8 shrink-0 min-h-[500px]">
       <div class="w-full max-w-lg">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <div class="bg-gradient-to-r from-${cc[0]}/10 to-${cc[0]}/5 p-6 text-center">
