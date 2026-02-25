@@ -25,13 +25,11 @@ route('/profile', guard(profileView));
 route('/cells', guard(cellsView));
 route('/cell', guard(cellDetailView));
 route('/attendance', guard(attendanceView));
-route('/reports', guard(reportsView));
-route('/settings', guard(settingsView));
-route('/forms', guard(formListView));
-route('/settings', guard(settingsView));
-route('/forms', guard(formListView));
-route('/form-builder', guard(formBuilderView));
-route('/triage', guard(triageView));
+route('/reports', roleGuard(['ADMIN', 'SUPERVISOR'], reportsView));
+route('/settings', roleGuard(['ADMIN', 'SUPERVISOR'], settingsView));
+route('/forms', roleGuard(['ADMIN', 'SUPERVISOR'], formListView));
+route('/form-builder', roleGuard(['ADMIN', 'SUPERVISOR'], formBuilderView));
+route('/triage', roleGuard(['ADMIN', 'SUPERVISOR'], triageView));
 route('/calendar', guard(calendarView));
 
 startRouter();

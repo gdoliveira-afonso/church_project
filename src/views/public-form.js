@@ -60,7 +60,7 @@ export function publicFormView(params) {
             <button type="submit" class="w-full bg-${cc[0]} text-white py-3 rounded-lg text-sm font-bold hover:opacity-90 active:scale-[.98] transition-all shadow-sm mt-2">Enviar Formulário</button>
           </form>
         </div>
-        <p class="text-center text-[11px] text-slate-400 mt-4">Gestão Igreja v3.0 • CRM Pastoral</p>
+        <p class="text-center text-[11px] text-slate-400 mt-4">Gestão Celular v3.0 • CRM Celular</p>
       </div>
     </div>
   </div>`;

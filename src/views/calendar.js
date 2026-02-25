@@ -78,9 +78,13 @@ export function calendarView() {
             let dayEvents = []; // Collect events to sort
 
             // 1. Birthdays (All Day)
-            const bdays = [...people, ...users].filter(p => p.birthdate && p.birthdate.slice(5) === dateStr.slice(5));
+            let bdays = [...people, ...users].filter(p => p.birthdate && p.birthdate.slice(5) === dateStr.slice(5));
+            if (!isAdminSuper) {
+                const myCellIds = cells.filter(c => c.leaderId === store.currentUser?.id).map(c => c.id);
+                bdays = bdays.filter(p => myCellIds.includes(p.cellId) || p.id === store.currentUser?.id);
+            }
             bdays.forEach(p => {
-                dayEvents.push({ sortVal: -1, html: `<div class="w-full truncate text-[9px] md:text-[10px] bg-pink-100 text-pink-700 font-medium px-1 rounded mt-0.5" title="Aniversário: ${p.name}">🎂 ${p.name.split(' ')[0]}</div>` });
+                dayEvents.push({ sortVal: -1, html: `<div class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] bg-pink-100 text-pink-700 font-medium px-1 rounded mt-0.5" title="Aniversário: ${p.name}">🎂 ${p.name.split(' ')[0]}</div>` });
             });
 
             // 2. Cells (Usually evening, but kept generic. Treating as sortVal -2 to float them near top but below birthdays)
@@ -96,7 +100,7 @@ export function calendarView() {
                     if (isAdminSuper) clickFn = `onclick="window.toggleCalendarCell(event, '${c.id}', '${dateStr}')"`;
                     else if (!isCanceled && !isJustified) clickFn = `onclick="window.calendarCellClick(event, '${c.id}', '${dateStr}')"`;
 
-                    dayEvents.push({ sortVal: -2, html: `<div ${clickFn} class="w-full truncate text-[9px] md:text-[10px] ${bgClass} font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${isCanceled ? 'Cancelada: ' + isCanceled.reason : isJustified ? 'Justificada: ' + isJustified.reason : 'Célula'}">🏠 ${c.name}</div>` });
+                    dayEvents.push({ sortVal: -2, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] ${bgClass} font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${isCanceled ? 'Cancelada: ' + isCanceled.reason : isJustified ? 'Justificada: ' + isJustified.reason : 'Célula'}">🏠 ${c.name}</div>` });
                 }
             });
 
@@ -116,12 +120,12 @@ export function calendarView() {
                     }
 
                     if (isAllDay) {
-                        dayEvents.push({ sortVal: 0, html: `<div ${clickFn} class="w-full truncate text-[9px] md:text-[10px] bg-${cColor}-100 text-${cColor}-800 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${title}">${title}</div>` });
+                        dayEvents.push({ sortVal: 0, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] bg-${cColor}-100 text-${cColor}-800 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${title}">${title}</div>` });
                     } else {
                         // Transform '14:30' into 14.5 for sorting
                         const [h, m] = e.startTime.split(':').map(Number);
                         const sVal = h + (m / 60);
-                        dayEvents.push({ sortVal: sVal, html: `<div ${clickFn} class="w-full truncate flex items-center gap-1 text-[9px] md:text-[10px] text-${cColor}-700 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${e.startTime} - ${title}"><div class="w-1.5 h-1.5 rounded-full bg-${cColor}-500 flex-shrink-0"></div><span class="truncate">${e.startTime} ${title}</span></div>` });
+                        dayEvents.push({ sortVal: sVal, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full truncate flex items-center gap-1 text-[9px] md:text-[10px] text-${cColor}-700 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${e.startTime} - ${title}"><div class="w-1.5 h-1.5 rounded-full bg-${cColor}-500 flex-shrink-0"></div><span class="truncate">${e.startTime} ${title}</span></div>` });
                     }
                 }
             });
@@ -130,11 +134,14 @@ export function calendarView() {
             dayEvents.sort((a, b) => a.sortVal - b.sortVal);
             let dayEventsHtml = dayEvents.map(d => d.html).join('');
 
-            html += `<div ${isAdminSuper ? `onclick="window.quickCreateEvent('${dateStr}')" class="aspect-square md:aspect-auto md:min-h-[80px] p-1 md:p-2 border border-slate-100 rounded-lg md:rounded-xl flex flex-col transition hover:border-slate-300 hover:shadow-sm cursor-pointer"` : `class="aspect-square md:aspect-auto md:min-h-[80px] p-1 md:p-2 border border-slate-100 rounded-lg md:rounded-xl flex flex-col transition"`}>
-          <div class="flex justify-between items-start mb-1">
+            if (!window.__calendarDayCache) window.__calendarDayCache = {};
+            window.__calendarDayCache[dateStr] = dayEventsHtml;
+
+            html += `<div onclick="window.openDayModal('${dateStr}')" class="min-h-[60px] md:min-h-[80px] p-1 md:p-2 border border-slate-100 rounded-lg md:rounded-xl flex flex-col transition hover:border-slate-300 hover:shadow-sm cursor-pointer">
+          <div class="flex justify-between items-start mb-1 h-5 md:h-6 shrink-0">
             <span class="text-xs md:text-sm font-semibold flex items-center justify-center ${isToday ? 'w-5 h-5 md:w-6 md:h-6 bg-primary text-white rounded-full' : 'text-slate-700 w-5 h-5 md:w-6 md:h-6'}">${i}</span>
           </div>
-          <div class="flex-1 overflow-y-auto no-scrollbar space-y-0.5 pointer-events-auto">${dayEventsHtml}</div>
+          <div class="flex-1 overflow-y-auto w-full no-scrollbar flex flex-col gap-0.5 pointer-events-auto">${dayEventsHtml}</div>
         </div>`;
         }
         document.getElementById('calendar-grid').innerHTML = html;
@@ -151,6 +158,30 @@ export function calendarView() {
     window.quickCreateEvent = (dateStr) => {
         if (!store.hasRole('ADMIN', 'SUPERVISOR')) return;
         eventForm(null, dateStr);
+    };
+
+    window.openDayModal = (dateStr) => {
+        const evHtml = window.__calendarDayCache?.[dateStr];
+        const displayDate = dateStr.split('-').reverse().join('/');
+        let addBtn = '';
+        if (store.hasRole('ADMIN', 'SUPERVISOR')) {
+            addBtn = `<div class="mt-4 pt-4 border-t border-slate-100"><button onclick="window.quickCreateEvent('${dateStr}')" class="w-full bg-slate-50 text-slate-700 hover:bg-slate-100 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border border-slate-200 transition"><span class="material-symbols-outlined text-[18px]">add</span> Criar Novo Evento</button></div>`;
+        }
+
+        openModal(`<div class="p-5 md:p-6 w-full max-w-sm mx-auto flex flex-col max-h-[85vh]">
+            <div class="flex justify-between items-center mb-5 shrink-0"><h3 class="text-base font-bold text-slate-800 flex items-center gap-2"><span class="material-symbols-outlined text-primary">calendar_today</span> ${displayDate}</h3><button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="p-1.5 rounded-full hover:bg-slate-100 transition"><span class="material-symbols-outlined text-slate-400 text-xl flex items-center justify-center">close</span></button></div>
+            <div class="day-modal-events flex flex-col gap-2 overflow-y-auto no-scrollbar flex-1 pb-2">
+                ${evHtml || '<div class="text-center py-8 text-slate-400"><span class="material-symbols-outlined text-4xl mb-3 opacity-30">event_busy</span><p class="text-[13px] font-medium">Nenhum evento neste dia.</p></div>'}
+            </div>
+            ${addBtn}
+            <style>
+              .day-modal-events > div { min-height: 48px !important; padding: 12px 16px !important; border-radius: 12px !important; font-size: 14px !important; margin-top: 0 !important; }
+              .day-modal-events .text-\\[9px\\] { font-size: 14px !important; }
+              .day-modal-events .md\\:text-\\[10px\\] { font-size: 14px !important; }
+              .day-modal-events .w-1\\.5 { width: 12px !important; height: 12px !important; }
+              .day-modal-events .gap-1 { gap: 12px !important; }
+            </style>
+        </div>`);
     };
 
     // Expose functions for inline onclick handler from rendering string
@@ -345,10 +376,11 @@ function cellActionsModal(cellId, dateStr) {
 
     if (canManage) {
         const isCanceled = store.isCellCanceledOnDate(c.id, dateStr) || store.isCellCanceledOnDate('all', dateStr);
+        const isFuture = dateStr > new Date().toISOString().split('T')[0];
 
         content += `
         <div class="space-y-3">
-            <a href="#/attendance?cellId=${c.id}&date=${dateStr}" onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition"><span class="material-symbols-outlined text-lg">checklist</span> Fazer Chamada</a>
+            ${!isFuture ? `<a href="#/attendance?cellId=${c.id}&date=${dateStr}" onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition"><span class="material-symbols-outlined text-lg">checklist</span> Fazer Chamada</a>` : `<div class="p-3 bg-amber-50 text-amber-700 text-xs text-center rounded-lg border border-amber-100 font-medium">Aguarde a data do encontro para realizar a chamada ou justificar.</div>`}
             
             ${store.hasRole('ADMIN', 'SUPERVISOR') ? (
                 isCanceled
@@ -356,7 +388,7 @@ function cellActionsModal(cellId, dateStr) {
                     : `<button id="btn-cancel-cell-day" class="w-full flex items-center justify-center gap-2 bg-red-50 text-red-700 py-3 rounded-lg text-sm font-bold hover:bg-red-100 transition border border-red-200"><span class="material-symbols-outlined text-lg">event_busy</span> Cancelar Encontro (Admin)</button>`
             ) : ''}
             
-            <button id="btn-justify-cell" class="w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-700 py-3 rounded-lg text-sm font-bold hover:bg-amber-100 transition border border-amber-200"><span class="material-symbols-outlined text-lg">history_edu</span> Justificar Não Realização</button>
+            ${!isFuture ? `<button id="btn-justify-cell" class="w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-700 py-3 rounded-lg text-sm font-bold hover:bg-amber-100 transition border border-amber-200"><span class="material-symbols-outlined text-lg">history_edu</span> Justificar Não Realização</button>` : ''}
         </div>`;
     } else {
         content += `<p class="text-xs text-slate-400 text-center">Apenas o líder desta célula pode realizar ações.</p>`;

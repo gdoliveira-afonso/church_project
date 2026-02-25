@@ -38,9 +38,50 @@ export function profileView(params) {
   const tc = document.getElementById('tab-c');
   function show(t) {
     document.querySelectorAll('.tab').forEach(b => { b.classList.toggle('bg-primary', b.dataset.t === t); b.classList.toggle('text-white', b.dataset.t === t); b.classList.toggle('bg-slate-100', b.dataset.t !== t); b.classList.toggle('text-slate-500', b.dataset.t !== t) });
-    if (t === 'dados') tc.innerHTML = card('📌 Dados Gerais', `<dl class="space-y-3">${[['person', p.name], ['call', p.phone || '-'], ['mail', p.email || '-'], ['cake', p.birthdate || '-'], ['home', p.address || '-'], ['calendar_today', p.joinedDate || '-']].map(([i, v]) => `<div class="flex items-center gap-3"><span class="material-symbols-outlined text-slate-400 text-lg">${i}</span><span class="text-sm">${v}</span></div>`).join('')}</dl>`);
-    if (t === 'espiritual') tc.innerHTML = card('🙏 Vida Espiritual', `<div class="space-y-3">${[['water_drop', 'Batismo nas Águas', p.spiritual?.waterBaptism, 'blue'], ['local_fire_department', 'Batismo com o Espírito Santo', p.spiritual?.holySpiritBaptism, 'orange'], ['school', 'Escola de Líderes', p.spiritual?.leadersSchool, 'purple'], ['volunteer_activism', 'Encontro com Deus', p.retreats?.encounter?.done, 'emerald']].map(([i, l, d, c]) => `<div class="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-${c}-100 flex items-center justify-center"><span class="material-symbols-outlined text-${c}-500 text-base">${i}</span></div><span class="text-sm font-medium">${l}</span></div><span class="text-xs font-medium px-2.5 py-1 rounded-full ${d ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">${d ? '✓ Sim' : '✗ Não'}</span></div>`).join('')}</div>`);
-    if (t === 'retiros') tc.innerHTML = card('🏕 Retiros', `<div class="p-4 bg-slate-50 rounded-lg text-center"><div class="w-10 h-10 mx-auto rounded-lg bg-emerald-100 flex items-center justify-center mb-2"><span class="material-symbols-outlined text-emerald-600">volunteer_activism</span></div><p class="text-sm font-semibold mb-2">Encontro com Deus</p><span class="text-xs font-medium px-2.5 py-1 rounded-full ${p.retreats?.encounter?.done ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">${p.retreats?.encounter?.done ? '✓ Realizado' : '✗ Pendente'}</span></div>`);
+    if (t === 'dados') {
+      let consolidationHtml = '';
+      if (p.status === 'Novo Convertido' && p.consolidation) {
+        const c = p.consolidation;
+        const days = Math.floor((new Date() - new Date(c.startDate)) / 86400000);
+        const consVisits = getVisits().filter(v => v.type === 'Visita de Consolidação').length;
+        const sColor = c.status === 'COMPLETED' ? 'emerald' : c.status === 'IN_PROGRESS' ? 'amber' : 'slate';
+        const sText = c.status === 'COMPLETED' ? 'Finalizada' : c.status === 'IN_PROGRESS' ? 'Em Andamento' : 'Pendente';
+        const showBtn = c.status !== 'COMPLETED';
+
+        consolidationHtml = `<div class="bg-gradient-to-br from-${sColor}-50 to-white dark:from-${sColor}-900/20 dark:to-slate-800 rounded-xl p-5 shadow-sm border border-${sColor}-100 dark:border-${sColor}-800 mb-4">
+          <div class="flex justify-between items-start mb-3">
+            <h3 class="text-sm font-bold text-${sColor}-900 dark:text-${sColor}-400 flex items-center gap-2"><span class="material-symbols-outlined text-base">route</span>Jornada de Consolidação</h3>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-${sColor}-100 dark:bg-${sColor}-900/50 text-${sColor}-700 dark:text-${sColor}-300">${sText}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="bg-white dark:bg-slate-700/50 rounded-lg p-3 border border-${sColor}-50 dark:border-${sColor}-900/30">
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Tempo na Igreja</p>
+              <p class="text-xl font-extrabold text-${sColor}-700 dark:text-${sColor}-400">${days} <span class="text-xs font-semibold text-slate-400 dark:text-slate-500">dias</span></p>
+            </div>
+            <div class="bg-white dark:bg-slate-700/50 rounded-lg p-3 border border-${sColor}-50 dark:border-${sColor}-900/30">
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">Visitas Recebidas</p>
+              <p class="text-xl font-extrabold text-${sColor}-700 dark:text-${sColor}-400">${consVisits} <span class="text-xs font-semibold text-slate-400 dark:text-slate-500">visitas</span></p>
+            </div>
+          </div>
+          ${showBtn ? `<button id="btn-complete-consolidation" class="w-full bg-${sColor}-600 text-white py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-${sColor}-700 transition" onclick="window.completeCons()"> <span class="material-symbols-outlined text-lg">check_circle</span> Marcar como Consolidado </button>` : `<p class="text-xs text-center text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 py-2 rounded-lg">Consolidado em ${new Date(c.completedDate).toLocaleDateString('pt-BR')}</p>`}
+        </div>`;
+      }
+      tc.innerHTML = consolidationHtml + card('📌 Dados Gerais', `<dl class="space-y-3">${[['person', p.name], ['call', p.phone || '-'], ['mail', p.email || '-'], ['cake', p.birthdate || '-'], ['home', p.address || '-'], ['calendar_today', p.joinedDate || '-']].map(([i, v]) => `<div class="flex items-center gap-3"><span class="material-symbols-outlined text-slate-400 text-lg">${i}</span><span class="text-sm">${v}</span></div>`).join('')}</dl>`);
+    }
+    if (t === 'espiritual') {
+      const spTracks = store.tracks.filter(tr => tr.category === 'espiritual');
+      tc.innerHTML = card('🙏 Vida Espiritual', `<div class="space-y-3">${spTracks.length ? spTracks.map(tr => {
+        const d = p.tracksData ? p.tracksData[tr.id] : false;
+        return `<div class="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-${tr.color}-100 flex items-center justify-center"><span class="material-symbols-outlined text-${tr.color}-500 text-base">${tr.icon}</span></div><span class="text-sm font-medium">${tr.name}</span></div><span class="text-xs font-medium px-2.5 py-1 rounded-full ${d ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">${d ? '✓ Sim' : '✗ Não'}</span></div>`;
+      }).join('') : '<p class="text-sm text-slate-400 text-center py-4">Nenhum marco espiritual cadastrado no sistema</p>'}</div>`);
+    }
+    if (t === 'retiros') {
+      const retTracks = store.tracks.filter(tr => tr.category === 'retiros');
+      tc.innerHTML = card('🏕 Retiros', `<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${retTracks.length ? retTracks.map(tr => {
+        const d = p.tracksData ? p.tracksData[tr.id] : false;
+        return `<div class="p-4 bg-slate-50 rounded-lg text-center border border-slate-100 hover:border-${tr.color}-300 transition"><div class="w-10 h-10 mx-auto rounded-lg bg-${tr.color}-100 flex items-center justify-center mb-2"><span class="material-symbols-outlined text-${tr.color}-600">${tr.icon}</span></div><p class="text-sm font-semibold mb-2">${tr.name}</p><span class="text-xs font-medium px-2.5 py-1 rounded-full ${d ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">${d ? '✓ Realizado' : '✗ Pendente'}</span></div>`;
+      }).join('') : '<p class="text-sm text-slate-400 text-center py-4 col-span-2">Nenhum retiro cadastrado no sistema</p>'}</div>`);
+    }
     if (t === 'visitas') {
       const visits = getVisits();
       tc.innerHTML = card('🏠 Visitas', `${visits.length ? visits.map(v => `<div class="p-3 border border-slate-100 rounded-lg mb-2"><div class="flex justify-between mb-1"><span class="text-sm font-semibold text-primary">${v.type || 'Visita'}</span><span class="text-[11px] text-slate-400">${v.date}</span></div><p class="text-xs text-slate-600">${v.observation || ''}</p>${v.result ? `<p class="text-[11px] text-slate-500 mt-1 font-medium">Resultado: ${v.result}</p>` : ''}</div>`).join('') : '<p class="text-sm text-slate-400 text-center py-4">Nenhuma visita registrada</p>'}<button id="btn-visit" class="mt-3 w-full bg-primary/10 text-primary py-2 rounded-lg text-sm font-semibold hover:bg-primary/20 transition">+ Registrar Visita</button>`);
@@ -138,6 +179,12 @@ export function profileView(params) {
       toast('Nota adicionada!');
       show('notas');
     };
+  };
+
+  window.completeCons = () => {
+    store.completeConsolidation(p.id);
+    toast('Consolidação concluída 🎉');
+    show('dados');
   };
 }
 function card(title, content) { return `<div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100"><h3 class="text-sm font-bold mb-4">${title}</h3>${content}</div>` }

@@ -45,7 +45,7 @@ export function updateSidebar(active) {
     { id: 'reports', icon: 'pie_chart', label: 'Relatórios', route: '/reports', roles: ['ADMIN', 'SUPERVISOR'] },
     { id: 'forms', icon: 'description', label: 'Formulários', route: '/forms', roles: ['ADMIN'] },
     { id: 'triage', icon: 'assignment', label: 'Triagem', route: '/triage', roles: ['ADMIN', 'SUPERVISOR'] },
-    { id: 'settings', icon: 'settings', label: 'Configurações', route: '/settings', roles: ['ADMIN'] },
+    { id: 'settings', icon: 'settings', label: 'Configurações', route: '/settings', roles: ['ADMIN', 'SUPERVISOR'] },
   ].filter(t => t.roles.includes(store.currentUser.role));
   // Auto-detect active from hash if not explicitly set
   if (!active) {
@@ -87,30 +87,114 @@ export function bottomNav(active) {
     { id: 'home', icon: 'dashboard', label: 'Início', route: '/dashboard' },
     { id: 'people', icon: 'group', label: 'Pessoas', route: '/people' },
     { id: 'cells', icon: 'diversity_3', label: 'Células', route: '/cells' },
+    { id: 'calendar', icon: 'calendar_month', label: 'Agenda', route: '/calendar' },
     { id: 'reports', icon: 'pie_chart', label: 'Relatórios', route: '/reports', roles: ['ADMIN', 'SUPERVISOR'] },
-    { id: 'settings', icon: 'settings', label: 'Config', route: '/settings', roles: ['ADMIN'] },
+    { id: 'settings', icon: 'settings', label: 'Config', route: '/settings', roles: ['ADMIN', 'SUPERVISOR'] },
   ].filter(t => !t.roles || t.roles.includes(store.currentUser?.role));
-  return `<nav class="mobile-nav sticky bottom-0 z-20 bg-white border-t border-slate-200 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] px-2">
-    <div class="flex justify-around">${tabs.map(t => `
-      <a href="#${t.route}" class="flex flex-col items-center gap-0.5 min-w-[44px] pt-1 ${active === t.id ? 'text-primary' : 'text-slate-400'}">
-        <span class="material-symbols-outlined text-[22px] ${active === t.id ? 'filled' : ''}">${t.icon}</span>
-        <span class="text-[10px] font-medium">${t.label}</span>
+
+  return `<nav class="mobile-nav w-full shrink-0 md:hidden z-20 bg-white border-t border-slate-200 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] px-1">
+    <div class="flex items-center justify-between overflow-x-auto no-scrollbar gap-1 custom-scroll-hidden">${tabs.map(t => `
+      <a href="#${t.route}" class="flex flex-col items-center gap-0.5 min-w-[50px] flex-1 pt-1 mb-1 transition-all ${active === t.id ? 'text-primary scale-105' : 'text-slate-400 hover:text-slate-600'}">
+        <span class="material-symbols-outlined text-[20px] sm:text-[22px] ${active === t.id ? 'filled font-bold' : ''}">${t.icon}</span>
+        <span class="text-[9px] sm:text-[10px] font-medium tracking-tight truncate w-full text-center px-0.5">${t.label}</span>
       </a>`).join('')}
     </div>
-  </nav>`;
+  </nav>
+  <style>
+    .custom-scroll-hidden::-webkit-scrollbar { display: none; }
+    .custom-scroll-hidden { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>`;
 }
 
-// ── Header ──
+// ── Header & Notifications ──
 export function header(title, back = false, right = '') {
-  return `<header class="sticky top-0 z-20 flex items-center justify-between bg-white/95 md:bg-white backdrop-blur-md px-4 md:px-6 h-14 border-b border-slate-100 shrink-0">
-    ${back ? `<button onclick="history.back()" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-600 -ml-1"><span class="material-symbols-outlined text-xl">arrow_back</span></button>` : '<div class="w-9 md:hidden"></div>'}
-    <h2 class="text-base font-bold text-slate-900 md:text-lg">${title}</h2>
+  const notifs = store.getNotifications() || [];
+  const unreadCount = notifs.length;
+
+  return `<header class="sticky top-0 z-20 flex items-center justify-between bg-white/95 dark:bg-slate-900/95 md:bg-white md:dark:bg-slate-900 backdrop-blur-md px-4 md:px-6 h-14 border-b border-slate-100 dark:border-slate-800 shrink-0">
+    ${back ? `<button onclick="history.back()" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 -ml-1"><span class="material-symbols-outlined text-xl">arrow_back</span></button>` : '<div class="w-9 md:hidden"></div>'}
+    <h2 class="text-base font-bold text-slate-900 dark:text-white md:text-lg">${title}</h2>
     <div class="flex items-center gap-1">
-      <button onclick="window.__toggleTheme?.()" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-amber-500 transition-colors"><span class="material-symbols-outlined theme-icon text-lg">${isDark() ? 'light_mode' : 'dark_mode'}</span></button>
+      <div class="relative">
+        <button onclick="window.__toggleNotifications(this)" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-colors">
+          <span class="material-symbols-outlined text-lg">notifications</span>
+          ${unreadCount > 0 ? `<span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full"></span>` : ''}
+        </button>
+      </div>
+      <button onclick="window.__toggleTheme?.()" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-amber-500 transition-colors"><span class="material-symbols-outlined theme-icon text-lg">${isDark() ? 'light_mode' : 'dark_mode'}</span></button>
       ${right || ''}
     </div>
   </header>`;
 }
+
+window.__toggleNotifications = (btn) => {
+  let pop = document.getElementById('notif-popover');
+  if (pop) { pop.remove(); return; }
+
+  const notifs = store.getNotifications() || [];
+  pop = document.createElement('div');
+  pop.id = 'notif-popover';
+  pop.className = 'absolute top-14 right-4 md:right-6 w-80 max-h-[400px] bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 z-50 flex flex-col overflow-hidden';
+
+  const headerHtml = `<div class="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+    <div class="flex items-center gap-2">
+      <h3 class="text-sm font-bold dark:text-white">Notificações</h3>
+      <span class="text-xs font-semibold px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full">${notifs.length}</span>
+    </div>
+    ${notifs.length ? `<button onclick="window.__markAllNotifsRead()" class="text-[11px] font-semibold text-primary hover:text-blue-700 transition">Limpar tudo</button>` : ''}
+  </div>`;
+
+  const listHtml = notifs.length ? `<div class="overflow-y-auto flex-1 p-2 space-y-1">
+    ${notifs.map(n => `
+    <div class="relative group">
+      <a href="${n.action}" onclick="document.getElementById('notif-popover').remove()" class="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition pr-8">
+        <div class="w-8 h-8 rounded-full bg-${n.color}-50 dark:bg-${n.color}-900/20 flex items-center justify-center shrink-0 mt-0.5"><span class="material-symbols-outlined text-[16px] text-${n.color}-600 dark:text-${n.color}-400">${n.type}</span></div>
+        <div class="flex-1 min-w-0"><p class="text-[13px] font-bold text-slate-900 dark:text-white mb-0.5">${n.title}</p><p class="text-[11px] text-slate-500 dark:text-slate-400 leading-snug break-words">${n.text}</p></div>
+      </a>
+      <button onclick="window.__markNotifRead('${n.id}', this, event)" class="absolute top-1/2 -translate-y-1/2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-slate-300 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition opacity-0 group-hover:opacity-100" title="Marcar como lida"><span class="material-symbols-outlined text-[14px]">done</span></button>
+    </div>`).join('')}
+  </div>` : `<div class="p-8 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center"><span class="material-symbols-outlined text-4xl mb-2 opacity-50">notifications_paused</span><p class="text-sm">Nenhuma notificação por enquanto</p></div>`;
+
+  pop.innerHTML = headerHtml + listHtml;
+  document.body.appendChild(pop);
+
+  // Close when clicking outside
+  setTimeout(() => {
+    const clsi = (e) => { if (!pop.contains(e.target) && !btn.contains(e.target)) { pop.remove(); document.removeEventListener('click', clsi); } };
+    document.addEventListener('click', clsi);
+  }, 10);
+};
+
+window.__markAllNotifsRead = () => {
+  store.markAllNotifsRead();
+  document.getElementById('notif-popover')?.remove();
+  document.querySelectorAll('.material-symbols-outlined').forEach(el => {
+    if (el.textContent === 'notifications') {
+      const btn = el.closest('button');
+      if (btn) { const badge = btn.querySelector('.bg-red-500'); if (badge) badge.remove(); }
+    }
+  });
+};
+
+window.__markNotifRead = (id, btn, e) => {
+  e.stopPropagation(); e.preventDefault();
+  store.markNotifRead(id);
+  const item = btn.closest('.relative.group');
+  if (item) item.remove();
+  const notifs = store.getNotifications() || [];
+  const countBadge = document.querySelector('#notif-popover h3 + span');
+  if (countBadge) countBadge.textContent = notifs.length;
+
+  if (notifs.length === 0) {
+    document.getElementById('notif-popover')?.remove();
+    document.querySelectorAll('.material-symbols-outlined').forEach(el => {
+      if (el.textContent === 'notifications') {
+        const b = el.closest('button');
+        if (b) { const badge = b.querySelector('.bg-red-500'); if (badge) badge.remove(); }
+      }
+    });
+  }
+};
 // Expose toggleTheme globally for inline onclick in header
 window.__toggleTheme = toggleTheme;
 

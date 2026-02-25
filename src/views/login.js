@@ -32,8 +32,8 @@ export function loginView() {
       <div class="absolute bottom-0 left-0 w-72 h-72 bg-primary/5 rounded-full translate-y-1/3 -translate-x-1/4"></div>
       <div class="relative z-10 text-center">
         <div class="w-20 h-20 bg-white rounded-2xl shadow-lg flex items-center justify-center mx-auto mb-6"><span class="material-symbols-outlined text-primary text-4xl">church</span></div>
-        <h2 class="text-3xl font-extrabold text-slate-800 mb-2">Gestão Igreja</h2>
-        <p class="text-slate-500 max-w-sm">Sistema completo de CRM Pastoral para gestão de membros, células e discipulado.</p>
+        <h2 class="text-3xl font-extrabold text-slate-800 mb-2">Gestão Celular</h2>
+        <p class="text-slate-500 max-w-sm">Sistema completo de CRM Celular para gestão de membros, células e discipulado.</p>
         <div class="flex gap-6 mt-8 justify-center text-sm text-slate-500">
           <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-primary text-lg">groups</span>Membros</span>
           <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-primary text-lg">diversity_3</span>Células</span>
@@ -48,36 +48,35 @@ export function loginView() {
       </div>
       <div class="flex-1 flex flex-col justify-center px-8 py-10 md:py-0 max-w-sm mx-auto w-full">
         <div class="text-center mb-8 mt-4 md:mt-0">
-          <h1 class="text-2xl font-extrabold text-slate-900 mb-1 md:text-3xl">Gestão Igreja</h1>
+          <h1 class="text-2xl font-extrabold text-slate-900 mb-1 md:text-3xl">Gestão Celular</h1>
           <p class="text-sm text-slate-500">Bem-vindo, faça login para continuar.</p>
         </div>
         <form id="login-form" class="space-y-4">
           <div>
-            <label class="text-xs font-semibold text-slate-600 mb-1 block">Email</label>
+            <label class="text-xs font-semibold text-slate-600 mb-1 block">Usuário</label>
             <div class="relative">
-              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">mail</span>
-              <input id="email" type="email" value="admin@igreja.com" class="w-full pl-10 pr-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition"/>
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">person</span>
+              <input id="username" type="text" placeholder="Digite seu usuário" autocomplete="username" class="w-full pl-10 pr-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition"/>
             </div>
           </div>
           <div>
             <label class="text-xs font-semibold text-slate-600 mb-1 block">Senha</label>
             <div class="relative">
               <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">lock</span>
-              <input id="password" type="password" value="123456" class="w-full pl-10 pr-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition"/>
+              <input id="password" type="password" placeholder="Digite sua senha" class="w-full pl-10 pr-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition"/>
             </div>
           </div>
           <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 active:scale-[.98] transition-all mt-2">Entrar no Sistema</button>
         </form>
-        <p class="text-[11px] text-slate-400 text-center mt-4">Credenciais de teste preenchidas</p>
         ${formButtons}
       </div>
-      <div class="py-3 text-center border-t border-slate-100 bg-slate-50/50"><p class="text-[11px] text-slate-400">Gestão Igreja v3.0 • CRM Pastoral</p></div>
+      <div class="py-3 text-center border-t border-slate-100 bg-slate-50/50"><p class="text-[11px] text-slate-400">Gestão Celular v3.0 • CRM Celular</p></div>
     </div>
   </div>`;
   document.getElementById('login-form').onsubmit = e => {
     e.preventDefault();
-    const u = store.login(document.getElementById('email').value, document.getElementById('password').value);
+    const u = store.login(document.getElementById('username').value.trim(), document.getElementById('password').value);
     if (u) { const sb = document.getElementById('sidebar'); if (sb) sb.classList.remove('sidebar-hidden'); toast(`Bem-vindo, ${u.name}!`); navigate('/dashboard') }
-    else toast('Email ou senha incorretos', 'error');
+    else toast('Usuário ou senha incorretos', 'error');
   };
 }

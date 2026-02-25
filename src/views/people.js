@@ -4,7 +4,7 @@ import { bottomNav, avatar, badge, riskDot, statusColor, toast, openModal, close
 export function peopleView() {
   const app = document.getElementById('app');
   app.innerHTML = `
-  <header class="sticky top-0 z-20 bg-white border-b border-slate-100">
+  <header class="sticky top-0 z-20 bg-white border-b border-slate-100 shrink-0">
     <div class="flex items-center justify-between px-4 md:px-6 h-14">
       <h1 class="text-base font-bold md:text-lg">Diretório de Pessoas</h1>
       ${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="location.hash='/people/new'" class="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition"><span class="material-symbols-outlined text-lg">person_add</span></button>` : ''}
@@ -22,13 +22,20 @@ export function peopleView() {
     <div class="px-4 md:px-6 py-1.5 bg-slate-50 border-t border-slate-100 flex items-center"><span id="count" class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">0 membros</span></div>
   </header>
   <div class="flex-1 overflow-y-auto" id="list"></div>
-  ${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="location.hash='/people/new'" class="mobile-nav fixed bottom-20 right-4 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition"><span class="material-symbols-outlined text-2xl">add</span></button>` : ''}
+  ${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="location.hash='/people/new'" class="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition"><span class="material-symbols-outlined text-2xl">add</span></button>` : ''}
   ${bottomNav('people')}`;
 
   let filter = 'all';
   const go = () => {
     const q = document.getElementById('search')?.value.toLowerCase() || '';
     let pp = [...store.people];
+
+    // Restrict view for leaders/vice-leaders
+    if (!store.hasRole('ADMIN', 'SUPERVISOR')) {
+      const myCells = store.cells.filter(c => c.leaderId === store.currentUser?.id || c.viceLeaderId === store.currentUser?.id).map(c => c.id);
+      pp = pp.filter(p => myCells.includes(p.cellId));
+    }
+
     if (q) pp = pp.filter(p => p.name.toLowerCase().includes(q));
     if (filter === 'not-baptized') pp = pp.filter(p => !p.spiritual?.waterBaptism);
     if (filter === 'no-school') pp = pp.filter(p => !p.spiritual?.leadersSchool);
@@ -91,32 +98,20 @@ export function personFormView(params) {
         <label class="text-xs font-semibold text-slate-600 mb-1 block">Célula</label>
         <select id="inp-cell" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20">
           <option value="">Sem célula</option>
-          ${store.cells.map(c => `<option value="${c.id}" ${p?.cellId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+          ${store.getVisibleCells().map(c => `<option value="${c.id}" ${p?.cellId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
         </select>
       </div>
       <div>
-        <label class="text-xs font-semibold text-slate-600 mb-2 block">Marcos Espirituais</label>
-        <div class="grid grid-cols-2 gap-2">
-          <label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/30 transition cursor-pointer has-[:checked]:border-blue-400 has-[:checked]:bg-blue-50/50">
-            <input type="checkbox" id="chk-baptism" ${p?.spiritual?.waterBaptism ? 'checked' : ''} class="sr-only peer"/>
-            <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-400 peer-checked:bg-blue-500 peer-checked:text-white transition shrink-0"><span class="material-symbols-outlined text-base">water_drop</span></div>
-            <span class="text-xs font-medium text-slate-600 leading-tight">Batismo nas Águas</span>
-          </label>
-          <label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-orange-300 hover:bg-orange-50/30 transition cursor-pointer has-[:checked]:border-orange-400 has-[:checked]:bg-orange-50/50">
-            <input type="checkbox" id="chk-spirit" ${p?.spiritual?.holySpiritBaptism ? 'checked' : ''} class="sr-only peer"/>
-            <div class="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-400 peer-checked:bg-orange-500 peer-checked:text-white transition shrink-0"><span class="material-symbols-outlined text-base">local_fire_department</span></div>
-            <span class="text-xs font-medium text-slate-600 leading-tight">Batismo com o Espírito Santo</span>
-          </label>
-          <label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-purple-300 hover:bg-purple-50/30 transition cursor-pointer has-[:checked]:border-purple-400 has-[:checked]:bg-purple-50/50">
-            <input type="checkbox" id="chk-school" ${p?.spiritual?.leadersSchool ? 'checked' : ''} class="sr-only peer"/>
-            <div class="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center text-purple-400 peer-checked:bg-purple-500 peer-checked:text-white transition shrink-0"><span class="material-symbols-outlined text-base">school</span></div>
-            <span class="text-xs font-medium text-slate-600 leading-tight">Escola de Líderes</span>
-          </label>
-          <label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/30 transition cursor-pointer has-[:checked]:border-emerald-400 has-[:checked]:bg-emerald-50/50">
-            <input type="checkbox" id="chk-encounter" ${p?.retreats?.encounter?.done ? 'checked' : ''} class="sr-only peer"/>
-            <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-400 peer-checked:bg-emerald-500 peer-checked:text-white transition shrink-0"><span class="material-symbols-outlined text-base">volunteer_activism</span></div>
-            <span class="text-xs font-medium text-slate-600 leading-tight">Encontro com Deus</span>
-          </label>
+        <label class="text-xs font-semibold text-slate-600 mb-2 block">Marcos Espirituais & Retiros</label>
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-2">
+          ${store.tracks.map(t => {
+    const isChecked = p?.tracksData ? p.tracksData[t.id] : false;
+    return `<label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50">
+              <input type="checkbox" id="chk-${t.id}" ${isChecked ? 'checked' : ''} class="sr-only peer track-checkbox" data-track-id="${t.id}"/>
+              <div class="w-8 h-8 rounded-lg bg-${t.color}-100 flex items-center justify-center text-${t.color}-400 peer-checked:bg-${t.color}-500 peer-checked:text-white transition shrink-0"><span class="material-symbols-outlined text-base">${t.icon}</span></div>
+              <span class="text-xs font-medium text-slate-600 leading-tight">${t.name}</span>
+            </label>`;
+  }).join('')}
         </div>
       </div>
       <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 active:scale-[.98] transition-all">${isEdit ? 'Salvar Alterações' : 'Cadastrar Pessoa'}</button>
@@ -126,6 +121,11 @@ export function personFormView(params) {
 
   document.getElementById('person-form').onsubmit = e => {
     e.preventDefault();
+    const tracksPayload = {};
+    document.querySelectorAll('.track-checkbox').forEach(chk => {
+      if (chk.checked) tracksPayload[chk.dataset.trackId] = true;
+    });
+
     const data = {
       name: document.getElementById('inp-name').value.trim(),
       phone: document.getElementById('inp-phone').value.trim(),
@@ -136,14 +136,12 @@ export function personFormView(params) {
       cellId: document.getElementById('inp-cell').value || null,
       joinedDate: p?.joinedDate || new Date().toISOString().split('T')[0],
       riskLevel: p?.riskLevel || 'low',
-      spiritual: { waterBaptism: document.getElementById('chk-baptism').checked, leadersSchool: document.getElementById('chk-school').checked, holySpiritBaptism: document.getElementById('chk-spirit').checked },
-      retreats: { encounter: { done: document.getElementById('chk-encounter').checked } },
+      tracksData: tracksPayload,
       discipleship: p?.discipleship || { primeiroContato: { done: true, date: new Date().toISOString().split('T')[0] } },
     };
     if (!data.name) { toast('Preencha o nome', 'error'); return }
-    if (isEdit) { store.updatePerson(params.id, data); toast('Pessoa atualizada!') }
-    else { store.addPerson(data); toast('Pessoa cadastrada!') }
-    history.back();
+    if (isEdit) { store.updatePerson(params.id, data); toast('Pessoa atualizada!'); history.back(); }
+    else { store.addPerson(data); toast('Pessoa cadastrada!'); location.hash = '/people'; }
   };
   if (isEdit) {
     document.getElementById('btn-del-person')?.addEventListener('click', (e) => {
