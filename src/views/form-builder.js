@@ -106,10 +106,11 @@ export function formBuilderView(params) {
         <button onclick="location.hash='/forms'" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-xl">arrow_back</span></button>
         <div class="flex-1 min-w-0"><input id="form-name" value="${form.name}" class="text-base font-bold bg-transparent border-none outline-none w-full truncate focus:bg-slate-50 focus:px-2 rounded transition"/></div>
         <div class="flex items-center gap-2">
-          <button id="btn-toggle-status" class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition ${form.status === 'ativo' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}">${form.status === 'ativo' ? '● Ativo' : '○ Inativo'}</button>
-          <button id="btn-toggle-login" class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition ${form.showOnLogin ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" title="Mostrar na tela de login">${form.showOnLogin ? '🔑 Login' : '🔒 Oculto'}</button>
+          <button id="btn-toggle-status" class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition ${form.status === 'ativo' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" title="Apenas formulários Ativos podem receber novas respostas">${form.status === 'ativo' ? 'Status: Ativo' : 'Status: Inativo'}</button>
+          <button id="btn-toggle-login" class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition ${form.showOnLogin ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" title="Se 'Apenas via Link', ele fica Oculto da tela inicial de Login.">${form.showOnLogin ? 'Exibir no Login' : 'Apenas via Link'}</button>
           <button id="btn-form-settings" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition" title="Configurações"><span class="material-symbols-outlined text-lg">tune</span></button>
           <button id="btn-preview" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition" title="Preview"><span class="material-symbols-outlined text-lg">visibility</span></button>
+          <button id="btn-copy-link" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition" title="Copiar Link Público"><span class="material-symbols-outlined text-lg">link</span></button>
         </div>
       </div>
     </header>
@@ -241,8 +242,14 @@ export function formBuilderView(params) {
       };
     });
 
-    // Preview
+    // Preview and Copy Link
     document.getElementById('btn-preview')?.addEventListener('click', () => showPreview());
+    document.getElementById('btn-copy-link')?.addEventListener('click', () => {
+      const url = window.location.origin + window.location.pathname + '#/f?id=' + form.id;
+      navigator.clipboard.writeText(url).then(() => {
+        toast('Link público copiado!');
+      }).catch(() => toast('Erro ao copiar link', 'error'));
+    });
 
     // Palette click (fallback — always works)
     document.querySelectorAll('.palette-item').forEach(b => {

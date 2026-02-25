@@ -2,13 +2,23 @@ import { store } from '../store.js';
 import { toast } from '../components/ui.js';
 import { navigate } from '../router.js';
 
-export function loginView() {
+export async function loginView() {
   const app = document.getElementById('app');
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('sidebar-hidden');
   document.documentElement.classList.remove('dark');
 
-  // Get active login forms from store
-  const loginForms = store.forms.filter(f => f.showOnLogin && f.status === 'ativo');
+  app.innerHTML = '<div class="flex-1 overflow-y-auto flex items-center justify-center h-full w-full bg-slate-50"><span class="material-symbols-outlined animate-spin text-primary text-3xl">refresh</span></div>';
+
+  let loginForms = [];
+  try {
+    const res = await fetch('/api/public/forms');
+    if (res.ok) {
+      loginForms = await res.json();
+    }
+  } catch (err) {
+    console.error('Falha ao obter formulários públicos:', err);
+  }
+
   const formButtons = loginForms.length ? `
         <div class="mt-6 pt-5 border-t border-slate-100">
           <p class="text-xs font-semibold text-slate-500 text-center mb-3">É sua primeira vez? Preencha um formulário:</p>

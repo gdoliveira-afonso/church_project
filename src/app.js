@@ -18,6 +18,7 @@ function roleGuard(roles, fn) { return (p) => { if (!store.isLoggedIn()) { navig
 
 route('/login', loginView);
 route('/form/public', publicFormView);
+route('/f', publicFormView);
 route('/dashboard', guard(dashboardView));
 route('/people', guard(peopleView));
 route('/people/new', roleGuard(['ADMIN', 'SUPERVISOR'], () => personFormView({ id: 'new' })));

@@ -1,14 +1,39 @@
 version: '3.8'
 
 services:
-  crm_web:
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: crm_celular_backend
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=super-secret-jwt-key # Pode ser injetado no Run
+    volumes:
+      # Volume mapeado garante que o dev.db não morra ao reiniciar container
+      - crm_db_data:/app/prisma
+    ports:
+      # Não precisa expor a 3000 para a máquina host principal, apenas internamente.
+      # Exposta apenas para testes locais se quiser, descomente abaixo:
+      # - "3000:3000"
+      expose:
+        - "3000"
+
+  frontend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: crm_celular_app
+    container_name: crm_celular_frontend
     restart: always
     ports:
-      # O lado esquerdo é a porta na máquina local (Servidor/Host). O direito é do Container.
+      # O lado esquerdo é a porta na máquina local (Servidor/Host linux), direito Container Nginx
       - "80:80"
     environment:
       - NODE_ENV=production
+    depends_on:
+      - backend # Garante que o nginx só sobe após o backend
+
+volumes:
+  crm_db_data: # Nome do disco lógico

@@ -220,7 +220,7 @@ function renderTracks() {
     const isFixed = fixedIds.includes(t.id);
     return `<div class="flex items-center gap-3 p-3.5 group">
       <div class="w-9 h-9 rounded-lg bg-${t.color}-100 flex items-center justify-center text-${t.color}-600 text-base"><span class="material-symbols-outlined">${t.icon}</span></div>
-      <div class="flex-1 min-w-0"><p class="text-sm font-semibold truncate">${t.name}</p><div class="flex items-center gap-1.5 mt-0.5"><span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-empty border border-slate-200 text-slate-500">${t.category}</span><p class="text-[11px] text-slate-400 truncate">ID: ${t.id}</p></div></div>
+      <div class="flex-1 min-w-0"><p class="text-sm font-semibold truncate">${t.name}</p><div class="flex items-center gap-1.5 mt-0.5"><span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-empty border border-slate-200 text-slate-500">${t.category}</span></div></div>
       <button class="btn-et w-7 h-7 rounded-full flex items-center justify-center text-slate-300 hover:text-primary hover:bg-primary/10 transition" data-id="${t.id}"><span class="material-symbols-outlined text-[16px]">edit</span></button>
       ${isFixed ? `<div class="w-7 h-7 flex items-center justify-center text-slate-200" title="Trilha padrão do sistema (fixa)"><span class="material-symbols-outlined text-[16px]">lock</span></div>` : `<button class="btn-dt w-7 h-7 rounded-full flex items-center justify-center text-slate-300 hover:text-red-600 hover:bg-red-50 transition" data-id="${t.id}"><span class="material-symbols-outlined text-[16px]">delete</span></button>`}
     </div>`;

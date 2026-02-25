@@ -32,6 +32,21 @@ async function seedAdmin() {
         });
         console.log('Usuário admin criado (admin/123456)');
     }
+
+    // Seed inicial para Trilhas
+    const defaultTracks = [
+        { id: 't-waterBaptism', name: 'Batismo nas Águas', category: 'espiritual', icon: 'water_drop', color: 'blue' },
+        { id: 't-holySpiritBaptism', name: 'Batismo com o Espírito Santo', category: 'espiritual', icon: 'local_fire_department', color: 'orange' },
+        { id: 't-leadersSchool', name: 'Escola de Líderes', category: 'espiritual', icon: 'school', color: 'purple' },
+        { id: 't-encounter', name: 'Encontro com Deus', category: 'retiros', icon: 'volunteer_activism', color: 'emerald' }
+    ];
+
+    for (const dt of defaultTracks) {
+        const exist = await prisma.track.findUnique({ where: { id: dt.id } });
+        if (!exist) {
+            await prisma.track.create({ data: dt });
+        }
+    }
 }
 
 // Inicializa a seed
@@ -97,6 +112,19 @@ app.post('/api/login', async (req, res) => {
 // ----------------------------------------------------------------------------
 // ROTAS PÚBLICAS (Visitantes e Formulários)
 // ----------------------------------------------------------------------------
+app.get('/api/public/forms', async (req, res) => {
+    try {
+        const forms = await prisma.form.findMany({
+            where: { status: 'ativo', showOnLogin: true }
+        });
+        const processed = forms.map(f => ({
+            ...f,
+            fields: f.fields ? JSON.parse(f.fields) : []
+        }));
+        res.json(processed);
+    } catch (err) { res.status(500).json({ error: 'Erro no servidor' }); }
+});
+
 app.get('/api/public/forms/:id', async (req, res) => {
     try {
         const form = await prisma.form.findUnique({ where: { id: req.params.id, status: 'ativo' } });
@@ -137,6 +165,46 @@ app.use('/api/forms', authenticateToken, formsRouter);
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', time: new Date() });
+});
+
+app.post('/api/settings/reset', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Só admins' });
+
+        // Deletar dependências filhas primeiro para evitar relacional
+        await prisma.triageQueue.deleteMany();
+        await prisma.form.deleteMany();
+        await prisma.notification.deleteMany();
+        await prisma.personTrack.deleteMany(); // Reseta status de todos os membros nas trilhas
+
+        // Deleta todas as trilhas EXCETO as padrões
+        await prisma.track.deleteMany({
+            where: {
+                id: { notIn: ['t-waterBaptism', 't-holySpiritBaptism', 't-leadersSchool', 't-encounter'] }
+            }
+        });
+
+        await prisma.cellJustification.deleteMany();
+        await prisma.cellCancellation.deleteMany();
+        await prisma.eventException.deleteMany();
+        await prisma.event.deleteMany();
+        await prisma.visit.deleteMany();
+        await prisma.pastoralNote.deleteMany();
+        await prisma.attendanceRecord.deleteMany();
+        await prisma.attendance.deleteMany();
+        await prisma.consolidation.deleteMany();
+        await prisma.person.deleteMany();
+        await prisma.cell.deleteMany();
+
+        await prisma.user.deleteMany({
+            where: { username: { not: 'admin' } }
+        });
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Falha no Factory Reset', err);
+        res.status(500).json({ error: 'Erro crítico interno.' });
+    }
 });
 
 app.listen(PORT, () => {

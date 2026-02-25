@@ -24,7 +24,7 @@ export async function publicFormView(params) {
   if (formId) {
     app.innerHTML = '<div class="flex-1 flex items-center justify-center p-12 text-slate-400"><span class="material-symbols-outlined animate-spin mr-2">refresh</span> Carregando formulário...</div>';
     try {
-      const res = await fetch(`http://localhost:3000/api/public/forms/${formId}`);
+      const res = await fetch(`/api/public/forms/${formId}`);
       if (res.ok) form = await res.json();
     } catch (e) { console.error('Error fetching form', e); }
   }
@@ -96,7 +96,7 @@ export async function publicFormView(params) {
     });
 
     try {
-      const res = await fetch('http://localhost:3000/api/public/triage', {
+      const res = await fetch('/api/public/triage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ formId: form.id, data })

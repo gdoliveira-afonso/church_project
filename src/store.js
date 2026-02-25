@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 
 const D = {
     currentUser: null,
@@ -113,6 +113,16 @@ class Store {
         localStorage.removeItem('crm_user');
         window.location.href = '#/';
         window.location.reload();
+    }
+
+    async resetSystem() {
+        if (!this.currentUser || this.currentUser.role !== 'ADMIN') return;
+        try {
+            await this.apiFetch('/settings/reset', { method: 'POST' });
+            this.logout();
+        } catch (e) {
+            console.error('Failed to reset system', e);
+        }
     }
 
     isLoggedIn() { return !!this.currentUser && !!this.token; }
