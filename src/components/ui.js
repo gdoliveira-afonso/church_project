@@ -116,16 +116,36 @@ export function header(title, back = false, right = '') {
     <h2 class="text-base font-bold text-slate-900 dark:text-white md:text-lg">${title}</h2>
     <div class="flex items-center gap-1">
       <div class="relative">
-        <button onclick="window.__toggleNotifications(this)" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-colors">
+        <button id="notif-btn" onclick="window.__toggleNotifications(this)" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-colors">
           <span class="material-symbols-outlined text-lg">notifications</span>
           ${unreadCount > 0 ? `<span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full"></span>` : ''}
         </button>
       </div>
       <button onclick="window.__toggleTheme?.()" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-amber-500 transition-colors"><span class="material-symbols-outlined theme-icon text-lg">${isDark() ? 'light_mode' : 'dark_mode'}</span></button>
+      <button onclick="window.__globalLogout()" class="w-9 h-9 flex md:hidden items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors" title="Sair"><span class="material-symbols-outlined text-lg">logout</span></button>
       ${right || ''}
     </div>
   </header>`;
 }
+
+window.__globalLogout = () => {
+  store.logout();
+  toast('Deslogado com sucesso');
+};
+
+window.addEventListener('store-data-loaded', () => {
+  const notifs = store.getNotifications() || [];
+  const unreadCount = notifs.length;
+  const btn = document.getElementById('notif-btn');
+  if (btn) {
+    const existingBadge = btn.querySelector('.bg-red-500');
+    if (unreadCount > 0 && !existingBadge) {
+      btn.innerHTML += `<span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full"></span>`;
+    } else if (unreadCount === 0 && existingBadge) {
+      existingBadge.remove();
+    }
+  }
+});
 
 window.__toggleNotifications = (btn) => {
   let pop = document.getElementById('notif-popover');
@@ -148,10 +168,9 @@ window.__toggleNotifications = (btn) => {
     ${notifs.map(n => `
     <div class="relative group">
       <a href="${n.action}" onclick="document.getElementById('notif-popover').remove()" class="flex items-start gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg transition pr-8">
-        <div class="w-8 h-8 rounded-full bg-${n.color}-50 dark:bg-${n.color}-900/20 flex items-center justify-center shrink-0 mt-0.5"><span class="material-symbols-outlined text-[16px] text-${n.color}-600 dark:text-${n.color}-400">${n.type}</span></div>
-        <div class="flex-1 min-w-0"><p class="text-[13px] font-bold text-slate-900 dark:text-white mb-0.5">${n.title}</p><p class="text-[11px] text-slate-500 dark:text-slate-400 leading-snug break-words">${n.text}</p></div>
+        <div class="w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary shrink-0 mt-0.5"><span class="material-symbols-outlined text-[16px]">info</span></div>
+        <div class="flex-1 min-w-0"><p class="text-[13px] font-bold text-slate-900 dark:text-white mb-0.5">${n.title}</p><p class="text-[11px] text-slate-500 dark:text-slate-400 leading-snug break-words">${n.message}</p></div>
       </a>
-      <button onclick="window.__markNotifRead('${n.id}', this, event)" class="absolute top-1/2 -translate-y-1/2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-slate-300 hover:text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition opacity-0 group-hover:opacity-100" title="Marcar como lida"><span class="material-symbols-outlined text-[14px]">done</span></button>
     </div>`).join('')}
   </div>` : `<div class="p-8 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center"><span class="material-symbols-outlined text-4xl mb-2 opacity-50">notifications_paused</span><p class="text-sm">Nenhuma notificação por enquanto</p></div>`;
 

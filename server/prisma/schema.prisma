@@ -1,0 +1,236 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  username  String   @unique
+  password  String
+  role      String   @default("USER") // ADMIN, SUPERVISOR, LEADER, etc.
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notifications Notification[]
+}
+
+model Cell {
+  id           String      @id @default(cuid())
+  name         String
+  leaderId     String?
+  viceLeaderId String?
+  hostId       String?
+  address      String?
+  meetingDay   String?
+  meetingTime  String?
+  status       String      @default("ativa")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  people            Person[]
+  attendances       Attendance[]
+  cellCancellations CellCancellation[]
+  cellJustifications CellJustification[]
+}
+
+model Person {
+  id               String   @id @default(cuid())
+  name             String
+  phone            String?
+  email            String?
+  birthdate        String?
+  address          String?
+  status           String   @default("Visitante") // Novo Convertido, Membro, etc
+  howKnown         String?
+  previousCell     String?
+  returnReason     String?
+  prayerRequest    String?
+  cellId           String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  cell             Cell?    @relation(fields: [cellId], references: [id])
+  visits           Visit[]
+  pastoralNotes    PastoralNote[]
+  attendanceRecords AttendanceRecord[]
+  personTracks     PersonTrack[]
+  consolidation    Consolidation?
+}
+
+model Consolidation {
+  id            String    @id @default(cuid())
+  personId      String    @unique
+  status        String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  startDate     DateTime  @default(now())
+  completedDate DateTime?
+  person        Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  cellId    String
+  date      String
+  notes     String?
+  createdAt DateTime @default(now())
+
+  cell      Cell     @relation(fields: [cellId], references: [id])
+  records   AttendanceRecord[]
+
+  @@unique([cellId, date])
+}
+
+model AttendanceRecord {
+  id           String     @id @default(cuid())
+  attendanceId String
+  personId     String
+  status       String     // present, absent, excused
+
+  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  person       Person     @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([attendanceId, personId])
+}
+
+model PastoralNote {
+  id        String   @id @default(cuid())
+  personId  String
+  date      String
+  type      String?
+  text      String
+  authorId  String
+  createdAt DateTime @default(now())
+
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+}
+
+model Visit {
+  id        String   @id @default(cuid())
+  personId  String
+  date      String
+  type      String
+  notes     String?
+  authorId  String
+  createdAt DateTime @default(now())
+
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  date        String
+  startTime   String?
+  endTime     String?
+  description String?
+  color       String   @default("blue")
+  type        String?  @default("event") // event, meeting, worship, etc
+  category    String?
+  location    String?
+  recurrence  String?  // none, weekly, monthly-date, monthly-weekday, yearly
+  reminder    String?
+  createdAt   DateTime @default(now())
+
+  exceptions  EventException[]
+}
+
+model EventException {
+  id        String   @id @default(cuid())
+  eventId   String
+  date      String
+  canceled  Boolean  @default(false)
+  newTitle  String?
+
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, date])
+}
+
+model CellCancellation {
+  id        String   @id @default(cuid())
+  cellId    String
+  date      String
+  reason    String?
+  authorId  String
+
+  cell      Cell     @relation(fields: [cellId], references: [id], onDelete: Cascade)
+
+  @@unique([cellId, date])
+}
+
+model CellJustification {
+  id        String   @id @default(cuid())
+  cellId    String
+  date      String
+  reason    String
+  authorId  String
+
+  cell      Cell     @relation(fields: [cellId], references: [id], onDelete: Cascade)
+}
+
+model Track {
+  id        String   @id @default(cuid())
+  name      String
+  category  String   // spiritual, retreats
+  icon      String?
+  color     String   @default("blue")
+
+  persons   PersonTrack[]
+}
+
+model PersonTrack {
+  id        String   @id @default(cuid())
+  personId  String
+  trackId   String
+  completed Boolean  @default(true) // Se registrou a trilha, está completo
+  date      DateTime @default(now())
+
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([personId, trackId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  action    String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Form {
+  id           String   @id @default(cuid())
+  name         String
+  status       String   @default("ativo")
+  showOnLogin  Boolean  @default(false)
+  icon         String?  @default("description")
+  color        String?  @default("blue")
+  subtitle     String?
+  personStatus String?
+  fields       String   // Array of maps via JSON
+
+  triage       TriageQueue[]
+}
+
+model TriageQueue {
+  id        String   @id @default(cuid())
+  formId    String
+  data      String   // Map via JSON
+  status    String   @default("new")
+  createdAt DateTime @default(now())
+
+  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+}

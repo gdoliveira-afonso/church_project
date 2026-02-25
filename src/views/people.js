@@ -7,7 +7,10 @@ export function peopleView() {
   <header class="sticky top-0 z-20 bg-white border-b border-slate-100 shrink-0">
     <div class="flex items-center justify-between px-4 md:px-6 h-14">
       <h1 class="text-base font-bold md:text-lg">Diretório de Pessoas</h1>
-      ${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="location.hash='/people/new'" class="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition"><span class="material-symbols-outlined text-lg">person_add</span></button>` : ''}
+      <div class="flex items-center gap-2">
+        <button onclick="window.__globalLogout()" class="w-8 h-8 flex md:hidden items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-red-500 transition"><span class="material-symbols-outlined text-lg">logout</span></button>
+        ${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="location.hash='/people/new'" class="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition"><span class="material-symbols-outlined text-lg">person_add</span></button>` : ''}
+      </div>
     </div>
     <div class="px-4 md:px-6 pb-3">
       <div class="relative md:max-w-sm"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
@@ -33,7 +36,7 @@ export function peopleView() {
     // Restrict view for leaders/vice-leaders
     if (!store.hasRole('ADMIN', 'SUPERVISOR')) {
       const myCells = store.cells.filter(c => c.leaderId === store.currentUser?.id || c.viceLeaderId === store.currentUser?.id).map(c => c.id);
-      pp = pp.filter(p => myCells.includes(p.cellId));
+      pp = pp.filter(p => myCells.includes(p.cellId) || p.id === store.currentUser?.id); // leader included in grid
     }
 
     if (q) pp = pp.filter(p => p.name.toLowerCase().includes(q));
@@ -85,7 +88,6 @@ export function personFormView(params) {
     <form id="person-form" class="space-y-4">
       ${field('Nome', 'inp-name', p?.name || '')}
       ${field('Telefone', 'inp-phone', p?.phone || '', 'tel')}
-      ${field('Email', 'inp-email', p?.email || '', 'email')}
       ${field('Data de Nascimento', 'inp-birth', p?.birthdate || '', 'date')}
       ${field('Endereço', 'inp-addr', p?.address || '')}
       <div>
@@ -119,8 +121,12 @@ export function personFormView(params) {
     </form>
   </div>`;
 
-  document.getElementById('person-form').onsubmit = e => {
+  document.getElementById('person-form').onsubmit = async e => {
     e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const origText = btn.innerHTML;
+    btn.innerHTML = 'Salvando...'; btn.disabled = true;
+
     const tracksPayload = {};
     document.querySelectorAll('.track-checkbox').forEach(chk => {
       if (chk.checked) tracksPayload[chk.dataset.trackId] = true;
@@ -129,7 +135,6 @@ export function personFormView(params) {
     const data = {
       name: document.getElementById('inp-name').value.trim(),
       phone: document.getElementById('inp-phone').value.trim(),
-      email: document.getElementById('inp-email').value.trim(),
       birthdate: document.getElementById('inp-birth').value,
       address: document.getElementById('inp-addr').value.trim(),
       status: document.getElementById('inp-status').value,
@@ -139,9 +144,15 @@ export function personFormView(params) {
       tracksData: tracksPayload,
       discipleship: p?.discipleship || { primeiroContato: { done: true, date: new Date().toISOString().split('T')[0] } },
     };
-    if (!data.name) { toast('Preencha o nome', 'error'); return }
-    if (isEdit) { store.updatePerson(params.id, data); toast('Pessoa atualizada!'); history.back(); }
-    else { store.addPerson(data); toast('Pessoa cadastrada!'); location.hash = '/people'; }
+    if (!data.name) { toast('Preencha o nome', 'error'); btn.innerHTML = origText; btn.disabled = false; return }
+
+    try {
+      if (isEdit) { await store.updatePerson(params.id, data); toast('Pessoa atualizada!'); history.back(); }
+      else { await store.addPerson(data); toast('Pessoa cadastrada!'); location.hash = '/people'; }
+    } catch (err) {
+      toast('Servidor indisponível', 'error');
+      btn.innerHTML = origText; btn.disabled = false;
+    }
   };
   if (isEdit) {
     document.getElementById('btn-del-person')?.addEventListener('click', (e) => {
@@ -158,11 +169,15 @@ export function personFormView(params) {
         </div>
       </div>`);
 
-      document.getElementById('btn-confirm-del-person').onclick = () => {
-        store.deletePerson(params.id);
-        closeModal();
-        toast('Pessoa excluída com sucesso');
-        location.hash = '/people';
+      document.getElementById('btn-confirm-del-person').onclick = async () => {
+        const btn = document.getElementById('btn-confirm-del-person');
+        btn.innerHTML = 'Excluindo...'; btn.disabled = true;
+        try {
+          await store.deletePerson(params.id);
+          closeModal();
+          toast('Pessoa excluída com sucesso');
+          location.hash = '/people';
+        } catch (e) { toast('Erro ao excluir', 'error'); btn.innerHTML = 'Excluir'; btn.disabled = false; }
       };
     });
   }

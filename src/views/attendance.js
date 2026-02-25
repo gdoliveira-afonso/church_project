@@ -78,10 +78,16 @@ export function attendanceView(params) {
     if (btn) btn.style.display = 'none';
     return;
   }
-  document.getElementById('btn-save').onclick = () => {
+  document.getElementById('btn-save').onclick = async (e) => {
+    const btn = e.currentTarget;
+    const orig = btn.innerHTML; btn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> Salvando...'; btn.disabled = true;
+
     const recs = Object.entries(att).filter(([, v]) => v).map(([pid, s]) => ({ personId: pid, status: s }));
-    if (!recs.length) { toast('Marque pelo menos um membro', 'warning'); return }
-    store.addAttendance({ cellId, date: targetDate, records: recs, notes: '' });
-    toast('Presença salva!'); location.hash = `/cell?id=${cellId}`;
+    if (!recs.length) { toast('Marque pelo menos um membro', 'warning'); btn.innerHTML = orig; btn.disabled = false; return }
+
+    try {
+      await store.addAttendance({ cellId, date: targetDate, records: recs, notes: '' });
+      toast('Presença salva!'); location.hash = `/cell?id=${cellId}`;
+    } catch (err) { toast('Erro de conexão ao salvar', 'error'); btn.innerHTML = orig; btn.disabled = false; }
   };
 }

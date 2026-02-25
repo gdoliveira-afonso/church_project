@@ -50,14 +50,28 @@ function cellForm(cellId) {
     <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition mt-2">${c ? 'Salvar' : 'Criar Célula'}</button>
     ${c ? `<button type="button" id="btn-del-cell" class="w-full bg-red-50 text-red-600 border border-red-200 py-2 rounded-lg text-sm font-semibold hover:bg-red-100">Excluir Célula</button>` : ''}
   </form></div>`);
-  document.getElementById('cell-form').onsubmit = e => {
+  document.getElementById('cell-form').onsubmit = async e => {
     e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const orig = btn.innerHTML; btn.innerHTML = 'Salvando...'; btn.disabled = true;
+
     const data = { name: document.getElementById('cf-name').value.trim(), meetingDay: document.getElementById('cf-day').value, meetingTime: document.getElementById('cf-time').value, capacity: parseInt(document.getElementById('cf-cap').value) || 12, address: document.getElementById('cf-addr').value, leaderId: document.getElementById('cf-leader').value, viceLeaderId: document.getElementById('cf-vice-leader').value || null, region: '' };
-    if (!data.name) { toast('Nome obrigatório', 'error'); return }
-    if (c) { store.updateCell(cellId, data); toast('Célula atualizada!') } else { store.addCell(data); toast('Célula criada!') }
-    closeModal(); cellsView();
+    if (!data.name) { toast('Nome obrigatório', 'error'); btn.innerHTML = orig; btn.disabled = false; return }
+
+    try {
+      if (c) { await store.updateCell(cellId, data); toast('Célula atualizada!') } else { await store.addCell(data); toast('Célula criada!') }
+      closeModal(); cellsView();
+    } catch (err) { toast('Servidor indisponível', 'error'); btn.innerHTML = orig; btn.disabled = false; }
   };
-  document.getElementById('btn-del-cell')?.addEventListener('click', () => { if (confirm('Excluir esta célula?')) { store.deleteCell(cellId); toast('Célula excluída'); closeModal(); cellsView() } });
+  document.getElementById('btn-del-cell')?.addEventListener('click', async (e) => {
+    if (confirm('Excluir esta célula?')) {
+      const btn = e.target;
+      const orig = btn.innerHTML; btn.innerHTML = 'Excluindo...'; btn.disabled = true;
+      try {
+        await store.deleteCell(cellId); toast('Célula excluída'); closeModal(); cellsView()
+      } catch (err) { toast('Erro ao excluir', 'error'); btn.innerHTML = orig; btn.disabled = false; }
+    }
+  });
 }
 
 export function cellDetailView(params) {

@@ -66,7 +66,7 @@ export function profileView(params) {
           ${showBtn ? `<button id="btn-complete-consolidation" class="w-full bg-${sColor}-600 text-white py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-${sColor}-700 transition" onclick="window.completeCons()"> <span class="material-symbols-outlined text-lg">check_circle</span> Marcar como Consolidado </button>` : `<p class="text-xs text-center text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 py-2 rounded-lg">Consolidado em ${new Date(c.completedDate).toLocaleDateString('pt-BR')}</p>`}
         </div>`;
       }
-      tc.innerHTML = consolidationHtml + card('📌 Dados Gerais', `<dl class="space-y-3">${[['person', p.name], ['call', p.phone || '-'], ['mail', p.email || '-'], ['cake', p.birthdate || '-'], ['home', p.address || '-'], ['calendar_today', p.joinedDate || '-']].map(([i, v]) => `<div class="flex items-center gap-3"><span class="material-symbols-outlined text-slate-400 text-lg">${i}</span><span class="text-sm">${v}</span></div>`).join('')}</dl>`);
+      tc.innerHTML = consolidationHtml + card('📌 Dados Gerais', `<dl class="space-y-3">${[['person', p.name], ['call', p.phone || '-'], ['mail', p.email || '-'], ['cake', p.birthdate ? p.birthdate.split('-').reverse().join('/') : '-'], ['home', p.address || '-'], ['calendar_today', p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR') : '-']].map(([i, v]) => `<div class="flex items-center gap-3"><span class="material-symbols-outlined text-slate-400 text-lg">${i}</span><span class="text-sm">${v}</span></div>`).join('')}</dl>`);
     }
     if (t === 'espiritual') {
       const spTracks = store.tracks.filter(tr => tr.category === 'espiritual');
@@ -89,7 +89,19 @@ export function profileView(params) {
     }
     if (t === 'notas') {
       const notes = getNotes();
-      tc.innerHTML = `<div class="space-y-3">${notes.length ? notes.map(n => `<div class="p-4 bg-white rounded-xl border-l-4 ${n.category === 'Visita' ? 'border-l-emerald-500' : n.category === 'Desânimo' ? 'border-l-amber-500' : n.category === 'Falta' ? 'border-l-red-500' : 'border-l-primary'} shadow-sm"><div class="flex justify-between mb-1"><span class="text-[11px] font-medium px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">${n.category}</span><span class="text-[11px] text-slate-400">${n.date}</span></div><p class="text-sm text-slate-700">${n.text}</p></div>`).join('') : '<p class="text-sm text-slate-400 text-center py-6">Nenhuma nota pastoral</p>'}</div>`;
+      tc.innerHTML = `<div class="space-y-3">${notes.length ? notes.map(n => {
+        const author = store.getUser(n.authorId);
+        const authorName = author ? author.name : 'Desconhecido';
+        const typeStr = n.type || n.category || 'Outro';
+        return `<div class="p-4 bg-white rounded-xl border-l-4 ${typeStr === 'Visita' ? 'border-l-emerald-500' : typeStr === 'Desânimo' ? 'border-l-amber-500' : typeStr === 'Falta' ? 'border-l-red-500' : 'border-l-primary'} shadow-sm">
+          <div class="flex justify-between mb-1">
+            <span class="text-[11px] font-medium px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">${authorName}</span>
+            <span class="text-[11px] text-slate-400">${n.date}</span>
+          </div>
+          <p class="text-[11px] text-slate-500 font-bold mb-1">${typeStr}</p>
+          <p class="text-sm text-slate-700">${n.text}</p>
+        </div>`;
+      }).join('') : '<p class="text-sm text-slate-400 text-center py-6">Nenhuma nota registrada</p>'}</div>`;
     }
   }
 
@@ -128,19 +140,23 @@ export function profileView(params) {
         <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 active:scale-[.98] transition-all">Salvar Visita</button>
       </form>
     </div>`);
-    document.getElementById('visit-form').onsubmit = e => {
+    document.getElementById('visit-form').onsubmit = async e => {
       e.preventDefault();
-      store.addVisit({
-        personId: p.id,
-        authorId: store.currentUser.id,
-        date: document.getElementById('vf-date').value,
-        type: document.getElementById('vf-type').value,
-        observation: document.getElementById('vf-obs').value.trim(),
-        result: document.getElementById('vf-result').value
-      });
-      closeModal();
-      toast('Visita registrada!');
-      show('visitas');
+      const btn = e.target.querySelector('button[type="submit"]');
+      const orig = btn.innerHTML; btn.innerHTML = 'Salvando...'; btn.disabled = true;
+      try {
+        await store.addVisit({
+          personId: p.id,
+          authorId: store.currentUser.id,
+          date: document.getElementById('vf-date').value,
+          type: document.getElementById('vf-type').value,
+          observation: document.getElementById('vf-obs').value.trim(),
+          result: document.getElementById('vf-result').value
+        });
+        closeModal();
+        toast('Visita registrada!');
+        show('visitas');
+      } catch (err) { toast('Erro ao salvar', 'error'); btn.innerHTML = orig; btn.disabled = false; }
     };
   }
 
@@ -170,19 +186,24 @@ export function profileView(params) {
         <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 active:scale-[.98] transition-all">Salvar Nota</button>
       </form>
     </div>`);
-    document.getElementById('note-form').onsubmit = e => {
+    document.getElementById('note-form').onsubmit = async e => {
       e.preventDefault();
       const text = document.getElementById('nf-text').value.trim();
       if (!text) return;
-      store.addNote({ personId: p.id, authorId: store.currentUser.id, date: new Date().toISOString().split('T')[0], category: document.getElementById('nf-cat').value, text, visibility: 'leadership' });
-      closeModal();
-      toast('Nota adicionada!');
-      show('notas');
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      const orig = btn.innerHTML; btn.innerHTML = 'Salvando...'; btn.disabled = true;
+      try {
+        await store.addNote({ personId: p.id, authorId: store.currentUser.id, date: new Date().toISOString().split('T')[0], type: document.getElementById('nf-cat').value, text, visibility: 'leadership' });
+        closeModal();
+        toast('Nota adicionada!');
+        show('notas');
+      } catch (err) { toast('Erro ao salvar', 'error'); btn.innerHTML = orig; btn.disabled = false; }
     };
   };
 
-  window.completeCons = () => {
-    store.completeConsolidation(p.id);
+  window.completeCons = async () => {
+    await store.completeConsolidation(p.id);
     toast('Consolidação concluída 🎉');
     show('dados');
   };

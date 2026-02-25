@@ -1,9 +1,13 @@
 import { store } from '../store.js';
 import { bottomNav, badge, isDark, toggleTheme, openModal } from '../components/ui.js';
 
-export function dashboardView() {
+export async function dashboardView() {
   const app = document.getElementById('app');
-  const m = store.getMetrics(), u = store.currentUser;
+  app.innerHTML = '<div class="flex items-center justify-center p-12 text-slate-400"><span class="material-symbols-outlined animate-spin mr-2">refresh</span> Carregando dashboard...</div>';
+
+  const m = await store.fetchMetrics();
+  const u = store.currentUser;
+  if (!m || !u) return;
   app.innerHTML = `
   <header class="sticky top-0 z-20 bg-white border-b border-slate-100 px-4 md:px-6 py-3">
     <div class="flex items-center justify-between">
@@ -19,6 +23,7 @@ export function dashboardView() {
           </button>
         </div>
         <button id="header-theme" class="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-amber-500 transition-colors"><span class="material-symbols-outlined theme-icon text-xl">${isDark() ? 'light_mode' : 'dark_mode'}</span></button>
+        <button onclick="window.__globalLogout()" class="w-9 h-9 flex md:hidden items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-red-500 transition-colors" title="Sair"><span class="material-symbols-outlined text-xl">logout</span></button>
       </div>
     </div>
   </header>
@@ -26,9 +31,9 @@ export function dashboardView() {
     <div class="px-4 md:px-6 lg:px-10 py-5 space-y-6 max-w-7xl mx-auto w-full">
       <section>
         <div class="flex items-center justify-between mb-3"><h2 class="text-base font-bold md:text-lg">Visão Geral</h2>${badge('Hoje', 'blue')}</div>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 ${store.hasRole('ADMIN', 'SUPERVISOR') ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-3">
           ${kpi('groups', 'Total Membros', m.total, `${m.newConverts} novos`, 'blue')}
-          ${kpi('diversity_3', 'Células Ativas', m.cells, `${store.people.filter(p => !p.cellId).length} sem célula`, 'indigo')}
+          ${store.hasRole('ADMIN', 'SUPERVISOR') ? kpi('diversity_3', 'Células Ativas', m.cells, `${store.people.filter(p => !p.cellId).length} sem célula`, 'indigo') : ''}
           ${kpi('water_drop', 'Batizados', m.waterBaptism + '%', `${m.total - Math.round(m.waterBaptism * m.total / 100)} pendentes`, 'sky')}
           ${kpi('volunteer_activism', 'Encontros', m.encounter + '%', `${m.total - Math.round(m.encounter * m.total / 100)} pendentes`, 'emerald')}
         </div>

@@ -279,20 +279,26 @@ function cellsTable() {
   return `<table class="w-full text-left text-xs">
     <thead><tr class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider">
       <th class="px-3 py-2.5 rounded-l-lg">Célula</th><th class="px-3 py-2.5">Líder</th><th class="px-3 py-2.5 text-center">Membros</th>
-      <th class="px-3 py-2.5">Dia</th><th class="px-3 py-2.5 text-center rounded-r-lg">Frequências Registradas</th>
+      <th class="px-3 py-2.5">Dia</th><th class="px-3 py-2.5 text-center text-emerald-600">Encont. Realizados</th>
+      <th class="px-3 py-2.5 text-center text-amber-600">Justificados</th>
+      <th class="px-3 py-2.5 text-center text-slate-500 rounded-r-lg">Cancelados (Admin)</th>
     </tr></thead>
     <tbody>${store.getVisibleCells().length ? store.getVisibleCells().map(c => {
     const members = store.getCellMembers(c.id);
     const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
     const attCount = store.getAttendanceForCell(c.id).length;
+    const justifications = store.getCellJustifications(c.id).length;
+    const cancellations = store.cellCancellations ? store.cellCancellations.filter(can => can.cellId === c.id).length : 0;
     return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
         <td class="px-3 py-2.5 font-semibold">${c.name}</td>
         <td class="px-3 py-2.5 text-slate-500">${leader?.name || '—'}</td>
         <td class="px-3 py-2.5 text-center font-bold">${members.length}</td>
         <td class="px-3 py-2.5 text-slate-500">${c.meetingDay || '—'}</td>
-        <td class="px-3 py-2.5 text-center">${attCount}</td>
+        <td class="px-3 py-2.5 text-center font-bold text-emerald-600">${attCount}</td>
+        <td class="px-3 py-2.5 text-center text-amber-600 font-bold">${justifications}</td>
+        <td class="px-3 py-2.5 text-center text-slate-500 font-medium">${cancellations}</td>
       </tr>`;
-  }).join('') : '<tr><td colspan="5" class="text-center text-slate-400 py-8">Nenhuma célula</td></tr>'}</tbody>
+  }).join('') : '<tr><td colspan="8" class="text-center text-slate-400 py-8">Nenhuma célula</td></tr>'}</tbody>
   </table>`;
 }
 
@@ -470,7 +476,10 @@ function exportVisitsExcel(visits) {
 function exportCellsExcel() {
   const data = store.getVisibleCells().map(c => {
     const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
-    return { 'Célula': c.name, 'Líder': leader?.name || '', 'Membros': store.getCellMembers(c.id).length, 'Dia': c.meetingDay || '' };
+    const attCount = store.getAttendanceForCell(c.id).length;
+    const justifications = store.getCellJustifications(c.id).length;
+    const cancellations = store.cellCancellations ? store.cellCancellations.filter(can => can.cellId === c.id).length : 0;
+    return { 'Célula': c.name, 'Líder': leader?.name || '', 'Membros': store.getCellMembers(c.id).length, 'Dia': c.meetingDay || '', 'Realizadas': attCount, 'Justificadas': justifications, 'Canceladas': cancellations };
   });
   downloadExcel(data, 'Células', 'celulas');
 }
@@ -528,14 +537,20 @@ function exportPDF(d, currentTab = 'members', visibleCols = {}) {
   } else if (currentTab === 'cells') {
     tabHtml = `<div class="section-title">Lista de Células</div>
     <table>
-      <thead><tr><th>Nome da Célula</th><th>Líder</th><th>Dia de Encontro</th><th>Membros</th></tr></thead>
+      <thead><tr><th>Nome da Célula</th><th>Líder</th><th>Dia de Encontro</th><th>Membros</th><th>Realizadas</th><th>Justificadas</th><th>Canceladas</th></tr></thead>
       <tbody>${store.getVisibleCells().map(c => {
       const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
+      const attCount = store.getAttendanceForCell(c.id).length;
+      const justifications = store.getCellJustifications(c.id).length;
+      const cancellations = store.cellCancellations ? store.cellCancellations.filter(can => can.cellId === c.id).length : 0;
       return `<tr>
           <td style="font-weight:600">${c.name}</td>
           <td>${leader?.name || '—'}</td>
           <td>${c.meetingDay || '—'}</td>
           <td style="font-weight:700;text-align:center">${store.getCellMembers(c.id).length}</td>
+          <td style="font-weight:700;text-align:center;color:#059669">${attCount}</td>
+          <td style="font-weight:700;text-align:center;color:#d97706">${justifications}</td>
+          <td style="font-weight:500;text-align:center;color:#64748b">${cancellations}</td>
         </tr>`;
     }).join('')}</tbody>
     </table>`;

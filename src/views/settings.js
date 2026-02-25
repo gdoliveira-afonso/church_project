@@ -118,7 +118,7 @@ function renderTeam() {
       toast('Sem permissão para excluir este usuário', 'error'); return;
     }
     openModal(`<div class="p-6 text-center"><div class="w-14 h-14 rounded-full bg-red-100 mx-auto mb-4 flex items-center justify-center"><span class="material-symbols-outlined text-red-600 text-3xl">person_remove</span></div><h3 class="text-lg font-bold mb-1">Excluir Usuário</h3><p class="text-sm text-slate-500">${usr.name}</p><p class="text-xs text-slate-400 mb-5">@${usr.username}</p><div class="flex gap-3"><button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="flex-1 py-2.5 rounded-lg bg-slate-100 text-sm font-semibold hover:bg-slate-200">Cancelar</button><button id="btn-confirm-del" class="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700">Excluir</button></div></div>`);
-    document.getElementById('btn-confirm-del').onclick = () => { store.deleteUser(usr.id); closeModal(); toast('Usuário excluído'); renderTeam() };
+    document.getElementById('btn-confirm-del').onclick = async () => { await store.deleteUser(usr.id); closeModal(); toast('Usuário excluído'); renderTeam() };
   });
 }
 
@@ -126,7 +126,7 @@ function editNameModal() {
   openModal(`<div class="p-6"><div class="flex justify-between items-center mb-5"><h3 class="text-base font-bold">Editar Nome</h3><button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="p-1 rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-slate-400">close</span></button></div>
   <input id="inp-n" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 mb-4" value="${store.currentUser.name}"/>
   <button id="btn-sn" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition">Salvar</button></div>`);
-  document.getElementById('btn-sn').onclick = () => { const n = document.getElementById('inp-n').value.trim(); if (!n) { toast('Nome vazio', 'error'); return } store.updateUser(store.currentUser.id, { name: n }); closeModal(); toast('Nome atualizado!'); settingsView() };
+  document.getElementById('btn-sn').onclick = async () => { const n = document.getElementById('inp-n').value.trim(); if (!n) { toast('Nome vazio', 'error'); return } await store.updateUser(store.currentUser.id, { name: n }); closeModal(); toast('Nome atualizado!'); settingsView() };
 }
 
 function editPassModal() {
@@ -137,12 +137,12 @@ function editPassModal() {
     <input id="inp-cp" type="password" placeholder="Confirmar nova senha" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
     <button id="btn-sp" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition mt-1">Alterar Senha</button>
   </div></div>`);
-  document.getElementById('btn-sp').onclick = () => {
+  document.getElementById('btn-sp').onclick = async () => {
     const o = document.getElementById('inp-op').value, n = document.getElementById('inp-np').value, c = document.getElementById('inp-cp').value;
     if (o !== store.currentUser.password) { toast('Senha atual incorreta', 'error'); return }
     if (n.length < 4) { toast('Mínimo 4 caracteres', 'error'); return }
     if (n !== c) { toast('Senhas não coincidem', 'error'); return }
-    store.updateUser(store.currentUser.id, { password: n }); closeModal(); toast('Senha alterada!');
+    await store.updateUser(store.currentUser.id, { password: n }); closeModal(); toast('Senha alterada!');
   };
 }
 
@@ -156,7 +156,7 @@ function userModal(id) {
   <form id="user-form" class="space-y-3">
     <input id="uf-name" placeholder="Nome completo" value="${e?.name || ''}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
     <input id="uf-username" type="text" placeholder="Nome de usuário (sem espaços)" value="${e?.username || ''}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
-    ${!e ? `<input id="uf-pass" type="password" placeholder="Senha inicial" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>` : ''}
+    ${!e ? `<input id="uf-pass" type="password" placeholder="Senha inicial" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" required/>` : (store.currentUser.role === 'ADMIN' ? `<input id="uf-pass" type="password" placeholder="Nova senha (deixe vazio para manter)" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>` : '')}
     <div><p class="text-xs font-semibold text-slate-600 mb-1.5">Função</p><div class="grid grid-cols-2 gap-1.5" id="role-grid">${allowedRoles.map(([k, v]) => `<button type="button" class="role-opt flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-medium transition ${(e?.role || 'LEADER') === k ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary' : 'border-slate-200 text-slate-500 hover:border-slate-300'}" data-r="${k}"><span class="material-symbols-outlined text-[16px]">${k === 'ADMIN' ? 'shield_person' : k === 'SUPERVISOR' ? 'supervisor_account' : 'person'}</span>${v}</button>`).join('')}</div><input type="hidden" id="uf-role" value="${e?.role || 'LEADER'}"/></div>
     <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition mt-1">${e ? 'Salvar' : 'Criar'}</button>
   </form></div>`);
@@ -165,26 +165,42 @@ function userModal(id) {
     b.classList.add('border-primary', 'bg-primary/10', 'text-primary', 'ring-1', 'ring-primary'); b.classList.remove('border-slate-200', 'text-slate-500');
     document.getElementById('uf-role').value = b.dataset.r;
   });
-  document.getElementById('user-form').onsubmit = ev => {
+  document.getElementById('user-form').onsubmit = async ev => {
     ev.preventDefault();
+    const btn = ev.target.querySelector('button[type="submit"]');
+    const origText = btn.innerHTML;
+    btn.innerHTML = 'Salvando...'; btn.disabled = true;
+
     const n = document.getElementById('uf-name').value.trim();
-    const un = document.getElementById('uf-username').value.trim().toLowerCase().replace(/\s+/g, '');
+    const un = document.getElementById('uf-username').value.trim().toLowerCase().replace(/\\s+/g, '');
     const r = document.getElementById('uf-role').value;
 
-    if (!n || !un) { toast('Preencha nome e usuário', 'error'); return }
-    if (e) {
-      store.updateUser(id, { name: n, username: un, role: r });
-      if (id === store.currentUser.id) settingsView();
-      toast('Atualizado!');
+    if (!n || !un) { toast('Preencha nome e usuário', 'error'); btn.innerHTML = origText; btn.disabled = false; return }
+
+    try {
+      if (e) {
+        const updatePayload = { name: n, username: un, role: r };
+        const pwField = document.getElementById('uf-pass');
+        if (pwField && pwField.value.trim().length > 0) {
+          if (pwField.value.length < 4) { toast('Senha min. 4 chars', 'error'); btn.innerHTML = origText; btn.disabled = false; return; }
+          updatePayload.password = pwField.value;
+        }
+        await store.updateUser(id, updatePayload);
+        if (id === store.currentUser.id) settingsView();
+        toast('Atualizado!');
+      }
+      else {
+        const pw = document.getElementById('uf-pass').value;
+        if (!pw || pw.length < 4) { toast('Senha min. 4 chars', 'error'); btn.innerHTML = origText; btn.disabled = false; return }
+        if (store.users.find(u => u.username === un)) { toast('Usuário já existe', 'error'); btn.innerHTML = origText; btn.disabled = false; return }
+        await store.addUser({ name: n, username: un, password: pw, role: r, avatar: null });
+        toast('Usuário criado!')
+      }
+      closeModal(); renderTeam();
+    } catch (err) {
+      toast('Servidor indisponível', 'error');
+      btn.innerHTML = origText; btn.disabled = false;
     }
-    else {
-      const pw = document.getElementById('uf-pass').value;
-      if (!pw || pw.length < 4) { toast('Senha min. 4 chars', 'error'); return }
-      if (store.users.find(u => u.username === un)) { toast('Usuário já existe', 'error'); return }
-      store.addUser({ name: n, username: un, password: pw, role: r, avatar: null });
-      toast('Usuário criado!')
-    }
-    closeModal(); renderTeam();
   };
 }
 
@@ -215,7 +231,7 @@ function renderTracks() {
   document.querySelectorAll('.btn-dt').forEach(b => b.onclick = () => {
     const t = store.tracks.find(x => x.id === b.dataset.id); if (!t) return;
     openModal(`<div class="p-6 text-center"><div class="w-14 h-14 rounded-full bg-red-100 mx-auto mb-4 flex items-center justify-center"><span class="material-symbols-outlined text-red-600 text-3xl">delete_forever</span></div><h3 class="text-lg font-bold mb-1">Excluir Trilha</h3><p class="text-sm text-slate-500">${t.name}</p><p class="text-xs text-red-400 mb-5 mt-2 font-medium">Os membros que possuíam essa trilha marcada não a exibirão mais no perfil.</p><div class="flex gap-3"><button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="flex-1 py-2.5 rounded-lg bg-slate-100 text-sm font-semibold hover:bg-slate-200">Cancelar</button><button id="btn-confirm-del-track" class="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700">Excluir</button></div></div>`);
-    document.getElementById('btn-confirm-del-track').onclick = () => { store.deleteTrack(t.id); closeModal(); toast('Trilha excluída'); renderTracks() };
+    document.getElementById('btn-confirm-del-track').onclick = async () => { await store.deleteTrack(t.id); closeModal(); toast('Trilha excluída'); renderTracks() };
   });
 }
 
@@ -261,7 +277,7 @@ function trackModal(id) {
     document.getElementById('tf-color').value = b.dataset.c;
   });
 
-  document.getElementById('track-form').onsubmit = ev => {
+  document.getElementById('track-form').onsubmit = async ev => {
     ev.preventDefault();
     const n = document.getElementById('tf-name').value.trim();
     if (!n) { toast('Dê um nome à trilha', 'error'); return; }
@@ -271,8 +287,8 @@ function trackModal(id) {
       icon: document.getElementById('tf-icon').value,
       color: document.getElementById('tf-color').value
     };
-    if (t) { store.updateTrack(id, payload); toast('Atualizado!') }
-    else { store.addTrack(payload); toast('Trilha criada!') }
+    if (t) { await store.updateTrack(id, payload); toast('Atualizado!') }
+    else { await store.addTrack(payload); toast('Trilha criada!') }
     closeModal(); renderTracks();
   };
 }
@@ -323,7 +339,7 @@ function tCard(t, processed = false) {
       <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-primary text-sm font-bold">${(name[0] || '?').toUpperCase()}</div>
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2"><p class="text-sm font-semibold truncate">${name}</p>${statusBadge}${doneBadge}</div>
-        <p class="text-[11px] text-slate-400 mt-0.5">${phone ? phone + ' • ' : ''}${f?.name || 'Formulário'} • ${new Date(t.submittedAt || t.date).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+        <p class="text-[11px] text-slate-400 mt-0.5">${phone ? phone + ' • ' : ''}${t.formName || 'Formulário'} • ${new Date(t.submittedAt || t.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
       </div>
       <span class="material-symbols-outlined text-slate-300 group-hover:text-primary text-lg transition">chevron_right</span>
     </div>
@@ -350,7 +366,7 @@ function openTriageDetail(id) {
       <div class="w-10 h-10 rounded-full bg-${statusColor}-100 flex items-center justify-center text-${statusColor}-700 font-bold text-sm">${(name[0] || '?').toUpperCase()}</div>
       <div class="flex-1">
         <p class="text-sm font-bold text-${statusColor}-800">${name || 'Sem nome'}</p>
-        <p class="text-[11px] text-${statusColor}-600">${statusLabel} • ${f?.name || 'Formulário'}</p>
+        <p class="text-[11px] text-${statusColor}-600">${statusLabel} • ${t.formName || 'Formulário'}</p>
       </div>
     </div>
     <div class="mb-4">
@@ -392,7 +408,7 @@ function openTriageDetail(id) {
   </div>`);
 
   if (!isDone) {
-    document.getElementById('triage-action').onsubmit = e => {
+    document.getElementById('triage-action').onsubmit = async e => {
       e.preventDefault();
       const trName = document.getElementById('tr-name').value.trim() || name || 'Sem nome';
       const trPhone = document.getElementById('tr-phone').value.trim();
@@ -407,16 +423,16 @@ function openTriageDetail(id) {
         tracksData: {},
         discipleship: { primeiroContato: { done: true, date: new Date().toISOString().split('T')[0] } }
       };
-      store.addPerson(personData);
+      await store.addPerson(personData);
       t.status = 'done';
-      store.save();
+      await store.updateTriage(t.id, 'done');
       closeModal();
       toast('Pessoa cadastrada com sucesso!');
       triageView();
     };
-    document.getElementById('tr-reject')?.addEventListener('click', () => {
+    document.getElementById('tr-reject')?.addEventListener('click', async () => {
       t.status = 'rejected';
-      store.save();
+      await store.updateTriage(t.id, 'rejected');
       closeModal();
       toast('Registro rejeitado', 'warning');
       triageView();

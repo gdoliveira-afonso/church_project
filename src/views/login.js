@@ -74,10 +74,24 @@ export function loginView() {
       <div class="py-3 text-center border-t border-slate-100 bg-slate-50/50"><p class="text-[11px] text-slate-400">Gestão Celular v3.0 • CRM Celular</p></div>
     </div>
   </div>`;
-  document.getElementById('login-form').onsubmit = e => {
+  document.getElementById('login-form').onsubmit = async e => {
     e.preventDefault();
-    const u = store.login(document.getElementById('username').value.trim(), document.getElementById('password').value);
-    if (u) { const sb = document.getElementById('sidebar'); if (sb) sb.classList.remove('sidebar-hidden'); toast(`Bem-vindo, ${u.name}!`); navigate('/dashboard') }
-    else toast('Usuário ou senha incorretos', 'error');
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm mr-2">refresh</span> Entrando...';
+    btn.disabled = true;
+
+    const u = await store.login(document.getElementById('username').value.trim(), document.getElementById('password').value);
+
+    if (u) {
+      const sb = document.getElementById('sidebar');
+      if (sb) sb.classList.remove('sidebar-hidden');
+      toast(`Bem-vindo, ${u.name}!`);
+      navigate('/dashboard');
+    } else {
+      toast('Usuário ou senha incorretos', 'error');
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
   };
 }

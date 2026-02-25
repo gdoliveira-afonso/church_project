@@ -34,3 +34,9 @@ route('/triage', roleGuard(['ADMIN', 'SUPERVISOR'], triageView));
 route('/calendar', guard(calendarView));
 
 startRouter();
+
+// Garante que a tela seja recarregada assim que as informações chegarem do servidor remoto
+window.addEventListener('store-data-loaded', () => {
+    // Força o router a renderizar a página atual novamente agora que o Store tem dados
+    window.dispatchEvent(new Event('hashchange'));
+});

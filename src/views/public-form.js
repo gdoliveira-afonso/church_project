@@ -12,20 +12,28 @@ const FIELD_TYPE_MAP = {
   checkbox: (f) => { const items = f.checkItems || [f.checkLabel || f.name]; return `<div class="space-y-2">${items.map((ci, i) => `<label class="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" class="pf-chk accent-primary w-4 h-4" data-field="${f.name}" data-idx="${i}" ${f.required && items.length === 1 ? 'required' : ''}/><span class="text-sm text-slate-700">${ci}</span></label>`).join('')}</div>`; },
 };
 
-export function publicFormView(params) {
+export async function publicFormView(params) {
   const app = document.getElementById('app');
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('sidebar-hidden');
   document.documentElement.classList.remove('dark');
 
-  // Get form ID from params
+  // Load from Public API
   const formId = params?.id;
-  const form = formId ? store.forms.find(f => f.id === formId) : null;
+  let form = null;
+
+  if (formId) {
+    app.innerHTML = '<div class="flex-1 flex items-center justify-center p-12 text-slate-400"><span class="material-symbols-outlined animate-spin mr-2">refresh</span> Carregando formulário...</div>';
+    try {
+      const res = await fetch(`http://localhost:3000/api/public/forms/${formId}`);
+      if (res.ok) form = await res.json();
+    } catch (e) { console.error('Error fetching form', e); }
+  }
 
   if (!form) {
     app.innerHTML = `<div class="flex-1 flex flex-col items-center justify-center p-8">
       <span class="material-symbols-outlined text-5xl text-slate-200 mb-3">error</span>
       <p class="text-lg font-bold text-slate-600 mb-1">Formulário não encontrado</p>
-      <p class="text-sm text-slate-400 mb-6">Este formulário não existe ou foi removido.</p>
+      <p class="text-sm text-slate-400 mb-6">Este formulário não está ativo ou não existe.</p>
       <a href="#/login" class="text-primary font-semibold text-sm hover:underline">← Voltar ao login</a>
     </div>`;
     return;
@@ -66,8 +74,12 @@ export function publicFormView(params) {
     </div>
   </div>`;
 
-  document.getElementById('public-form').onsubmit = e => {
+  document.getElementById('public-form').onsubmit = async e => {
     e.preventDefault();
+    const btn = e.target.querySelector('button[type="submit"]');
+    const origText = btn.innerHTML;
+    btn.innerHTML = 'Enviando...'; btn.disabled = true;
+
     // Collect all field values
     const data = {};
     form.fields.forEach(f => {
@@ -83,25 +95,27 @@ export function publicFormView(params) {
       }
     });
 
-    // All submissions go to triage — person creation happens when supervisor accepts
-    store.triageQueue.push({
-      id: 't' + Date.now(),
-      formId: form.id,
-      formName: form.name,
-      data,
-      submittedAt: new Date().toISOString(),
-      status: 'new'
-    });
-    store.save();
+    try {
+      const res = await fetch('http://localhost:3000/api/public/triage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ formId: form.id, data })
+      });
 
-    // Show success
-    const formEl = document.getElementById('public-form');
-    formEl.innerHTML = `
-      <div class="text-center py-8">
-        <div class="w-16 h-16 mx-auto rounded-full bg-emerald-100 flex items-center justify-center mb-4"><span class="material-symbols-outlined text-emerald-600 text-3xl">check_circle</span></div>
-        <h3 class="text-lg font-bold text-slate-900 mb-1">Enviado com sucesso!</h3>
-        <p class="text-sm text-slate-500 mb-6">Seu formulário foi recebido. Entraremos em contato em breve.</p>
-        <a href="#/login" class="inline-block px-6 py-2.5 bg-slate-100 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">← Voltar</a>
-      </div>`;
+      if (!res.ok) throw new Error('API Error');
+
+      // Show success
+      const formEl = document.getElementById('public-form');
+      formEl.innerHTML = `
+        <div class="text-center py-8">
+          <div class="w-16 h-16 mx-auto rounded-full bg-emerald-100 flex items-center justify-center mb-4"><span class="material-symbols-outlined text-emerald-600 text-3xl">check_circle</span></div>
+          <h3 class="text-lg font-bold text-slate-900 mb-1">Enviado com sucesso!</h3>
+          <p class="text-sm text-slate-500 mb-6">Seu formulário foi recebido. Entraremos em contato em breve.</p>
+          <a href="#/login" class="inline-block px-6 py-2.5 bg-slate-100 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-200 transition">← Voltar</a>
+        </div>`;
+    } catch (err) {
+      toast('Erro ao enviar formulário, tente novamente.', 'error');
+      btn.innerHTML = origText; btn.disabled = false;
+    }
   };
 }

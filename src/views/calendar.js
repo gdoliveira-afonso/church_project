@@ -1,11 +1,22 @@
 import { store } from '../store.js';
 import { header, bottomNav, toast, openModal, closeModal } from '../components/ui.js';
 
-export function calendarView() {
+export async function calendarView() {
     const app = document.getElementById('app');
     const d = new Date();
     let currentMonth = d.getMonth();
     let currentYear = d.getFullYear();
+
+    app.innerHTML = '<div class="flex items-center justify-center p-12 text-slate-400"><span class="material-symbols-outlined animate-spin mr-2">refresh</span> Carregando calendário...</div>';
+
+    // Pre-fetch attendance dates for visible cells to color realized ones
+    const visibleCells = store.getVisibleCells();
+    for (const c of visibleCells) {
+        try {
+            const att = await store.loadAttendanceForCell(c.id);
+            c.__attendanceCache = att.map(a => a.date);
+        } catch (e) { c.__attendanceCache = []; }
+    }
 
     app.innerHTML = `
   ${header('Calendário', false, store.hasRole('ADMIN', 'SUPERVISOR') ? `<button id="btn-add-event" class="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"><span class="material-symbols-outlined text-lg">add</span></button>` : '')}
@@ -31,7 +42,7 @@ export function calendarView() {
 
         // Prepare events
         const allEvents = store.getEvents();
-        const cells = store.cells;
+        const cells = store.getVisibleCells();
         const people = store.people;
         const users = store.users;
 
@@ -77,10 +88,9 @@ export function calendarView() {
 
             let dayEvents = []; // Collect events to sort
 
-            // 1. Birthdays (All Day)
             let bdays = [...people, ...users].filter(p => p.birthdate && p.birthdate.slice(5) === dateStr.slice(5));
             if (!isAdminSuper) {
-                const myCellIds = cells.filter(c => c.leaderId === store.currentUser?.id).map(c => c.id);
+                const myCellIds = cells.map(c => c.id);
                 bdays = bdays.filter(p => myCellIds.includes(p.cellId) || p.id === store.currentUser?.id);
             }
             bdays.forEach(p => {
@@ -92,15 +102,24 @@ export function calendarView() {
                 if (c.meetingDay && c.meetingDay.toLowerCase().startsWith(dayName.toLowerCase().slice(0, 3))) {
                     const isCanceled = store.isCellCanceledOnDate(c.id, dateStr) || store.isCellCanceledOnDate('all', dateStr);
                     const isJustified = store.getCellJustifications(c.id).find(j => j.date === dateStr);
+                    const isRealized = c.__attendanceCache && c.__attendanceCache.includes(dateStr);
 
-                    let bgClass = isCanceled ? 'bg-slate-100 text-slate-500 line-through' : (isJustified ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700');
+                    let bgClass = isCanceled ? 'bg-slate-100 text-slate-500 line-through' : (isJustified ? 'bg-amber-100 text-amber-700' : (isRealized ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-700'));
                     let hoverClass = isAdminSuper || (!isCanceled && !isJustified) ? 'cursor-pointer hover:opacity-75 transition' : '';
                     let clickFn = '';
 
                     if (isAdminSuper) clickFn = `onclick="window.toggleCalendarCell(event, '${c.id}', '${dateStr}')"`;
                     else if (!isCanceled && !isJustified) clickFn = `onclick="window.calendarCellClick(event, '${c.id}', '${dateStr}')"`;
 
-                    dayEvents.push({ sortVal: -2, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] ${bgClass} font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${isCanceled ? 'Cancelada: ' + isCanceled.reason : isJustified ? 'Justificada: ' + isJustified.reason : 'Célula'}">🏠 ${c.name}</div>` });
+                    let sortVal = -2;
+                    let displayLabel = `🏠 ${c.name}`;
+                    if (c.meetingTime) {
+                        const [h, m] = c.meetingTime.split(':').map(Number);
+                        if (!isNaN(h) && !isNaN(m)) sortVal = h + (m / 60) - 0.0001;
+                        displayLabel = `🏠 ${c.meetingTime} ${c.name}`;
+                    }
+
+                    dayEvents.push({ sortVal, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] ${bgClass} font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${isCanceled ? 'Cancelada: ' + isCanceled.reason : isJustified ? 'Justificada: ' + isJustified.reason : 'Célula: ' + c.name}">${displayLabel}</div>` });
                 }
             });
 
@@ -253,9 +272,9 @@ window.editGlobalEvent = (eventId) => {
     eventForm(eventId);
 };
 
-window.deleteGlobalEvent = (eventId) => {
+window.deleteGlobalEvent = async (eventId) => {
     if (confirm('Tem certeza que deseja apagar este evento para sempre? Ele sumirá de todos os meses do calendário.')) {
-        store.deleteEvent(eventId);
+        await store.deleteEvent(eventId);
         closeModal(); toast('Evento excluído permanentemente.'); calendarView();
     }
 };
@@ -339,8 +358,11 @@ function eventForm(existingEventId = null, prefilledDateStr = null) {
     document.getElementById('ef-date').addEventListener('change', updateRecurrenceOptions);
     updateRecurrenceOptions(); // Initial load
 
-    document.getElementById('evt-form').onsubmit = e => {
+    document.getElementById('evt-form').onsubmit = async e => {
         e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        const orig = btn.innerHTML; btn.innerHTML = 'Salvando...'; btn.disabled = true;
+
         const title = document.getElementById('ef-title').value.trim();
         const date = document.getElementById('ef-date').value;
         const recurrence = document.getElementById('ef-recurrence').value;
@@ -348,17 +370,19 @@ function eventForm(existingEventId = null, prefilledDateStr = null) {
         const endTime = document.getElementById('ef-end').value;
         const color = document.querySelector('input[name="evt-color"]:checked').value;
 
-        if (!title || !date) { toast('Preencha os campos', 'error'); return; }
+        if (!title || !date) { toast('Preencha os campos', 'error'); btn.innerHTML = orig; btn.disabled = false; return; }
 
-        if (ev) {
-            store.updateEvent(ev.id, { title, date, recurrence, startTime, endTime, color });
-            toast('Evento atualizado!');
-        } else {
-            store.addEvent({ title, date, recurrence, startTime, endTime, color, authorId: store.currentUser.id });
-            toast('Evento criado!');
-        }
-        closeModal();
-        calendarView();
+        try {
+            if (ev) {
+                await store.updateEvent(ev.id, { title, date, recurrence, startTime, endTime, color });
+                toast('Evento atualizado!');
+            } else {
+                await store.addEvent({ title, date, recurrence, startTime, endTime, color, authorId: store.currentUser.id });
+                toast('Evento criado!');
+            }
+            closeModal();
+            calendarView();
+        } catch (err) { toast('Servidor indisponível', 'error'); btn.innerHTML = orig; btn.disabled = false; }
     };
 }
 
@@ -367,12 +391,55 @@ function cellActionsModal(cellId, dateStr) {
     if (!c) return;
 
     // Check if the current user is the leader of this cell or an admin
-    const canManage = store.hasRole('ADMIN', 'SUPERVISOR') || c.leaderId === store.currentUser.id;
+    const canManage = store.hasRole('ADMIN', 'SUPERVISOR') || c.leaderId === store.currentUser.id || c.viceLeaderId === store.currentUser.id;
 
     let content = `<div class="p-6">
     <div class="flex justify-between items-center mb-5"><h3 class="text-base font-bold">${c.name}</h3><button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="p-1 rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-slate-400 text-xl">close</span></button></div>
     <p class="text-sm text-slate-600 mb-6">Encontro previsto para <strong>${dateStr.split('-').reverse().join('/')}</strong>.</p>
+    <div id="cell-attendance-status" class="mb-4">
+       <!-- Conteúdo injetado assincronamente logo abaixo -->
+       <div class="animate-pulse flex h-10 bg-slate-100 rounded-lg w-full"></div>
+    </div>
     `;
+
+    // Fetch assíncrono do status de Presença ou Justificativa para a data clicada
+    store.loadAttendanceForCell(cellId).then(attendanceHistory => {
+        const attendanceMatch = attendanceHistory.find(a => a.date === dateStr);
+        const statusContainer = document.getElementById('cell-attendance-status');
+        if (!statusContainer) return;
+
+        let statusHtml = '';
+        const isCanceled = store.isCellCanceledOnDate(c.id, dateStr) || store.isCellCanceledOnDate('all', dateStr);
+        const justification = store.getCellJustifications(c.id).find(j => j.date === dateStr);
+
+        if (attendanceMatch) {
+            const presences = attendanceMatch.records.filter(r => r.status === 'present').length;
+            statusHtml = `<div class="p-3 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-sm">check_circle</span></div>
+                <div><p class="text-sm font-bold text-emerald-800">Célula Realizada</p><p class="text-xs text-emerald-600 mt-0.5">${presences} membros presentes registrados.</p></div>
+            </div>`;
+        } else if (isCanceled) {
+            statusHtml = `<div class="p-3 bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-sm">block</span></div>
+                <div><p class="text-sm font-bold text-slate-700">Cancelada (Admin/Supervisão)</p><p class="text-xs text-slate-500 mt-0.5">Esse dia não será contabilizado nos relatórios.</p></div>
+            </div>`;
+        } else if (justification) {
+            statusHtml = `<div class="p-3 bg-amber-50 border border-amber-100 rounded-lg flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-sm">history_edu</span></div>
+                <div><p class="text-sm font-bold text-amber-800">Célula Justificada</p><p class="text-xs text-amber-700 mt-0.5">"${justification.reason}"</p></div>
+            </div>`;
+        } else if (dateStr < new Date().toISOString().split('T')[0]) {
+            statusHtml = `<div class="p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-sm">error</span></div>
+                <div><p class="text-sm font-bold text-red-800">Pendente de Chamada/Justificativa</p><p class="text-xs text-red-600 mt-0.5">Dia passado sem relatório preenchido pelo líder.</p></div>
+            </div>`;
+        } else {
+            statusHtml = `<div class="p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-center justify-center">
+                 <p class="text-xs font-medium text-blue-700">Célula futura agendada.</p>
+             </div>`;
+        }
+        statusContainer.innerHTML = statusHtml;
+    });
 
     if (canManage) {
         const isCanceled = store.isCellCanceledOnDate(c.id, dateStr) || store.isCellCanceledOnDate('all', dateStr);
@@ -391,7 +458,7 @@ function cellActionsModal(cellId, dateStr) {
             ${!isFuture ? `<button id="btn-justify-cell" class="w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-700 py-3 rounded-lg text-sm font-bold hover:bg-amber-100 transition border border-amber-200"><span class="material-symbols-outlined text-lg">history_edu</span> Justificar Não Realização</button>` : ''}
         </div>`;
     } else {
-        content += `<p class="text-xs text-slate-400 text-center">Apenas o líder desta célula pode realizar ações.</p>`;
+        content += `<p class="text-xs text-slate-400 text-center">Você não tem permissões para administrar a ${c.name}, pois não é líder responsável por ela.</p>`;
     }
 
     content += `</div>`;

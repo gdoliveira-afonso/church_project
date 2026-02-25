@@ -57,19 +57,19 @@ export function formListView() {
         <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition">Criar Formulário</button>
       </form>
     </div>`);
-    document.getElementById('new-form-form').onsubmit = e => {
+    document.getElementById('new-form-form').onsubmit = async e => {
       e.preventDefault();
       const name = document.getElementById('nf-name').value.trim();
       if (!name) { toast('Nome obrigatório', 'error'); return; }
-      const f = { id: 'f' + Date.now(), name, status: 'ativo', fields: [] };
-      store.forms.push(f); store.save(); closeModal();
+      const f = await store.addForm({ name, status: 'ativo', fields: [] });
+      closeModal();
       location.hash = '/form-builder?id=' + f.id;
     };
   };
-  document.querySelectorAll('.btn-dup').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.btn-dup').forEach(b => b.onclick = async () => {
     const orig = store.forms.find(f => f.id === b.dataset.id); if (!orig) return;
-    const dup = { id: 'f' + Date.now(), name: orig.name + ' (cópia)', status: 'ativo', fields: JSON.parse(JSON.stringify(orig.fields)) };
-    store.forms.push(dup); store.save(); toast('Formulário duplicado!'); formListView();
+    const dup = { name: orig.name + ' (cópia)', status: 'ativo', fields: JSON.parse(JSON.stringify(orig.fields)) };
+    await store.addForm(dup); toast('Formulário duplicado!'); formListView();
   });
   document.querySelectorAll('.btn-del').forEach(b => b.onclick = () => {
     const f = store.forms.find(x => x.id === b.dataset.id); if (!f) return;
@@ -82,8 +82,8 @@ export function formListView() {
         <button id="btn-confirm-del-form" class="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition">Excluir</button>
       </div>
     </div>`);
-    document.getElementById('btn-confirm-del-form').onclick = () => {
-      store.forms = store.forms.filter(x => x.id !== b.dataset.id); store.save();
+    document.getElementById('btn-confirm-del-form').onclick = async () => {
+      await store.deleteForm(b.dataset.id);
       closeModal(); toast('Formulário excluído'); formListView();
     };
   });
@@ -172,16 +172,16 @@ export function formBuilderView(params) {
   function bindAll() {
     // Name
     const nameInput = document.getElementById('form-name');
-    nameInput?.addEventListener('change', () => { form.name = nameInput.value.trim() || form.name; store.save(); });
+    nameInput?.addEventListener('change', () => { form.name = nameInput.value.trim() || form.name; store.updateForm(form.id, form); });
 
     // Status toggle
     document.getElementById('btn-toggle-status')?.addEventListener('click', () => {
-      form.status = form.status === 'ativo' ? 'inativo' : 'ativo'; store.save(); render();
+      form.status = form.status === 'ativo' ? 'inativo' : 'ativo'; store.updateForm(form.id, form); render();
     });
 
     // Login toggle
     document.getElementById('btn-toggle-login')?.addEventListener('click', () => {
-      form.showOnLogin = !form.showOnLogin; store.save(); render();
+      form.showOnLogin = !form.showOnLogin; store.updateForm(form.id, form); render();
     });
 
     // Form settings modal
@@ -237,7 +237,7 @@ export function formBuilderView(params) {
         form.personStatus = document.getElementById('fs-status').value.trim() || null;
         form.icon = selIcon;
         form.color = selColor;
-        store.save(); closeModal(); render(); toast('Configurações salvas!');
+        store.updateForm(form.id, form); closeModal(); render(); toast('Configurações salvas!');
       };
     });
 
@@ -251,15 +251,15 @@ export function formBuilderView(params) {
 
     // Up/Down arrows
     document.querySelectorAll('.btn-up').forEach(b => b.onclick = () => {
-      const i = +b.dataset.idx;[form.fields[i - 1], form.fields[i]] = [form.fields[i], form.fields[i - 1]]; store.save(); render();
+      const i = +b.dataset.idx;[form.fields[i - 1], form.fields[i]] = [form.fields[i], form.fields[i - 1]]; store.updateForm(form.id, form); render();
     });
     document.querySelectorAll('.btn-down').forEach(b => b.onclick = () => {
-      const i = +b.dataset.idx;[form.fields[i], form.fields[i + 1]] = [form.fields[i + 1], form.fields[i]]; store.save(); render();
+      const i = +b.dataset.idx;[form.fields[i], form.fields[i + 1]] = [form.fields[i + 1], form.fields[i]]; store.updateForm(form.id, form); render();
     });
 
     // Edit / Delete
     document.querySelectorAll('.btn-edit-field').forEach(b => b.onclick = () => editFieldModal(+b.dataset.idx));
-    document.querySelectorAll('.btn-del-field').forEach(b => b.onclick = () => { form.fields.splice(+b.dataset.idx, 1); store.save(); render(); toast('Campo removido'); });
+    document.querySelectorAll('.btn-del-field').forEach(b => b.onclick = () => { form.fields.splice(+b.dataset.idx, 1); store.updateForm(form.id, form); render(); toast('Campo removido'); });
 
     // ══════ DRAG & DROP ══════
     const canvas = document.getElementById('canvas');
@@ -352,13 +352,13 @@ export function formBuilderView(params) {
           const field = { name: ft.label, type: dragData.type, required: false };
           if (dragData.type === 'select') field.options = ['Opção 1', 'Opção 2'];
           form.fields.splice(toIdx, 0, field);
-          store.save(); dragData = null; render(); toast(`"${ft.label}" adicionado!`);
+          store.updateForm(form.id, form); dragData = null; render(); toast(`"${ft.label}" adicionado!`);
         } else if (dragData.action === 'move') {
           const fromIdx = dragData.fromIdx;
           if (fromIdx !== toIdx) {
             const [moved] = form.fields.splice(fromIdx, 1);
             form.fields.splice(toIdx > fromIdx ? toIdx - 1 : toIdx, 0, moved);
-            store.save(); dragData = null; render();
+            store.updateForm(form.id, form); dragData = null; render();
           }
         }
       });
@@ -384,12 +384,12 @@ export function formBuilderView(params) {
         const field = { name: ft.label, type: dragData.type, required: false };
         if (dragData.type === 'select') field.options = ['Opção 1', 'Opção 2'];
         form.fields.push(field);
-        store.save(); dragData = null; render(); toast(`"${ft.label}" adicionado!`);
+        store.updateForm(form.id, form); dragData = null; render(); toast(`"${ft.label}" adicionado!`);
       } else if (dragData.action === 'move') {
         const fromIdx = dragData.fromIdx;
         const [moved] = form.fields.splice(fromIdx, 1);
         form.fields.push(moved);
-        store.save(); dragData = null; render();
+        store.updateForm(form.id, form); dragData = null; render();
       }
     });
   }
@@ -513,7 +513,7 @@ export function formBuilderView(params) {
       if (ph) field.placeholder = ph;
       if (isEdit) { form.fields[editIdx] = field; toast('Campo atualizado!'); }
       else { form.fields.push(field); toast('Campo adicionado!'); }
-      store.save(); closeModal(); render();
+      store.updateForm(form.id, form); closeModal(); render();
     };
   }
 

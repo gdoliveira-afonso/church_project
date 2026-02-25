@@ -1,0 +1,38 @@
+Populando o banco de dados com registros iniciais...
+PrismaClientValidationError: 
+Invalid `prisma.event.create()` invocation in
+C:\Users\Gabriel\Documents\New proj\server\seed-data.js:82:24
+
+  79 });
+  80 
+  81 // 5. Events (Eventos)
+→ 82 await prisma.event.create({
+       data: {
+         title: "Culto de Celebração",
+         date: "2026-02-25",
+         recurrence: "weekly",
+         startTime: "19:00",
+         ~~~~~~~~~
+         endTime: "21:00",
+         color: "blue",
+     ?   id?: String,
+     ?   time?: String | Null,
+     ?   description?: String | Null,
+     ?   type?: String | Null,
+     ?   category?: String | Null,
+     ?   location?: String | Null,
+     ?   reminder?: String | Null,
+     ?   createdAt?: DateTime,
+     ?   exceptions?: EventExceptionCreateNestedManyWithoutEventInput
+       }
+     })
+
+Unknown argument `startTime`. Available options are marked with ?.
+    at wn (C:\Users\Gabriel\Documents\New proj\server\node_modules\@prisma\client\runtime\library.js:29:1363)
+    at $n.handleRequestError (C:\Users\Gabriel\Documents\New proj\server\node_modules\@prisma\client\runtime\library.js:121:6958)
+    at $n.handleAndLogRequestError (C:\Users\Gabriel\Documents\New proj\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+    at $n.request (C:\Users\Gabriel\Documents\New proj\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+    at async l (C:\Users\Gabriel\Documents\New proj\server\node_modules\@prisma\client\runtime\library.js:130:9633)
+    at async main (C:\Users\Gabriel\Documents\New proj\server\seed-data.js:82:5) {
+  clientVersion: '5.22.0'
+}
