@@ -10,10 +10,20 @@ router.get('/', async (req, res) => {
         const people = await prisma.person.findMany({
             include: {
                 cell: { select: { id: true, name: true } },
-                consolidation: true
+                consolidation: true,
+                personTracks: true
             }
         });
-        res.json(people);
+        // Mapeia personTracks para o formato legaso objects tracksData { id: true }
+        const processed = people.map(p => {
+            const tracksData = {};
+            if (p.personTracks) {
+                p.personTracks.forEach(pt => tracksData[pt.trackId] = pt.completed);
+            }
+            delete p.personTracks;
+            return { ...p, tracksData };
+        });
+        res.json(processed);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao buscar pessoas' });
     }
@@ -33,6 +43,13 @@ router.get('/:id', async (req, res) => {
             }
         });
         if (!person) return res.status(404).json({ error: 'Pessoa não encontrada' });
+
+        const tracksData = {};
+        if (person.personTracks) {
+            person.personTracks.forEach(pt => tracksData[pt.trackId] = pt.completed);
+        }
+        person.tracksData = tracksData;
+
         res.json(person);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao buscar pessoa' });
@@ -56,8 +73,19 @@ router.post('/', async (req, res) => {
             previousCell: data.previousCell,
             returnReason: data.returnReason,
             prayerRequest: data.prayerRequest,
+            prayerRequest: data.prayerRequest,
             cellId: data.cellId || null,
         };
+
+        // Salva as trilhas marcadas no formulário (PersonTrack table)
+        if (data.tracksData) {
+            const tracks = Object.keys(data.tracksData).filter(tId => data.tracksData[tId]);
+            if (tracks.length > 0) {
+                createData.personTracks = {
+                    create: tracks.map(tId => ({ trackId: tId, completed: true }))
+                };
+            }
+        }
 
         // Auto-cria processo de consolidação se for Novo Convertido
         if (createData.status === 'Novo Convertido') {
@@ -90,7 +118,9 @@ router.post('/', async (req, res) => {
             }
         }
 
-        res.status(201).json(person);
+
+        const resPerson = { ...person, tracksData: data.tracksData || {} };
+        res.status(201).json(resPerson);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao criar pessoa', details: error.message });
     }
@@ -139,10 +169,19 @@ router.put('/:id', async (req, res) => {
             };
         }
 
+        // Sincroniza as Trilhas (Apaga os velhos relacionamentos e subscreve pelos novos marcados)
+        if (data.tracksData) {
+            const tracks = Object.keys(data.tracksData).filter(tId => data.tracksData[tId]);
+            updateData.personTracks = {
+                deleteMany: {}, // Cleans old records safely cascade inside update
+                create: tracks.map(tId => ({ trackId: tId, completed: true }))
+            };
+        }
+
         const person = await prisma.person.update({
             where: { id: req.params.id },
             data: updateData,
-            include: { consolidation: true }
+            include: { consolidation: true, personTracks: { include: { track: true } } }
         });
 
         // NOTIFICAÇÃO AO LÍDER (Se ele entrou numa célula nova agora)
@@ -163,7 +202,10 @@ router.put('/:id', async (req, res) => {
                 }
             }
         }
-        res.json(person);
+
+        const resPerson = { ...person, tracksData: data.tracksData || {} };
+        delete resPerson.personTracks;
+        res.json(resPerson);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao atualizar pessoa' });
     }

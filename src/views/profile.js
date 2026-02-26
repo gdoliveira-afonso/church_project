@@ -23,7 +23,7 @@ export function profileView(params) {
         <p class="text-xs text-slate-500 mt-1">${cell ? `${cell.name} • ${cell.meetingDay || ''}` : ''} ${p.phone || ''}</p>
         <div class="flex gap-2 mt-3 justify-center md:justify-start">
           ${p.phone ? `<a href="tel:${p.phone}" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold"><span class="material-symbols-outlined text-sm">call</span>Ligar</a>` : ''}
-          ${p.phone ? `<a href="https://wa.me/${p.phone.replace(/\\D/g, '')}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold"><span class="material-symbols-outlined text-sm">chat</span>WhatsApp</a>` : ''}
+          ${p.phone ? `<a href="https://wa.me/55${p.phone.replace(/\\D/g, '')}" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold"><span class="material-symbols-outlined text-sm">chat</span>WhatsApp</a>` : ''}
         </div>
       </div>
     </div>

@@ -68,7 +68,7 @@ export function updateSidebar(active) {
     u.innerHTML = `
     <div class="flex items-center gap-3">
       <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">${store.currentUser.name.charAt(0)}</div>
-      <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate">${store.currentUser.name}</p><p class="text-[10px] text-slate-400 truncate">${store.currentUser.email}</p></div>
+      <div class="flex-1 min-w-0"><p class="text-xs font-semibold truncate">${store.currentUser.name}</p><p class="text-[10px] text-slate-400 truncate">${store.currentUser.username}</p></div>
       <button id="sidebar-theme" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition-colors" title="Alternar tema"><span class="material-symbols-outlined theme-icon text-[18px]">${themeIcon}</span></button>
       <button id="sidebar-logout" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors" title="Sair"><span class="material-symbols-outlined text-[18px]">logout</span></button>
     </div>`;

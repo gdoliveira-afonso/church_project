@@ -329,8 +329,10 @@ function tCard(t, processed = false) {
   const statusBadge = f?.personStatus
     ? `<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full ${f.personStatus === 'Novo Convertido' ? 'bg-emerald-50 text-emerald-700' : 'bg-purple-50 text-purple-700'}">${f.personStatus}</span>`
     : '<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">Triagem</span>';
-  const name = t.data['Nome Completo'] || t.data['Nome'] || t.data.nome || 'Anônimo';
-  const phone = t.data['Telefone / WhatsApp'] || t.data['Telefone'] || t.data.telefone || '';
+  const nameKey = Object.keys(t.data).find(k => k.toLowerCase().includes('nome'));
+  const name = nameKey ? t.data[nameKey] : 'Anônimo';
+  const phoneKey = Object.keys(t.data).find(k => k.toLowerCase().includes('tele') || k.toLowerCase().includes('whats') || k.toLowerCase().includes('celular'));
+  const phone = phoneKey ? t.data[phoneKey] : '';
   const doneBadge = t.status === 'done' ? '<span class="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">✓ ACEITO</span>' :
     t.status === 'rejected' ? '<span class="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">✕ REJEITADO</span>' : '';
 
@@ -350,9 +352,12 @@ function openTriageDetail(id) {
   const t = store.triageQueue.find(x => x.id === id);
   if (!t) return;
   const f = store.forms.find(x => x.id === t.formId);
-  const name = t.data['Nome Completo'] || t.data['Nome'] || t.data.nome || '';
-  const phone = t.data['Telefone / WhatsApp'] || t.data['Telefone'] || t.data.telefone || '';
-  const email = t.data['Email'] || t.data.email || '';
+  const nameKey = Object.keys(t.data).find(k => k.toLowerCase().includes('nome'));
+  const name = nameKey ? t.data[nameKey] : '';
+  const phoneKey = Object.keys(t.data).find(k => k.toLowerCase().includes('tele') || k.toLowerCase().includes('whats') || k.toLowerCase().includes('celular'));
+  const phone = phoneKey ? t.data[phoneKey] : '';
+  const emailKey = Object.keys(t.data).find(k => k.toLowerCase().includes('email') || k.toLowerCase().includes('e-mail'));
+  const email = emailKey ? t.data[emailKey] : '';
   const isDone = t.status === 'done' || t.status === 'rejected';
   const statusLabel = f?.personStatus || 'Sem status definido';
   const statusColor = f?.personStatus === 'Novo Convertido' ? 'emerald' : f?.personStatus === 'Reconciliação' ? 'purple' : 'slate';

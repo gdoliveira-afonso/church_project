@@ -88,7 +88,7 @@ function openActionModal(title, peopleList, color) {
             <p class="text-xs text-slate-500 mt-0.5">${c?.name || 'Sem Célula'} ${p.phone ? `• ${p.phone}` : ''}</p>
           </div>
           <div class="flex gap-2 shrink-0">
-            ${p.phone ? `<a href="https://wa.me/${p.phone.replace(/\D/g, '')}" target="_blank" class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center hover:bg-emerald-200 transition"><span class="material-symbols-outlined text-[18px]">chat</span></a>` : ''}
+            ${p.phone ? `<a href="https://wa.me/55${p.phone.replace(/\D/g, '')}" target="_blank" class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center hover:bg-emerald-200 transition"><span class="material-symbols-outlined text-[18px]">chat</span></a>` : ''}
             <a href="#/profile?id=${p.id}" onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="px-3 py-1.5 rounded-lg bg-white border border-${color}-200 text-${color}-700 text-xs font-bold hover:bg-${color}-50 transition">Ver Ficha</a>
           </div>
         </div>`;

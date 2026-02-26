@@ -74,6 +74,17 @@ export async function publicFormView(params) {
     </div>
   </div>`;
 
+  // Local masks
+  document.querySelectorAll('input[type="tel"]').forEach(input => {
+    input.addEventListener('input', (e) => {
+      let v = e.target.value.replace(/\\D/g, ''); // Remove non-digits
+      if (v.length > 11) v = v.slice(0, 11);
+      v = v.replace(/^(\\d{2})(\\d)/g, '($1) $2');
+      v = v.replace(/(\\d)(\\d{4})$/, '$1-$2');
+      e.target.value = v;
+    });
+  });
+
   document.getElementById('public-form').onsubmit = async e => {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');

@@ -14,12 +14,12 @@ services:
     volumes:
       # Volume mapeado garante que o dev.db não morra ao reiniciar container
       - crm_db_data:/app/prisma
-    ports:
-      # Não precisa expor a 3000 para a máquina host principal, apenas internamente.
-      # Exposta apenas para testes locais se quiser, descomente abaixo:
-      # - "3000:3000"
-      expose:
-        - "3000"
+    # ports:
+    # Não precisa expor a porta 3000 para a máquina host principal, apenas internamente.
+    # Exposta apenas para testes locais se quiser, descomente abaixo:
+    #  - "3000:3000"
+    expose:
+      - "3000"
 
   frontend:
     build:
