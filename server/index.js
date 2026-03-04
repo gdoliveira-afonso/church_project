@@ -11,7 +11,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 const path = require('path');
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const fs = require('fs');
+
+// Garante que a pasta de uploads existe
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('Pasta uploads criada com sucesso.');
+}
+
+app.use('/uploads', express.static(uploadsDir));
 
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-jwt-key'; // Mudar em produção
