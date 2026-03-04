@@ -34,6 +34,7 @@ class Store {
             if (res.ok) {
                 const settings = await res.json();
                 this.systemSettings = settings;
+                try { localStorage.setItem('system-settings', JSON.stringify(settings)); } catch (e) { }
 
                 // Color injection
                 if (settings.primaryColor) {

@@ -343,6 +343,59 @@ export function settingsView() {
   renderTeam();
   renderTracks();
 
+  const ACTION_BADGE = {
+    LOGIN: { label: 'Login', cls: 'bg-emerald-100 text-emerald-800' },
+    LOGIN_FAIL: { label: 'Falha Login', cls: 'bg-red-100 text-red-800' },
+    CREATE: { label: 'Criação', cls: 'bg-blue-100 text-blue-800' },
+    UPDATE: { label: 'Edição', cls: 'bg-amber-100 text-amber-800' },
+    DELETE: { label: 'Exclusão', cls: 'bg-red-100 text-red-700' },
+    EXPORT: { label: 'Exportação', cls: 'bg-purple-100 text-purple-800' },
+  };
+  const RESOURCE_LABEL = { auth: '🔑 Auth', people: '👤 Pessoas', cells: '🏠 Células', users: '👥 Usuários', attendance: '📋 Chamadas', settings: '⚙️ Config' };
+
+  async function initLogs() {
+    const container = document.getElementById('logs-table-container');
+    if (!container) return;
+    container.innerHTML = `<div class="flex items-center justify-center py-8 text-slate-400"><span class="material-symbols-outlined animate-spin text-3xl">progress_activity</span></div>`;
+
+    const filters = {
+      action: document.getElementById('lf-action')?.value || '',
+      resource: document.getElementById('lf-resource')?.value || '',
+      from: document.getElementById('lf-from')?.value || '',
+      to: document.getElementById('lf-to')?.value || '',
+      limit: 200
+    };
+
+    const logs = await store.fetchActivityLogs(filters);
+
+    if (!logs.length) {
+      container.innerHTML = `<p class="text-sm text-slate-400 text-center py-8">Nenhum registro encontrado</p>`;
+      return;
+    }
+
+    const rows = logs.map(l => {
+      const ab = ACTION_BADGE[l.action] || { label: l.action, cls: 'bg-slate-100 text-slate-700' };
+      const dt = new Date(l.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      return `<tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+        <td class="py-2.5 pr-3 text-xs text-slate-500 whitespace-nowrap">${dt}</td>
+        <td class="py-2.5 pr-3 text-xs font-medium text-slate-800 whitespace-nowrap">${l.userName || '—'}</td>
+        <td class="py-2.5 pr-3"><span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${ab.cls}">${ab.label}</span></td>
+        <td class="py-2.5 pr-3 text-xs text-slate-600 whitespace-nowrap">${RESOURCE_LABEL[l.resource] || l.resource}</td>
+        <td class="py-2.5 pr-3 text-xs text-slate-500 max-w-[180px] truncate" title="${l.detail || ''}">${l.detail || '—'}</td>
+        <td class="py-2.5 text-[10px] text-slate-400 whitespace-nowrap font-mono">${l.ip || '—'}</td>
+      </tr>`;
+    }).join('');
+
+    container.innerHTML = `<table class="w-full text-left">
+      <thead><tr class="text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+        <th class="pb-2 pr-3">Data/Hora</th><th class="pb-2 pr-3">Usuário</th><th class="pb-2 pr-3">Ação</th>
+        <th class="pb-2 pr-3">Recurso</th><th class="pb-2 pr-3">Detalhe</th><th class="pb-2">IP</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p class="text-[10px] text-slate-400 mt-2 text-right">Mostrando ${logs.length} registro(s)</p>`;
+  }
+
   // Tabs routing manual bindings
   document.querySelectorAll('.settings-tab').forEach(btn => {
     btn.onclick = (e) => {
@@ -366,59 +419,6 @@ export function settingsView() {
   document.getElementById('btn-logout').onclick = () => { store.logout(); document.getElementById('sidebar').classList.add('sidebar-hidden'); location.hash = '/login'; toast('Deslogado') };
 
   if (u.role === 'ADMIN') {
-    const ACTION_BADGE = {
-      LOGIN: { label: 'Login', cls: 'bg-emerald-100 text-emerald-800' },
-      LOGIN_FAIL: { label: 'Falha Login', cls: 'bg-red-100 text-red-800' },
-      CREATE: { label: 'Criação', cls: 'bg-blue-100 text-blue-800' },
-      UPDATE: { label: 'Edição', cls: 'bg-amber-100 text-amber-800' },
-      DELETE: { label: 'Exclusão', cls: 'bg-red-100 text-red-700' },
-      EXPORT: { label: 'Exportação', cls: 'bg-purple-100 text-purple-800' },
-    };
-    const RESOURCE_LABEL = { auth: '🔑 Auth', people: '👤 Pessoas', cells: '🏠 Células', users: '👥 Usuários', attendance: '📋 Chamadas', settings: '⚙️ Config' };
-
-    async function initLogs() {
-      const container = document.getElementById('logs-table-container');
-      if (!container) return;
-      container.innerHTML = `<div class="flex items-center justify-center py-8 text-slate-400"><span class="material-symbols-outlined animate-spin text-3xl">progress_activity</span></div>`;
-
-      const filters = {
-        action: document.getElementById('lf-action')?.value || '',
-        resource: document.getElementById('lf-resource')?.value || '',
-        from: document.getElementById('lf-from')?.value || '',
-        to: document.getElementById('lf-to')?.value || '',
-        limit: 200
-      };
-
-      const logs = await store.fetchActivityLogs(filters);
-
-      if (!logs.length) {
-        container.innerHTML = `<p class="text-sm text-slate-400 text-center py-8">Nenhum registro encontrado</p>`;
-        return;
-      }
-
-      const rows = logs.map(l => {
-        const ab = ACTION_BADGE[l.action] || { label: l.action, cls: 'bg-slate-100 text-slate-700' };
-        const dt = new Date(l.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-        return `<tr class="border-b border-slate-100 hover:bg-slate-50 transition">
-          <td class="py-2.5 pr-3 text-xs text-slate-500 whitespace-nowrap">${dt}</td>
-          <td class="py-2.5 pr-3 text-xs font-medium text-slate-800 whitespace-nowrap">${l.userName || '—'}</td>
-          <td class="py-2.5 pr-3"><span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${ab.cls}">${ab.label}</span></td>
-          <td class="py-2.5 pr-3 text-xs text-slate-600 whitespace-nowrap">${RESOURCE_LABEL[l.resource] || l.resource}</td>
-          <td class="py-2.5 pr-3 text-xs text-slate-500 max-w-[180px] truncate" title="${l.detail || ''}">${l.detail || '—'}</td>
-          <td class="py-2.5 text-[10px] text-slate-400 whitespace-nowrap font-mono">${l.ip || '—'}</td>
-        </tr>`;
-      }).join('');
-
-      container.innerHTML = `<table class="w-full text-left">
-        <thead><tr class="text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
-          <th class="pb-2 pr-3">Data/Hora</th><th class="pb-2 pr-3">Usuário</th><th class="pb-2 pr-3">Ação</th>
-          <th class="pb-2 pr-3">Recurso</th><th class="pb-2 pr-3">Detalhe</th><th class="pb-2">IP</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-      <p class="text-[10px] text-slate-400 mt-2 text-right">Mostrando ${logs.length} registro(s)</p>`;
-    }
-
     document.getElementById('btn-log-filter')?.addEventListener('click', initLogs);
     document.getElementById('btn-log-clear')?.addEventListener('click', async () => {
       if (!confirm('Tem certeza que deseja limpar TODOS os logs? Esta ação não pode ser desfeita.')) return;

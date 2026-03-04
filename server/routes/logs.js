@@ -15,8 +15,8 @@ router.get('/', async (req, res) => {
         if (userId) where.userId = userId;
         if (from || to) {
             where.createdAt = {};
-            if (from) where.createdAt.gte = new Date(from);
-            if (to) {
+            if (from && from.trim() !== '') where.createdAt.gte = new Date(from);
+            if (to && to.trim() !== '') {
                 const toDate = new Date(to);
                 toDate.setHours(23, 59, 59, 999);
                 where.createdAt.lte = toDate;
