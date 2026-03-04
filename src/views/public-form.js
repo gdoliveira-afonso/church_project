@@ -39,53 +39,58 @@ export async function publicFormView(params) {
     return;
   }
 
-  const c = form.color || 'blue';
-  const colorMap = { emerald: ['emerald-500', 'emerald-100', 'emerald-600'], purple: ['purple-500', 'purple-100', 'purple-600'], blue: ['primary', 'blue-100', 'primary'], orange: ['orange-500', 'orange-100', 'orange-600'], red: ['red-500', 'red-100', 'red-600'] };
-  const cc = colorMap[c] || colorMap.blue;
+  const render = () => {
+    const appName = store.systemSettings?.appName || 'Gestão Celular';
+    const c = form.color || 'blue';
+    const colorMap = { emerald: ['emerald-500', 'emerald-100', 'emerald-600'], purple: ['purple-500', 'purple-100', 'purple-600'], blue: ['primary', 'blue-100', 'primary'], orange: ['orange-500', 'orange-100', 'orange-600'], red: ['red-500', 'red-100', 'red-600'] };
+    const cc = colorMap[c] || colorMap.blue;
 
-  app.innerHTML = `
-  <div class="h-full w-full overflow-y-auto bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col no-scrollbar">
-    <header class="bg-white border-b border-slate-100 px-4 py-3 shrink-0 flex items-center gap-3">
-      <a href="#/login" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition"><span class="material-symbols-outlined text-slate-500">arrow_back</span></a>
-      <div class="w-8 h-8 rounded-lg bg-${cc[1]} flex items-center justify-center text-${cc[2]}"><span class="material-symbols-outlined text-lg">${form.icon || 'description'}</span></div>
-      <h1 class="text-sm font-bold">${form.name}</h1>
-    </header>
-    <div class="flex-1 flex items-start justify-center p-4 md:p-8 shrink-0 min-h-[500px]">
-      <div class="w-full max-w-lg">
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-          <div class="bg-gradient-to-r from-${cc[0]}/10 to-${cc[0]}/5 p-6 text-center">
-            <div class="w-14 h-14 mx-auto rounded-xl bg-${cc[1]} flex items-center justify-center text-${cc[2]} mb-3"><span class="material-symbols-outlined text-2xl">${form.icon || 'description'}</span></div>
-            <h2 class="text-xl font-extrabold text-slate-900">${form.name}</h2>
-            ${form.subtitle ? `<p class="text-sm text-slate-500 mt-1">${form.subtitle}</p>` : ''}
+    app.innerHTML = `
+    <div class="h-full w-full overflow-y-auto bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col no-scrollbar">
+      <header class="bg-white border-b border-slate-100 px-4 py-3 shrink-0 flex items-center gap-3">
+        <a href="#/login" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 transition"><span class="material-symbols-outlined text-slate-500">arrow_back</span></a>
+        <div class="w-8 h-8 rounded-lg bg-${cc[1]} flex items-center justify-center text-${cc[2]}"><span class="material-symbols-outlined text-lg">${form.icon || 'description'}</span></div>
+        <h1 class="text-sm font-bold">${form.name}</h1>
+      </header>
+      <div class="flex-1 flex items-start justify-center p-4 md:p-8 shrink-0 min-h-[500px]">
+        <div class="w-full max-w-lg">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div class="bg-gradient-to-r from-${cc[0]}/10 to-${cc[0]}/5 p-6 text-center">
+              <div class="w-14 h-14 mx-auto rounded-xl bg-${cc[1]} flex items-center justify-center text-${cc[2]} mb-3"><span class="material-symbols-outlined text-2xl">${form.icon || 'description'}</span></div>
+              <h2 class="text-xl font-extrabold text-slate-900">${form.name}</h2>
+              ${form.subtitle ? `<p class="text-sm text-slate-500 mt-1">${form.subtitle}</p>` : ''}
+            </div>
+            <form id="public-form" class="p-6 space-y-4">
+              ${form.fields.map(f => {
+      const renderer = FIELD_TYPE_MAP[f.type] || FIELD_TYPE_MAP.text;
+      return `<div>
+                  <label class="text-xs font-semibold text-slate-600 mb-1.5 block">${f.name}${f.required ? ' <span class="text-red-400">*</span>' : ''}</label>
+                  ${renderer(f)}
+                </div>`;
+    }).join('')}
+              <button type="submit" class="w-full bg-${cc[0]} text-white py-3 rounded-lg text-sm font-bold hover:opacity-90 active:scale-[.98] transition-all shadow-sm mt-2">Enviar Formulário</button>
+            </form>
           </div>
-          <form id="public-form" class="p-6 space-y-4">
-            ${form.fields.map(f => {
-    const renderer = FIELD_TYPE_MAP[f.type] || FIELD_TYPE_MAP.text;
-    return `<div>
-                <label class="text-xs font-semibold text-slate-600 mb-1.5 block">${f.name}${f.required ? ' <span class="text-red-400">*</span>' : ''}</label>
-                ${renderer(f)}
-              </div>`;
-  }).join('')}
-            <button type="submit" class="w-full bg-${cc[0]} text-white py-3 rounded-lg text-sm font-bold hover:opacity-90 active:scale-[.98] transition-all shadow-sm mt-2">Enviar Formulário</button>
-          </form>
+          <p class="text-center text-[11px] text-slate-400 mt-4">${appName} v3.0 • CRM Celular</p>
         </div>
-        <p class="text-center text-[11px] text-slate-400 mt-4">Gestão Celular v3.0 • CRM Celular</p>
       </div>
-    </div>
-  </div>`;
+    </div>`;
 
-  // Local masks
-  document.querySelectorAll('input[type="tel"]').forEach(input => {
-    input.addEventListener('input', (e) => {
-      let v = e.target.value.replace(/\\D/g, ''); // Remove non-digits
-      if (v.length > 11) v = v.slice(0, 11);
-      v = v.replace(/^(\\d{2})(\\d)/g, '($1) $2');
-      v = v.replace(/(\\d)(\\d{4})$/, '$1-$2');
-      e.target.value = v;
+    // Local masks
+    document.querySelectorAll('input[type="tel"]').forEach(input => {
+      input.addEventListener('input', (e) => {
+        let v = e.target.value.replace(/\\D/g, ''); // Remove non-digits
+        if (v.length > 11) v = v.slice(0, 11);
+        v = v.replace(/^(\\d{2})(\\d)/g, '($1) $2');
+        v = v.replace(/(\\d)(\\d{4})$/, '$1-$2');
+        e.target.value = v;
+      });
     });
-  });
 
-  document.getElementById('public-form').onsubmit = async e => {
+    document.getElementById('public-form').onsubmit = handleFormSubmit;
+  };
+
+  const handleFormSubmit = async e => {
     e.preventDefault();
     const btn = e.target.querySelector('button[type="submit"]');
     const origText = btn.innerHTML;
@@ -129,6 +134,9 @@ export async function publicFormView(params) {
       btn.innerHTML = origText; btn.disabled = false;
     }
   };
+
+  render();
+  window.addEventListener('system-settings-loaded', render, { once: true });
 
   if (window.__removeSplashScreen) {
     if (document.fonts && document.fonts.ready) {

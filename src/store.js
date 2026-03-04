@@ -24,6 +24,11 @@ class Store {
     }
 
     async applySystemSettings() {
+        // Se já tiver carregado via constructor síncrono ou cache anterior (não usado aqui mas pra segurança)
+        if (this.systemSettings) {
+            window.dispatchEvent(new Event('system-settings-loaded'));
+        }
+
         try {
             const res = await fetch(`${API_URL}/public/settings/public`);
             if (res.ok) {
