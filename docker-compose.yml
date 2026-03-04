@@ -10,7 +10,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - JWT_SECRET=super-secret-jwt-key # Pode ser injetado no Run
+      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=${DATABASE_URL}
     volumes:
       # Volume mapeado garante que o dev.db não morra ao reiniciar container
       - crm_db_data:/app/prisma
@@ -36,7 +37,21 @@ services:
       - NODE_ENV=production
     depends_on:
       - backend # Garante que o nginx só sobe após o backend
+  # PostgreSQL — descomente para usar em vez de SQLite
+  # postgres:
+  #   image: postgres:15
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: crm
+  #     POSTGRES_PASSWORD: crm_password
+  #     POSTGRES_DB: church_crm
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - crm_pg_data:/var/lib/postgresql/data
 
 volumes:
-  crm_db_data: # Nome do disco lógico DB local
-  crm_uploads_data: # Nome do disco lógico pra imagens
+  crm_db_data: # Nome do disco lógico DB local (SQLite)
+  crm_uploads_data:
+    # Nome do disco lógico pra imagens
+    # crm_pg_data: # Descomente se usar PostgreSQL

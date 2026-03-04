@@ -6,8 +6,10 @@ generator client {
 }
 
 datasource db {
+  // Para usar PostgreSQL: troque provider para "postgresql"
+  // e atualize DATABASE_URL no .env com a connection string do Postgres.
   provider = "sqlite"
-  url      = "file:./dev.db"
+  url      = env("DATABASE_URL")
 }
 
 model User {
