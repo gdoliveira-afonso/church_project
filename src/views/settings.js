@@ -873,6 +873,12 @@ function openTriageDetail(id) {
   const phone = phoneKey ? t.data[phoneKey] : '';
   const emailKey = Object.keys(t.data).find(k => k.toLowerCase().includes('email') || k.toLowerCase().includes('e-mail'));
   const email = emailKey ? t.data[emailKey] : '';
+  const birthKey = Object.keys(t.data).find(k => k.toLowerCase().includes('nascimento') || k.toLowerCase().includes('nasc'));
+  let birthdate = birthKey ? t.data[birthKey] : '';
+  if (birthdate && birthdate.includes('/')) {
+    const parts = birthdate.split('/');
+    if (parts.length === 3) birthdate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
   const isDone = t.status === 'done' || t.status === 'rejected';
   const statusLabel = f?.personStatus || 'Sem status definido';
   const statusColor = f?.personStatus === 'Novo Convertido' ? 'emerald' : f?.personStatus === 'Reconciliação' ? 'purple' : 'slate';
@@ -892,7 +898,9 @@ function openTriageDetail(id) {
     <div class="mb-4">
       <p class="text-xs font-semibold text-slate-600 mb-2">Dados enviados</p>
       <div class="space-y-2 bg-slate-50 rounded-lg p-3 border border-slate-100">
-        ${Object.entries(t.data).map(([k, v]) => `<div class="flex justify-between items-start gap-2">
+        ${Object.entries(t.data)
+      .filter(([k]) => k !== 'generationId')
+      .map(([k, v]) => `<div class="flex justify-between items-start gap-2">
           <span class="text-[11px] font-medium text-slate-500 shrink-0">${k}</span>
           <span class="text-[11px] text-right font-semibold text-slate-700">${v || '<span class="text-slate-300 italic">vazio</span>'}</span>
         </div>`).join('')}
@@ -906,6 +914,10 @@ function openTriageDetail(id) {
       <div>
         <label class="text-xs font-semibold text-slate-600 mb-1 block">Telefone</label>
         <input id="tr-phone" value="${phone}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="(00) 00000-0000"/>
+      </div>
+      <div>
+        <label class="text-xs font-semibold text-slate-600 mb-1 block">Data de Nascimento</label>
+        <input id="tr-birth" type="date" value="${birthdate}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
       </div>
       <div>
         <label class="text-xs font-semibold text-slate-600 mb-1 block">Email</label>
@@ -940,6 +952,7 @@ function openTriageDetail(id) {
       e.preventDefault();
       const trName = document.getElementById('tr-name').value.trim() || name || 'Sem nome';
       const trPhone = document.getElementById('tr-phone').value.trim();
+      const trBirth = document.getElementById('tr-birth').value;
       const trEmail = document.getElementById('tr-email').value.trim();
       const trCell = document.getElementById('tr-cell').value;
       const trGenSelect = document.getElementById('tr-generation');
@@ -955,7 +968,7 @@ function openTriageDetail(id) {
       }
 
       const personData = {
-        name: trName, phone: trPhone, email: trEmail,
+        name: trName, phone: trPhone, email: trEmail, birthdate: trBirth,
         status: f?.personStatus || 'Novo Convertido',
         cellId: trCell || undefined,
         createdAt: new Date().toISOString(),
@@ -970,12 +983,29 @@ function openTriageDetail(id) {
       toast('Pessoa cadastrada com sucesso!');
       triageView();
     };
-    document.getElementById('tr-reject')?.addEventListener('click', async () => {
-      t.status = 'rejected';
-      await store.updateTriage(t.id, 'rejected');
-      closeModal();
-      toast('Registro rejeitado', 'warning');
-      triageView();
+    document.getElementById('tr-reject')?.addEventListener('click', () => {
+      openModal(`<div class="p-6 text-center">
+        <div class="w-14 h-14 rounded-full bg-red-100 mx-auto mb-4 flex items-center justify-center"><span class="material-symbols-outlined text-red-600 text-3xl">delete_forever</span></div>
+        <h3 class="text-lg font-bold mb-1">Rejeitar Triagem?</h3>
+        <p class="text-sm text-slate-500 mb-5">Tem certeza que deseja rejeitar este cadastro? Esta ação marcará o registro como rejeitado.</p>
+        <div class="flex gap-3">
+          <button id="btn-cancel-reject" class="flex-1 py-2.5 rounded-lg bg-slate-100 text-sm font-semibold hover:bg-slate-200 transition">Cancelar</button>
+          <button id="btn-confirm-reject" class="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition">Sim, Rejeitar</button>
+        </div>
+      </div>`);
+
+      document.getElementById('btn-cancel-reject').onclick = () => {
+        // Just close the confirmation modal and re-open the triage detail
+        openTriageDetail(t.id);
+      };
+
+      document.getElementById('btn-confirm-reject').onclick = async () => {
+        t.status = 'rejected';
+        await store.updateTriage(t.id, 'rejected');
+        closeModal();
+        toast('Registro rejeitado', 'warning');
+        triageView();
+      };
     });
   }
 }

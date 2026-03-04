@@ -1,5 +1,5 @@
 import { store } from '../store.js';
-import { header, toast } from '../components/ui.js';
+import { header, toast, bottomNav } from '../components/ui.js';
 
 export function reportsView() {
   const app = document.getElementById('app');
@@ -249,7 +249,8 @@ export function reportsView() {
         </div>
 
       </div>
-    </div>`;
+    </div>
+    ${bottomNav('reports')}`;
 
     bindEvents(d);
   }
@@ -615,320 +616,205 @@ function downloadExcel(data, sheetName, fileName) {
 }
 
 // ── PDF EXPORT ──
-function exportPDF(d, currentTab = 'members', visibleCols = {}) {
-  if (!store.hasRole('ADMIN', 'SUPERVISOR')) { toast('Sem permissão para exportar.', 'error'); return; }
-  const now = new Date();
-  const dateStr = now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+function exportPDF(d) {
+  if (!store.hasRole('ADMIN', 'SUPERVISOR', 'LIDER_GERACAO')) { toast('Sem permissão para exportar.', 'error'); return; }
 
-  const tracks = store.tracks || [];
-  let tabHtml = '';
-  if (currentTab === 'members') {
-    tabHtml = `<div class="section-title">Lista de Membros</div>
-    <table>
-      <thead><tr><th>Nome</th>
-      ${visibleCols.status !== false ? '<th>Status</th>' : ''}
-      ${visibleCols.cell !== false ? '<th>Célula</th>' : ''}
-      ${visibleCols.phone !== false ? '<th>Telefone</th>' : ''}
-      ${tracks.filter(t => visibleCols[t.id] !== false).map(t => `<th>${t.name}</th>`).join('')}
-      ${visibleCols.visits !== false ? '<th>Visitas</th>' : ''}</tr></thead>
-      <tbody>${d.people.map(p => {
-      const c = p.cellId ? store.getCell(p.cellId) : null;
-      const vc = store.getVisitsForPerson(p.id).length;
-      const bc = { 'Novo Convertido': 'badge-green', 'Reconciliação': 'badge-purple', 'Visitante': 'badge-blue' };
-      return `<tr>
-          <td style="font-weight:600">${p.name}</td>
-          ${visibleCols.status !== false ? `<td><span class="badge ${bc[p.status] || 'badge-gray'}">${p.status || '—'}</span></td>` : ''}
-          ${visibleCols.cell !== false ? `<td>${c?.name || '—'}</td>` : ''}
-          ${visibleCols.phone !== false ? `<td>${p.phone || '—'}</td>` : ''}
-          ${tracks.filter(t => visibleCols[t.id] !== false).map(t => `<td class="${p.tracksData && p.tracksData[t.id] ? 'check' : 'cross'}">${p.tracksData && p.tracksData[t.id] ? '✓' : '✗'}</td>`).join('')}
-          ${visibleCols.visits !== false ? `<td style="font-weight:700;text-align:center">${vc}</td>` : ''}
-        </tr>`;
-    }).join('')}</tbody>
-    </table>`;
-  } else if (currentTab === 'cells') {
-    tabHtml = `<div class="section-title">Lista de Células</div>
-    <table>
-      <thead><tr><th>Nome da Célula</th><th>Líder</th><th>Dia de Encontro</th><th>Membros</th><th>Realizadas</th><th>Justificadas</th><th>Canceladas</th></tr></thead>
-      <tbody>${store.getVisibleCells().map(c => {
-      const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
-      const attCount = store.getAttendanceForCell(c.id).length;
-      const justifications = store.getCellJustifications(c.id).length;
-      const cancellations = store.cellCancellations ? store.cellCancellations.filter(can => can.cellId === c.id).length : 0;
-      return `<tr>
-          <td style="font-weight:600">${c.name}</td>
-          <td>${leader?.name || '—'}</td>
-          <td>${c.meetingDay || '—'}</td>
-          <td style="font-weight:700;text-align:center">${store.getCellMembers(c.id).length}</td>
-          <td style="font-weight:700;text-align:center;color:#059669">${attCount}</td>
-          <td style="font-weight:700;text-align:center;color:#d97706">${justifications}</td>
-          <td style="font-weight:500;text-align:center;color:#64748b">${cancellations}</td>
-        </tr>`;
-    }).join('')}</tbody>
-    </table>`;
-  } else if (currentTab === 'visits') {
-    tabHtml = !d.visitsInPeriod.length ? '<p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:20px;">Nenhuma visita no período selecionado.</p>' : `<div class="section-title">Visitas no Período</div>
-    <table>
-      <thead><tr><th>Data</th><th>Pessoa</th><th>Tipo</th><th>Resultado</th><th>Observação</th></tr></thead>
-      <tbody>${[...d.visitsInPeriod].sort((a, b) => b.date.localeCompare(a.date)).map(v => {
-      const person = store.getPerson(v.personId);
-      return `<tr><td>${v.date}</td><td style="font-weight:600">${person?.name || '—'}</td><td>${v.type || '—'}</td><td>${v.result || '—'}</td><td>${v.observation || '—'}</td></tr>`;
-    }).join('')}</tbody>
-    </table>`;
-  } else if (currentTab === 'attendance') {
-    const attInPeriod = store.attendance.filter(a => {
-      const ddate = new Date(a.date);
-      return ddate >= d.startDate && ddate <= d.endDate;
-    }).filter(a => a.records && a.records.length > 0).sort((a, b) => b.date.localeCompare(a.date));
+  const modalOverlay = document.getElementById('modal-overlay');
+  const modalContent = document.getElementById('modal-content');
 
-    tabHtml = !attInPeriod.length ? '<p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:20px;">Nenhum registro de frequência no período.</p>' : `
-    <div class="section-title">Registros de Frequência</div>
-    <table>
-      <thead><tr><th>Data</th><th>Célula</th><th>Presentes</th><th>Ausentes</th><th>% Presença</th></tr></thead>
-      <tbody>${attInPeriod.map(a => {
-      const cell = store.getCell(a.cellId);
-      const present = a.records?.filter(r => r.status === 'present').length || 0;
-      const absent = (a.records?.length || 0) - present;
-      const pct = a.records?.length ? Math.round(present / a.records.length * 100) : 0;
-      return `<tr>
-          <td>${a.date}</td>
-          <td style="font-weight:600">${cell?.name || '—'}</td>
-          <td style="color:#059669;font-weight:700;text-align:center">${present}</td>
-          <td style="color:#ef4444;font-weight:700;text-align:center">${absent}</td>
-          <td style="text-align:center"><span class="badge ${pct >= 70 ? 'badge-green' : pct >= 40 ? 'badge-purple' : 'badge-blue'}">${pct}%</span></td>
-        </tr>`;
-    }).join('')}</tbody>
-    </table>`;
-  } else if (currentTab === 'metrics') {
-    const attInPeriod = store.attendance.filter(a => {
-      const ddate = new Date(a.date);
-      return ddate >= d.startDate && ddate <= d.endDate;
-    }).filter(a => a.customFields && a.customFields !== '{}').sort((a, b) => b.date.localeCompare(a.date));
+  modalContent.innerHTML = `
+    <div class="p-6">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-extrabold text-slate-900 flex items-center gap-2"><span class="material-symbols-outlined text-primary">picture_as_pdf</span> Gerar Relatório PDF</h3>
+        <button id="close-pdf-modal" type="button" class="text-slate-400 hover:text-slate-600 transition"><span class="material-symbols-outlined">close</span></button>
+      </div>
 
-    const customFieldsConfig = (store.systemSettings?.cellCustomFields || '').split(',').map(s => s.trim()).filter(Boolean);
-    const customFieldTotals = {};
-    customFieldsConfig.forEach(cf => { customFieldTotals[cf] = 0; });
+      <div class="space-y-4 mb-6">
+        <label class="block text-sm font-semibold text-slate-700">Selecione o modelo do relatório:</label>
+        
+        <div class="grid grid-cols-1 gap-3">
+          <label class="flex items-start gap-3 p-4 border border-blue-200 bg-blue-50/50 rounded-xl cursor-pointer transition hover:bg-blue-50 group">
+            <input type="radio" name="reportType" value="executive" class="mt-1 w-4 h-4 text-primary accent-primary" checked>
+            <div>
+              <p class="text-sm font-bold text-slate-900">Relatório Executivo <span class="badge badge-blue ml-1 bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold inline-block">Recomendado</span></p>
+              <p class="text-[11px] text-slate-500 mt-1">Visão gerencial em 1 ou 2 páginas. Inclui KPIs, células, saúde espiritual e insights robóticos.</p>
+            </div>
+          </label>
 
-    const rowsHtml = attInPeriod.map(a => {
-      const cell = store.getCell(a.cellId);
-      let parsedCustomFields = {};
-      try { parsedCustomFields = JSON.parse(a.customFields); } catch (e) { }
+          <label class="flex items-start gap-3 p-4 border border-slate-200 rounded-xl cursor-pointer transition hover:bg-slate-50">
+            <input type="radio" name="reportType" value="analytical" class="mt-1 w-4 h-4 text-primary accent-primary">
+            <div>
+              <p class="text-sm font-bold text-slate-900">Analítico Completo</p>
+              <p class="text-[11px] text-slate-500 mt-1">O pacote completo com o resumo executivo mais todas as tabelas detalhadas impressas.</p>
+            </div>
+          </label>
 
-      return `<tr>
-          <td>${a.date}</td>
-          <td style="font-weight:600">${cell?.name || '—'}</td>
-          ${customFieldsConfig.map(cf => {
-        const val = parsedCustomFields[cf] || 0;
-        customFieldTotals[cf] += val;
-        return `<td style="text-align:center">${val || '-'}</td>`;
-      }).join('')}
-        </tr>`;
-    }).join('');
+          <label class="flex items-start gap-3 p-4 border border-slate-200 rounded-xl cursor-pointer transition hover:bg-slate-50">
+            <input type="radio" name="reportType" value="members" class="mt-1 w-4 h-4 text-primary accent-primary">
+            <div>
+              <p class="text-sm font-bold text-slate-900">Lista de Membros</p>
+              <p class="text-[11px] text-slate-500 mt-1">Tabela de membros e status espiritual das colunas ativas.</p>
+            </div>
+          </label>
 
-    tabHtml = !attInPeriod.length ? '<p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:20px;">Nenhuma métrica lançada no período.</p>' : `
-    <div class="kpi-grid" style="margin-top:20px;">
-      ${customFieldsConfig.map(cf => `
-        <div class="kpi">
-          <div class="val">${customFieldTotals[cf]}</div>
-          <div class="label">Total ${cf}</div>
+          <label class="flex items-start gap-3 p-4 border border-slate-200 rounded-xl cursor-pointer transition hover:bg-slate-50">
+            <input type="radio" name="reportType" value="cells" class="mt-1 w-4 h-4 text-primary accent-primary">
+            <div>
+              <p class="text-sm font-bold text-slate-900">Desempenho das Células</p>
+              <p class="text-[11px] text-slate-500 mt-1">Líderes, reuniões, assiduidade e números limpos.</p>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 p-4 border border-slate-200 rounded-xl cursor-pointer transition hover:bg-slate-50">
+            <input type="radio" name="reportType" value="visits" class="mt-1 w-4 h-4 text-primary accent-primary">
+            <div>
+              <p class="text-sm font-bold text-slate-900">Histórico de Visitas</p>
+              <p class="text-[11px] text-slate-500 mt-1">Linha do tempo das ocorrências, resultados e anotações.</p>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 p-4 border border-slate-200 rounded-xl cursor-pointer transition hover:bg-slate-50">
+            <input type="radio" name="reportType" value="metrics" class="mt-1 w-4 h-4 text-primary accent-primary">
+            <div>
+              <p class="text-sm font-bold text-slate-900">Relatório de Métricas Customizadas</p>
+              <p class="text-[11px] text-slate-500 mt-1">Resumo e histórico de indicadores numéricos (custom fields) enviados pelas células.</p>
+            </div>
+          </label>
         </div>
-      `).join('')}
+      </div>
+
+      <div class="flex gap-3">
+        <button id="cancel-pdf" type="button" class="flex-1 py-3 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition">Cancelar</button>
+        <button id="confirm-pdf" type="button" class="flex-1 py-3 text-sm font-bold text-white bg-primary hover:bg-blue-700 rounded-xl shadow-md transition flex items-center justify-center gap-2">Baixar Relatório</button>
+      </div>
     </div>
-    <div class="section-title">Lançamentos de Métricas</div>
-    <table>
-      <thead><tr><th>Data</th><th>Célula</th>${customFieldsConfig.map(cf => `<th>${cf}</th>`).join('')}</tr></thead>
-      <tbody>${rowsHtml}</tbody>
-    </table>`;
-  } else if (currentTab === 'person_attendance') {
-    const attInPeriod = store.attendance.filter(a => {
-      const ddate = new Date(a.date);
-      return ddate >= d.startDate && ddate <= d.endDate;
-    });
-    const stats = d.people.map(p => {
-      let present = 0; let absent = 0; let total = 0;
-      attInPeriod.forEach(a => {
-        const rec = a.records?.find(r => r.personId === p.id);
-        if (rec) { total++; if (rec.status === 'present') present++; else if (rec.status === 'absent') absent++; }
+  `;
+  modalOverlay.classList.remove('hidden');
+
+  const close = () => modalOverlay.classList.add('hidden');
+  document.getElementById('close-pdf-modal').onclick = close;
+  document.getElementById('cancel-pdf').onclick = close;
+
+  document.getElementById('confirm-pdf').onclick = async () => {
+    const selectedType = document.querySelector('input[name="reportType"]:checked').value;
+    const btn = document.getElementById('confirm-pdf');
+    btn.innerHTML = '<span class="spinner w-4 h-4 !m-0 border-2 border-white/20 border-t-white"></span> Processando...';
+    btn.disabled = true;
+
+    try {
+      const payload = preparePdfPayload(d);
+      const res = await fetch('/api/reports/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${store.token}`
+        },
+        body: JSON.stringify({ type: selectedType, payload })
       });
-      return { ...p, present, absent, total };
-    }).sort((a, b) => b.total - a.total || b.present - a.present);
 
-    tabHtml = !stats.length ? '<p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:20px;">Nenhum membro listado.</p>' : `<div class="section-title">Frequência por Membro</div>
-    <table>
-      <thead><tr><th>Membro</th><th>Célula</th><th>Presenças</th><th>Faltas</th><th>% Frequência</th></tr></thead>
-      <tbody>${stats.map(s => {
-      const cell = store.getCell(s.cellId);
-      const pct = s.total ? Math.round(s.present / s.total * 100) : 0;
-      return `<tr>
-          <td style="font-weight:600">${s.name}</td>
-          <td>${cell?.name || '—'}</td>
-          <td style="color:#059669;font-weight:700;text-align:center">${s.present}</td>
-          <td style="color:#ef4444;font-weight:700;text-align:center">${s.absent}</td>
-          <td style="text-align:center"><span class="badge ${s.total === 0 ? 'badge-gray' : pct >= 70 ? 'badge-green' : pct >= 40 ? 'badge-purple' : 'badge-red'}">${s.total === 0 ? '-' : pct + '%'}</span></td>
-        </tr>`;
-    }).join('')}</tbody>
-    </table>`;
-  } else if (currentTab === 'consolidation') {
-    const newConverts = d.people.filter(p => p.status === 'Novo Convertido');
-    tabHtml = !newConverts.length ? '<p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:20px;">Nenhum novo convertido.</p>' : `<div class="section-title">Consolidação de Novos Convertidos</div>
-    <table>
-      <thead><tr><th>Nome</th><th>Célula</th><th>Status</th><th>Tempo Passado</th><th>Visitas Recebidas</th></tr></thead>
-      <tbody>${newConverts.map(p => {
-      const cell = store.getCell(p.cellId);
-      let sBadge = '<span class="badge badge-gray">Pendente</span>';
-      let daysDiff = '-';
-      if (p.consolidation) {
-        if (p.consolidation.status === 'COMPLETED') { sBadge = '<span class="badge badge-green">Finalizada</span>'; daysDiff = '0'; }
-        else {
-          const days = Math.floor((new Date() - new Date(p.consolidation.startDate)) / 86400000);
-          daysDiff = days > 15 ? `<span style="color:#ef4444;font-weight:700">${days} dias</span>` : `<span style="color:#d97706;font-weight:700">${days} dias</span>`;
-          sBadge = p.consolidation.status === 'IN_PROGRESS' ? '<span class="badge badge-purple">Em Andamento</span>' : '<span class="badge badge-gray">Pendente</span>';
-        }
-      }
-      const consVisits = store.getVisitsForPerson(p.id).filter(v => v.type === 'Visita de Consolidação').length;
-      return `<tr>
-          <td style="font-weight:600">${p.name}</td>
-          <td>${cell?.name || '—'}</td>
-          <td style="text-align:center">${sBadge}</td>
-          <td style="text-align:center">${daysDiff}</td>
-          <td style="font-weight:700;text-align:center">${consVisits}</td>
-        </tr>`;
-    }).join('')}</tbody>
-    </table>`;
-  }
+      if (!res.ok) throw new Error('Falha na geração');
 
-  function pBar(label, count, total, color) {
-    const pct = total ? Math.round(count / total * 100) : 0;
-    return `<div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <span style="font-size:12px;font-weight:500">${label}</span>
-        <span style="font-size:12px;font-weight:700;color:${color}">${pct}% (${count}/${total})</span>
-      </div>
-      <div style="height:8px;background:#f1f5f9;border-radius:999px;overflow:hidden">
-        <div style="width:${pct}%;height:100%;background:${color};border-radius:999px"></div>
-      </div>
-    </div>`;
-  }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `report_${selectedType}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
 
-  const sys = store.systemSettings || {};
-  const congName = sys.congregationName || sys.appName || 'Gestão Celular';
-  const pastor = sys.pastorName ? `Pastor Titular: ${sys.pastorName}` : '';
-  const nucleusInfo = sys.nucleus ? `Núcleo/Região: ${sys.nucleus}` : '';
-  const address = sys.congregationAddress ? `Endereço: ${sys.congregationAddress}` : '';
+      toast('Relatório baixado!');
+      close();
+    } catch (e) {
+      toast('Erro ao gerar relatório', 'error');
+      btn.innerHTML = 'Baixar Relatório';
+      btn.disabled = false;
+    }
+  };
+}
 
-  let headerLeft = '';
-  if (sys.logoUrl) {
-    headerLeft = `<div style="display:flex; align-items:center; gap:16px;">
-        <img src="${sys.logoUrl}" style="max-height:60px; max-width:150px; object-fit:contain; border-radius:8px;" />
-        <div>
-          <h1>${congName}</h1>
-          <p style="font-size:11px;color:#64748b;margin-top:2px;"><b>${pastor}</b> ${nucleusInfo ? '• ' + nucleusInfo : ''}</p>
-          <p style="font-size:10px;color:#94a3b8;margin-top:2px;">${address}</p>
-        </div>
-      </div>`;
-  } else {
-    headerLeft = `<div>
-        <h1>${congName}</h1>
-        <p style="font-size:11px;color:#64748b;margin-top:2px;"><b>${pastor}</b> ${nucleusInfo ? '• ' + nucleusInfo : ''}</p>
-        <p style="font-size:10px;color:#94a3b8;margin-top:2px;">${address}</p>
-      </div>`;
-  }
+function preparePdfPayload(d) {
+  const s = store.systemSettings || {};
 
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>Relatório - ${congName}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-      * { margin:0; padding:0; box-sizing:border-box; }
-      body { font-family:'Inter',sans-serif; color:#1e293b; background:white; padding:40px; }
-      .header { display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #3B82F6; padding-bottom:16px; margin-bottom:30px; }
-      .header h1 { font-size:20px; font-weight:800; color:#1e293b; text-transform:uppercase; letter-spacing:-0.5px; }
-      .header .meta { text-align:right; font-size:11px; color:#64748b; }
-      .header .meta b { color:#1e293b; }
-      .section-title { font-size:14px; font-weight:700; color:#1e293b; margin:24px 0 12px; display:flex; align-items:center; gap:8px; }
-      .section-title::before { content:''; width:4px; height:18px; background:#3B82F6; border-radius:4px; }
-      .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
-      .kpi { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; text-align:center; }
-      .kpi .val { font-size:28px; font-weight:800; color:#1e293b; }
-      .kpi .label { font-size:10px; font-weight:600; color:#64748b; margin-top:4px; text-transform:uppercase; letter-spacing:0.5px; }
-      .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
-      .card { background:#fafbfc; border:1px solid #e2e8f0; border-radius:12px; padding:16px; }
-      .card h4 { font-size:13px; font-weight:700; margin-bottom:12px; color:#334155; }
-      .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-      .stat-box { text-align:center; background:white; border:1px solid #e2e8f0; padding:12px; border-radius:8px; }
-      .stat-box .val { font-size:22px; font-weight:800; }
-      .stat-box .label { font-size:9px; color:#64748b; margin-top:2px; }
-      table { width:100%; border-collapse:collapse; font-size:10px; margin-top:8px; }
-      thead th { background:#f1f5f9; padding:8px 10px; text-align:left; font-size:9px; font-weight:700; text-transform:uppercase; color:#64748b; letter-spacing:0.5px; border-bottom:2px solid #e2e8f0; }
-      tbody td { padding:7px 10px; border-bottom:1px solid #f1f5f9; }
-      tbody tr:nth-child(even) { background:#fafbfc; }
-      .badge { display:inline-block; padding:2px 6px; border-radius:999px; font-size:8px; font-weight:700; text-transform:uppercase; }
-      .badge-green { background:#ecfdf5; color:#059669; }
-      .badge-purple { background:#faf5ff; color:#7c3aed; }
-      .badge-blue { background:#eff6ff; color:#2563eb; }
-      .badge-gray { background:#f1f5f9; color:#475569; }
-      .check { color:#059669; font-weight:700; }
-      .cross { color:#ef4444; font-weight:700; }
-      .footer { margin-top:30px; padding-top:12px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; font-size:9px; color:#94a3b8; }
-      @media print { body { padding:20px; } .no-print { display:none; } }
-    </style>
-  </head><body>
-    <div class="header">
-      ${headerLeft}
-      <div class="meta">
-        <p style="font-size:14px;font-weight:700;color:#3B82F6;margin-bottom:4px">Relatório Gerencial</p>
-        <p>Gerado em <b>${dateStr}</b></p>
-        <p>Período: <b>${d.periodLabel}</b></p>
-        <p>Total: <b>${d.total}</b> membros registrados</p>
-      </div>
-    </div>
+  const cellsTableData = store.getVisibleCells().map(c => {
+    const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
+    const atts = store.getAttendanceForCell(c.id).filter(a => {
+      const adate = new Date(a.date);
+      return adate >= d.startDate && adate <= d.endDate && a.records && a.records.length > 0;
+    });
+    let present = 0, total = 0;
+    atts.forEach(a => {
+      const p = a.records.filter(r => r.status === 'present').length;
+      present += p;
+      total += a.records.length;
+    });
+    return {
+      name: c.name,
+      leader: leader?.name,
+      day: c.meetingDay,
+      memberCount: store.getCellMembers(c.id).length,
+      freqPct: total ? Math.round(present / total * 100) : 0,
+      realizadas: atts.length,
+      justificadas: store.getCellJustifications(c.id).length
+    };
+  });
 
-    <div class="section-title">Indicadores do Período</div>
-    <div class="kpi-grid">
-      <div class="kpi"><div class="val" style="color:#059669">${d.novosConvertidos}</div><div class="label">Novos Convertidos</div></div>
-      <div class="kpi"><div class="val" style="color:#7c3aed">${d.reconciliacoes}</div><div class="label">Reconciliações</div></div>
-      <div class="kpi"><div class="val" style="color:#2563eb">${d.visitantes}</div><div class="label">Visitantes</div></div>
-      <div class="kpi"><div class="val" style="color:#d97706">${d.visitsInPeriod.length}</div><div class="label">Visitas Realizadas</div></div>
-    </div>
-    <div class="kpi-grid">
-      <div class="kpi"><div class="val" style="color:#0d9488">${d.consolidacoes}</div><div class="label">Consolidações</div></div>
-      <div class="kpi"><div class="val" style="color:#0891b2">${d.acompanhamentos}</div><div class="label">Acompanhamentos</div></div>
-      <div class="kpi"><div class="val" style="color:#ea580c">${d.trackCounts && d.trackCounts['t-holySpiritBaptism'] || 0}</div><div class="label">Batismo Esp. Santo</div></div>
-      <div class="kpi"><div class="val" style="color:#3b82f6">${d.trackCounts && d.trackCounts['t-waterBaptism'] || 0}</div><div class="label">Batismo nas Águas</div></div>
-    </div>
+  const mappedPeople = d.people.map(p => {
+    const c = p.cellId ? store.getCell(p.cellId) : null;
+    return {
+      name: p.name,
+      status: p.status,
+      cellName: c?.name,
+      phone: p.phone,
+      tracksData: p.tracksData,
+      visitsCount: store.getVisitsForPerson(p.id).length
+    }
+  });
 
-    <div class="two-col">
-      <div class="card">
-        <h4>📊 Saúde Espiritual & Retiros</h4>
-        ${tracks.length ? tracks.map(t => pBar(t.name, d.trackCounts ? d.trackCounts[t.id] || 0 : 0, d.total, t.color)).join('') : '<p style="font-size:11px;color:#94a3b8">Nenhuma trilha configurada</p>'}
-      </div>
-      <div class="card">
-        <h4>📈 Frequência & Células</h4>
-        <div class="stats-grid">
-          <div class="stat-box"><div class="val" style="color:#3b82f6">${d.freqPct}%</div><div class="label">Frequência Média</div></div>
-          <div class="stat-box"><div class="val" style="color:#7c3aed">${d.activeCells}</div><div class="label">Células Ativas</div></div>
-          <div class="stat-box"><div class="val" style="color:#d97706">${d.noVisit}</div><div class="label">Sem Visita &gt; 60d</div></div>
-          <div class="stat-box"><div class="val" style="color:#ef4444">${d.zeroVisits}</div><div class="label">Zero Visitas</div></div>
-        </div>
-      </div>
-    </div>
-
-    ${tabHtml}
-
-    <div class="footer">
-      <span>Gestão Celular - CRM Celular</span>
-      <span>Gerado em ${dateStr} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-    </div>
-
-    <div class="no-print" style="text-align:center;margin-top:30px">
-      <button onclick="window.print()" style="background:#3B82F6;color:white;border:none;padding:12px 32px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:Inter">
-        📄 Imprimir / Salvar como PDF
-      </button>
-    </div>
-  </body></html>`;
-
-  const win = window.open('', '_blank', 'width=900,height=700');
-  win.document.write(html);
-  win.document.close();
-  toast('Relatório PDF aberto em nova aba!');
+  return {
+    logoUrl: s.logoUrl,
+    appName: s.appName || s.congregationName || 'CRM Celular',
+    periodLabel: d.periodLabel,
+    total: d.total,
+    novosConvertidos: d.novosConvertidos,
+    reconciliacoes: d.reconciliacoes,
+    visitantes: d.visitantes,
+    visitsInPeriod: d.visitsInPeriod.map(v => ({
+      date: v.date,
+      personName: store.getPerson(v.personId)?.name,
+      type: v.type,
+      result: v.result,
+      observation: v.observation
+    })),
+    consolidacoes: d.consolidacoes,
+    acompanhamentos: d.acompanhamentos,
+    freqPct: d.freqPct,
+    activeCells: d.activeCells,
+    noVisit: d.noVisit,
+    zeroVisits: d.zeroVisits,
+    avgMembers: d.avgMembers,
+    tracks: store.tracks,
+    trackCounts: d.trackCounts,
+    people: mappedPeople,
+    cellsTableData: cellsTableData,
+    customFieldTotals: d.customFieldTotals || {},
+    customFieldsConfig: (store.systemSettings?.cellCustomFields || '').split(',').map(s => s.trim()).filter(Boolean),
+    metricsHistory: store.attendance.filter(a => {
+      const adate = new Date(a.date);
+      return adate >= d.startDate && adate <= d.endDate && a.customFields && a.customFields !== '{}';
+    }).sort((a, b) => b.date.localeCompare(a.date)).map(a => {
+      const cell = store.getCell(a.cellId);
+      const leader = cell?.leaderId ? (store.getUser(cell.leaderId) || store.getPerson(cell.leaderId)) : null;
+      let parsed = {};
+      try { parsed = JSON.parse(a.customFields); } catch (e) { }
+      return {
+        date: a.date,
+        cellName: cell?.name || '—',
+        leaderName: leader?.name || '—',
+        metrics: parsed
+      };
+    })
+  };
 }
 
 function renderColSettings(visibleCols) {

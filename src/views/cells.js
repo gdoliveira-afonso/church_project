@@ -18,6 +18,7 @@ export function cellsView() {
       </a>`}).join('')}</div>` : `<div class="flex flex-col items-center justify-center py-16"><span class="material-symbols-outlined text-5xl text-slate-200 mb-3">group_off</span><p class="text-sm text-slate-400">Nenhuma célula encontrada</p>${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="document.getElementById('btn-add-cell').click()" class="mt-3 text-sm text-primary font-semibold">+ Criar primeira célula</button>` : ''}</div>`;
     })()}
   </div>
+  ${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="document.getElementById('btn-add-cell').click()" class="fixed bottom-20 md:bottom-8 right-4 md:right-8 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition"><span class="material-symbols-outlined text-2xl">add</span></button>` : ''}
   ${bottomNav('cells')}`;
   const addBtn = document.getElementById('btn-add-cell');
   if (addBtn) addBtn.onclick = () => cellForm();

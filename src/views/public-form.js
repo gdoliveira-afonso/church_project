@@ -14,7 +14,6 @@ const FIELD_TYPE_MAP = {
 
 export async function publicFormView(params) {
   const app = document.getElementById('app');
-  const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('sidebar-hidden');
   document.documentElement.classList.remove('dark');
 
   // Load from Public API
@@ -77,14 +76,33 @@ export async function publicFormView(params) {
     </div>`;
 
     // Local masks
-    document.querySelectorAll('input[type="tel"]').forEach(input => {
-      input.addEventListener('input', (e) => {
-        let v = e.target.value.replace(/\\D/g, ''); // Remove non-digits
-        if (v.length > 11) v = v.slice(0, 11);
-        v = v.replace(/^(\\d{2})(\\d)/g, '($1) $2');
-        v = v.replace(/(\\d)(\\d{4})$/, '$1-$2');
-        e.target.value = v;
-      });
+    document.querySelectorAll('input').forEach(input => {
+      const isPhone = input.type === 'tel' ||
+        (input.placeholder && (input.placeholder.toLowerCase().includes('tele') ||
+          input.placeholder.toLowerCase().includes('whats') ||
+          input.placeholder.toLowerCase().includes('celular'))) ||
+        (input.id && (input.id.toLowerCase().includes('tele') ||
+          input.id.toLowerCase().includes('whats') ||
+          input.id.toLowerCase().includes('celular')));
+
+      if (isPhone) {
+        // Pre-format current value
+        if (input.value) {
+          let v = input.value.replace(/\D/g, '');
+          if (v.length > 11) v = v.slice(0, 11);
+          v = v.replace(/^(\d{2})(\d)/g, '($1) $2');
+          v = v.replace(/(\d)(\d{4})$/, '$1-$2');
+          input.value = v;
+        }
+
+        input.addEventListener('input', (e) => {
+          let v = e.target.value.replace(/\D/g, ''); // Remove non-digits
+          if (v.length > 11) v = v.slice(0, 11);
+          v = v.replace(/^(\d{2})(\d)/g, '($1) $2');
+          v = v.replace(/(\d)(\d{4})$/, '$1-$2');
+          e.target.value = v;
+        });
+      }
     });
 
     document.getElementById('public-form').onsubmit = handleFormSubmit;

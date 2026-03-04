@@ -120,6 +120,28 @@ router.put('/triage/:id', async (req, res) => {
             where: { id: req.params.id },
             data: updateData
         });
+
+        // --- Create Notification for Generation Leaders ---
+        if (status === 'forwarded_generation' && payload?.generationId) {
+            const leaders = await prisma.user.findMany({
+                where: {
+                    role: 'LIDER_GERACAO',
+                    generationId: String(payload.generationId)
+                }
+            });
+            const nameField = updateData.data ? JSON.parse(updateData.data).Nome || JSON.parse(updateData.data)['Nome Completo'] || 'Um novo formulário' : 'Novo cadastro';
+            if (leaders.length > 0) {
+                await prisma.notification.createMany({
+                    data: leaders.map(leader => ({
+                        userId: leader.id,
+                        title: 'Nova Triagem',
+                        message: `${nameField} foi encaminhado(a) para a sua Geração!`,
+                        action: '#/triage'
+                    }))
+                });
+            }
+        }
+
         triage.data = JSON.parse(triage.data);
         res.json(triage);
     } catch (err) { res.status(500).json({ error: 'Erro ao atualizar triagem' }); }

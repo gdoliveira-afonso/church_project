@@ -34,8 +34,22 @@ export function closeModal() {
 
 // ── Sidebar ──
 export function updateSidebar(active) {
+  const sb = document.getElementById('sidebar');
   const s = document.getElementById('sidebar-links'), u = document.getElementById('sidebar-user');
-  if (!s || !store.currentUser) return;
+
+  if (!sb) return;
+
+  // Centralized visibility logic
+  if (!store.currentUser) {
+    sb.classList.add('sidebar-hidden');
+    return;
+  } else {
+    // Only show if not a public route (checked by presence of loginView or similar if needed, 
+    // but usually currentUser presence is enough for private routes)
+    sb.classList.remove('sidebar-hidden');
+  }
+
+  if (!s) return;
   const tabs = [
     { id: 'home', icon: 'dashboard', label: 'Dashboard', route: '/dashboard', roles: ['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO', 'LEADER', 'VICE_LEADER'] },
     { id: 'people', icon: 'group', label: 'Pessoas', route: '/people', roles: ['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO', 'LEADER', 'VICE_LEADER'] },

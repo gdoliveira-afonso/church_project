@@ -35,6 +35,7 @@ export function generationsView() {
        </div>`
     }
   </div>
+  <button onclick="document.getElementById('btn-add-generation').click()" class="fixed bottom-20 md:bottom-8 right-4 md:right-8 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition"><span class="material-symbols-outlined text-2xl">add</span></button>
   ${bottomNav('generations')}`;
 
   document.getElementById('btn-add-generation')?.addEventListener('click', () => generationModal());

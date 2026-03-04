@@ -107,8 +107,6 @@ export async function loginView() {
       const u = await store.login(document.getElementById('username').value.trim(), document.getElementById('password').value);
 
       if (u) {
-        const sb = document.getElementById('sidebar');
-        if (sb) sb.classList.remove('sidebar-hidden');
         toast(`Bem-vindo, ${u.name}!`);
         navigate('/dashboard');
       } else {

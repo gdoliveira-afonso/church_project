@@ -219,6 +219,7 @@ const formsRouter = require('./routes/forms');
 const generationsRouter = require('./routes/generations');
 const settingsRouter = require('./routes/settings');
 const { getNotificationConfig } = require('./routes/config');
+const reportsRouter = require('./routes/reports');
 
 app.use('/api/public/settings', settingsRouter); // A rota get /public é manipulada dentro de settingsRouter
 app.use('/api/users', authenticateToken, usersRouter);
@@ -229,6 +230,7 @@ app.use('/api/dash', authenticateToken, othersRouter);
 app.use('/api/forms', authenticateToken, formsRouter);
 app.use('/api/generations', authenticateToken, generationsRouter);
 app.use('/api/settings', authenticateToken, settingsRouter);
+app.use('/api/reports', authenticateToken, reportsRouter);
 
 // Health check
 app.get('/health', (req, res) => {
