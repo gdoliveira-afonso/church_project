@@ -136,14 +136,20 @@ elif [ "$RUN_MODE" == "2" ]; then
   echo -e "${BLUE} Iniciando Instalação via Docker                      ${NC}"
   echo -e "${BLUE}======================================================${NC}"
   
-  docker-compose up -d --build
+  if command -v docker-compose &> /dev/null; then
+    DOCKER_CMD="docker-compose"
+  else
+    DOCKER_CMD="docker compose"
+  fi
+  
+  $DOCKER_CMD up -d --build
   
   echo "Aguardando 10 segundos para o banco/container backend respirar..."
   sleep 10
   
   echo "Rodando migrations do Prisma dentro do container..."
-  docker exec -it crm_celular_backend npx prisma generate
-  docker exec -it crm_celular_backend npx prisma db push --skip-generate
+  docker exec crm_celular_backend npx prisma generate
+  docker exec crm_celular_backend npx prisma db push --skip-generate
   
   echo -e "\n${GREEN}Instalação Docker concluída com sucesso!${NC}"
   echo -e "A interface (Nginx) está rodando na porta 80. Acesse no navegador: http://localhost"
