@@ -98,7 +98,7 @@ if [ "$DB_MODE" == "2" ]; then
     sed -i 's/#     - "5432:5432"/    - "5432:5432"/g' docker-compose.yml
     sed -i 's/#   volumes:/  volumes:/g' docker-compose.yml
     sed -i 's/#     - crm_pg_data:\/var\/lib\/postgresql\/data/    - crm_pg_data:\/var\/lib\/postgresql\/data/g' docker-compose.yml
-    sed -i 's/#     # crm_pg_data:/    crm_pg_data:/g' docker-compose.yml
+    sed -i 's/    # crm_pg_data:.*/  crm_pg_data:/g' docker-compose.yml
   fi
 else
   # Garante sqlite
