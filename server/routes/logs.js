@@ -31,7 +31,8 @@ router.get('/', async (req, res) => {
 
         res.json(logs);
     } catch (e) {
-        res.status(500).json({ error: 'Erro ao buscar logs' });
+        console.error('ERRO /api/logs:', e);
+        res.status(500).json({ error: 'Erro ao buscar logs', details: e.message });
     }
 });
 
