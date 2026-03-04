@@ -25,5 +25,10 @@ dist-ssr
 
 # Project data
 server/prisma/dev.db
+*.db
+*.sqlite
+*.sqlite3
+server/prisma/*.db
+server/data/*.db
 server/uploads/*
 !server/uploads/.gitkeep
