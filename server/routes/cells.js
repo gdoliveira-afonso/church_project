@@ -76,6 +76,7 @@ router.post('/', async (req, res) => {
         }
 
         res.status(201).json(cell);
+        req.log?.('CREATE', 'cells', cell.id, cell.name);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao criar célula' });
     }
@@ -126,6 +127,7 @@ router.put('/:id', async (req, res) => {
         }
 
         res.json(cell);
+        req.log?.('UPDATE', 'cells', cell.id, cell.name);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao atualizar célula' });
     }
@@ -148,6 +150,7 @@ router.delete('/:id', async (req, res) => {
         });
 
         res.json({ success: true });
+        req.log?.('DELETE', 'cells', req.params.id);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao deletar célula' });
     }

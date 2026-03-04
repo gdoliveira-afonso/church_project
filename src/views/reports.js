@@ -41,6 +41,11 @@ export function reportsView() {
     const novosConvertidos = inPeriod.filter(p => p.status === 'Novo Convertido').length;
     const reconciliacoes = inPeriod.filter(p => p.status === 'Reconciliação').length;
     const visitantes = inPeriod.filter(p => p.status === 'Visitante').length;
+    // Inativos — estão na célula mas não contam como membros ativos
+    const INACTIVE_STATUSES = ['Inativo', 'Afastado', 'Mudou-se'];
+    const inativos = people.filter(p => p.status === 'Inativo').length;
+    const afastados = people.filter(p => p.status === 'Afastado').length;
+    const mudouSe = people.filter(p => p.status === 'Mudou-se').length;
     const batismoAguas = people.filter(p => p.spiritual?.waterBaptism).length;
     const batismoES = people.filter(p => p.spiritual?.holySpiritBaptism).length;
     const escola = people.filter(p => p.spiritual?.leadersSchool).length;
@@ -111,6 +116,7 @@ export function reportsView() {
 
     return {
       people, total, inPeriod, novosConvertidos, reconciliacoes, visitantes,
+      inativos, afastados, mudouSe,
       visitsInPeriod, consolidacoes, acompanhamentos, noVisit, zeroVisits, activeCells, avgMembers, freqPct, presentRec,
       totalAttRec, periodLabel, startDate, endDate, allVisits, trackCounts, customFieldTotals
     };
@@ -181,6 +187,14 @@ export function reportsView() {
           ${kpi('follow_the_signs', 'Acompanham.', d.acompanhamentos, 'cyan')}
         </div>
 
+        <!-- Inativos / Saída -->
+        ${(d.inativos + d.afastados + d.mudouSe) > 0 ? `
+        <div class="grid grid-cols-3 gap-2.5">
+          ${kpi('person_off', 'Inativos', d.inativos, 'gray')}
+          ${kpi('person_remove', 'Afastados', d.afastados, 'orange')}
+          ${kpi('moving', 'Mudou-se', d.mudouSe, 'slate')}
+        </div>` : ''}
+
         <!-- Custom Metrics KPI Grid (Optional row if metrics exist) -->
         ${Object.keys(d.customFieldTotals).length > 0 ? `
         <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
@@ -231,8 +245,8 @@ export function reportsView() {
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
             <h3 class="text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-primary text-lg">table_chart</span>Relatório Detalhado</h3>
             <div class="flex flex-wrap gap-1.5 w-full sm:w-auto">
-              ${[['members', 'person', 'Membros'], ['cells', 'diversity_3', 'Células'], ['visits', 'home_health', 'Visitas'], ['attendance', 'event_available', 'Chamadas'], ['metrics', 'leaderboard', 'Métricas'], ['person_attendance', 'account_circle', 'Freq. Membros'], ['consolidation', 'route', 'Consolidação']].map(([v, ic, l]) =>
-      `<button class="report-tab flex-1 sm:flex-none justify-center flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition ${v === 'members' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" data-tab="${v}"><span class="material-symbols-outlined text-sm hidden sm:block">${ic}</span>${l}</button>`
+              ${[['members', 'person', 'Membros'], ['cells', 'diversity_3', 'Células'], ['visits', 'home_health', 'Visitas'], ['attendance', 'event_available', 'Chamadas'], ['metrics', 'leaderboard', 'Métricas'], ['person_attendance', 'account_circle', 'Freq. Membros'], ['consolidation', 'route', 'Consolidação'], ['inativos', 'person_off', 'Inativos']].map(([v, ic, l]) =>
+      `<button class="report-tab flex-1 sm:flex-none justify-center flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition ${v === 'members' ? 'bg-primary text-white' : v === 'inativos' ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" data-tab="${v}"><span class="material-symbols-outlined text-sm hidden sm:block">${ic}</span>${l}</button>`
     ).join('')}
             </div>
           </div>
@@ -307,6 +321,7 @@ export function reportsView() {
         else if (tab === 'metrics') rt.innerHTML = attendanceTable(d.startDate, d.endDate, true); // true = show only metrics
         else if (tab === 'person_attendance') rt.innerHTML = personAttendanceTable(d.people, d.startDate, d.endDate);
         else if (tab === 'consolidation') rt.innerHTML = consolidationTable(d.people);
+        else if (tab === 'inativos') rt.innerHTML = inactiveMembersTable();
       }
     }
     document.querySelectorAll('.report-tab').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
@@ -528,6 +543,57 @@ function consolidationTable(people) {
   </table>`;
 }
 
+function inactiveMembersTable() {
+  const INACTIVE_STATUSES = ['Inativo', 'Afastado', 'Mudou-se'];
+  const statusColors = { 'Inativo': ['gray', 'person_off'], 'Afastado': ['orange', 'person_remove'], 'Mudou-se': ['slate', 'moving'] };
+
+  const inactive = store.people
+    .filter(p => INACTIVE_STATUSES.includes(p.status))
+    .sort((a, b) => INACTIVE_STATUSES.indexOf(a.status) - INACTIVE_STATUSES.indexOf(b.status) || a.name.localeCompare(b.name));
+
+  const counts = INACTIVE_STATUSES.map(s => ({ s, n: inactive.filter(p => p.status === s).length }));
+
+  if (!inactive.length) {
+    return `<div class="flex flex-col items-center py-12 text-slate-400">
+      <span class="material-symbols-outlined text-4xl mb-2">how_to_reg</span>
+      <p class="text-sm font-medium">Nenhum membro inativo, afastado ou que se mudou.</p>
+    </div>`;
+  }
+
+  const summaryCards = counts.map(({ s, n }) => {
+    const [c, ic] = statusColors[s];
+    return `<div class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-${c}-50 border border-${c}-100">
+      <span class="material-symbols-outlined text-${c}-500 text-base">${ic}</span>
+      <span class="text-sm font-bold text-${c}-700">${n}</span>
+      <span class="text-xs text-${c}-600">${s}</span>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="flex flex-wrap gap-2 mb-4">${summaryCards}</div>
+  <table class="w-full text-left text-xs">
+    <thead><tr class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider">
+      <th class="px-3 py-2.5 rounded-l-lg">Nome</th>
+      <th class="px-3 py-2.5">Status</th>
+      <th class="px-3 py-2.5">Célula</th>
+      <th class="px-3 py-2.5">Telefone</th>
+      <th class="px-3 py-2.5 rounded-r-lg">Visitas</th>
+    </tr></thead>
+    <tbody>${inactive.map(p => {
+    const c = p.cellId ? store.getCell(p.cellId) : null;
+    const vc = store.getVisitsForPerson(p.id).length;
+    const [col] = statusColors[p.status] || ['slate', 'person'];
+    return `<tr class="border-b border-slate-50 hover:bg-slate-50/60 transition cursor-pointer" onclick="location.hash='/profile?id=${p.id}'">
+        <td class="px-3 py-2.5 font-semibold text-primary hover:underline whitespace-nowrap">${p.name}</td>
+        <td class="px-3 py-2.5"><span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-${col}-50 text-${col}-700">${p.status}</span></td>
+        <td class="px-3 py-2.5 text-slate-500">${c?.name || '<span class="text-slate-300">Sem célula</span>'}</td>
+        <td class="px-3 py-2.5 text-slate-500">${p.phone || '—'}</td>
+        <td class="px-3 py-2.5 text-center font-bold text-slate-500">${vc}</td>
+      </tr>`;
+  }).join('')}</tbody>
+  </table>`;
+}
+
 // ── HELPERS ──
 function kpi(icon, label, value, color) {
   return `<div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm hover:shadow-md hover:border-${color}-200 transition-all group min-w-0">
@@ -551,7 +617,11 @@ function progressBar(label, count, total, color) {
 }
 
 function statusBadge(status) {
-  const colors = { 'Novo Convertido': 'emerald', 'Reconciliação': 'purple', 'Visitante': 'blue', 'Membro': 'primary' };
+  const colors = {
+    'Novo Convertido': 'emerald', 'Reconciliação': 'purple',
+    'Visitante': 'blue', 'Membro': 'primary',
+    'Inativo': 'gray', 'Afastado': 'orange', 'Mudou-se': 'slate'
+  };
   const c = colors[status] || 'slate';
   return `<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-${c}-50 text-${c}-700">${status || '—'}</span>`;
 }
@@ -678,6 +748,14 @@ function exportPDF(d) {
             <div>
               <p class="text-sm font-bold text-slate-900">Relatório de Métricas Customizadas</p>
               <p class="text-[11px] text-slate-500 mt-1">Resumo e histórico de indicadores numéricos (custom fields) enviados pelas células.</p>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-3 p-4 border border-gray-200 bg-gray-50/50 rounded-xl cursor-pointer transition hover:bg-gray-50">
+            <input type="radio" name="reportType" value="inativos" class="mt-1 w-4 h-4 text-primary accent-primary">
+            <div>
+              <p class="text-sm font-bold text-slate-900">Inativos / Afastados / Mudou-se</p>
+              <p class="text-[11px] text-slate-500 mt-1">Lista completa de membros com status de saída ou afastamento — Inativo, Afastado e Mudou-se.</p>
             </div>
           </label>
         </div>
@@ -813,7 +891,14 @@ function preparePdfPayload(d) {
         leaderName: leader?.name || '—',
         metrics: parsed
       };
-    })
+    }),
+    inativoPeople: store.people
+      .filter(p => ['Inativo', 'Afastado', 'Mudou-se'].includes(p.status))
+      .sort((a, b) => a.status.localeCompare(b.status) || a.name.localeCompare(b.name))
+      .map(p => {
+        const c = p.cellId ? store.getCell(p.cellId) : null;
+        return { name: p.name, status: p.status, cellName: c?.name || null, phone: p.phone || null };
+      })
   };
 }
 

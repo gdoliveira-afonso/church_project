@@ -255,7 +255,7 @@ export function donut(pct, color = 'text-primary', sz = 80) {
   </div>`;
 }
 
-export function statusColor(s) { return { ['Novo Convertido']: 'indigo', Membro: 'green', 'Reconciliação': 'purple' }[s] || 'slate' }
+export function statusColor(s) { return { ['Novo Convertido']: 'indigo', Membro: 'green', 'Reconciliação': 'purple', 'Visitante': 'blue', 'Inativo': 'gray', 'Afastado': 'orange', 'Mudou-se': 'slate' }[s] || 'slate' }
 export function riskDot(l) { const c = { low: 'bg-emerald-500', medium: 'bg-amber-400', high: 'bg-red-500' }; return `<span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 ${c[l] || c.low} border-2 border-white rounded-full"></span>` }
 
 // ── Card wrapper for desktop bg ──

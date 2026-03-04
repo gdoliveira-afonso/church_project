@@ -289,7 +289,27 @@ class Store {
     // Cells
     getVisibleCells() { return this.hasRole('ADMIN', 'SUPERVISOR') ? this.cells : this.hasRole('LIDER_GERACAO') ? this.cells.filter(c => c.generationId === this.currentUser?.generationId) : this.cells.filter(c => c.leaderId === this.currentUser?.id || c.viceLeaderId === this.currentUser?.id); }
     getCell(id) { return this.cells.find(c => c.id === id); }
-    getCellMembers(cid) { return this.people.filter(p => p.cellId === cid); }
+    getCellMembers(cid) { return this.people.filter(p => p.cellId === cid && !['Inativo', 'Afastado', 'Mudou-se'].includes(p.status)); }
+    getCellAllMembers(cid) { return this.people.filter(p => p.cellId === cid); } // todos, incluindo inativos
+
+    async getMilestones(personId) {
+        try { return await this.apiFetch(`/people/${personId}/milestones`); } catch (e) { return []; }
+    }
+    async addManualMilestone(personId, data) {
+        return await this.apiFetch(`/people/${personId}/milestones`, { method: 'POST', body: JSON.stringify(data) });
+    }
+    async fetchActivityLogs(filters = {}) {
+        const q = new URLSearchParams();
+        if (filters.action) q.set('action', filters.action);
+        if (filters.resource) q.set('resource', filters.resource);
+        if (filters.from) q.set('from', filters.from);
+        if (filters.to) q.set('to', filters.to);
+        if (filters.limit) q.set('limit', filters.limit);
+        try { return await this.apiFetch(`/logs?${q.toString()}`); } catch (e) { return []; }
+    }
+    async clearActivityLogs() {
+        return await this.apiFetch('/logs', { method: 'DELETE' });
+    }
     async addCell(c) {
         const res = await this.apiFetch('/cells', { method: 'POST', body: JSON.stringify(c) });
         this.cells.push(res);

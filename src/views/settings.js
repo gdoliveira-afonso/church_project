@@ -13,8 +13,9 @@ export function settingsView() {
       <button class="settings-tab active whitespace-nowrap py-3.5 text-sm font-bold text-primary border-b-2 border-primary transition-colors" data-target="tab-account">Conta & Perfil</button>
       <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-team">Equipe</button>
       <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-tools">Ferramentas & Acesso</button>
-      ${u.role === 'ADMIN' ? `<button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-system">Sistema & Alertas</button>
-      <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-custom-fields">Métricas & Campos</button>` : ''}
+      ${u.role === 'ADMIN' ? `<button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-system">Sistema &amp; Alertas</button>
+      <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-custom-fields">Métricas &amp; Campos</button>
+      <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-logs"><span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">history</span>Logs</span></button>` : ''}
     </div>
   </div>
 
@@ -57,6 +58,10 @@ export function settingsView() {
           ${toolLink('groups', 'Gerações', `${(store.generations || []).length} gerações cadastradas`, '#/generations', 'indigo')}
           ${toolLink('description', 'Formulários Customizados', `${store.forms.length} formulários`, '#/forms', 'emerald')}
           ${toolLink('assignment', 'Fila de Triagem', `${store.triageQueue.filter(t => t.status === 'new').length} membros pendentes`, '#/triage', 'orange')}
+          ${u.role === 'ADMIN' ? `
+          ${toolLink('key', 'API — Chaves de Acesso', 'Gerencie chaves para integração programática', '#/api-keys', 'indigo')}
+          ${toolLink('webhook', 'Webhooks', 'Envie eventos para sistemas externos', '#/webhooks', 'purple')}
+          ${toolLink('article', 'Documentação da API', 'Referência completa de endpoints', '#/api-docs', 'slate')}` : ''}
         </div>
       </section>
       <section class="pt-2">
@@ -292,6 +297,44 @@ export function settingsView() {
         </div>
       </section>
     </div>
+
+    <!-- TAB LOGS -->
+    <div id="tab-logs" class="tab-content hidden space-y-4">
+      <section>
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 ml-1 flex items-center gap-2"><span class="material-symbols-outlined text-lg text-primary">history</span>Logs de Atividade</h3>
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-4 space-y-3">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="log-filters">
+            <select id="lf-action" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="">Todas as ações</option>
+              <option value="LOGIN">Login</option>
+              <option value="LOGIN_FAIL">Falha de Login</option>
+              <option value="CREATE">Criação</option>
+              <option value="UPDATE">Edição</option>
+              <option value="DELETE">Exclusão</option>
+              <option value="EXPORT">Exportação</option>
+            </select>
+            <select id="lf-resource" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="">Todos os recursos</option>
+              <option value="auth">Autenticação</option>
+              <option value="people">Pessoas</option>
+              <option value="cells">Células</option>
+              <option value="users">Usuários</option>
+              <option value="attendance">Chamadas</option>
+              <option value="settings">Configurações</option>
+            </select>
+            <input id="lf-from" type="date" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="De">
+            <input id="lf-to" type="date" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Até">
+          </div>
+          <div class="flex gap-2">
+            <button id="btn-log-filter" class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">filter_list</span>Filtrar</button>
+            <button id="btn-log-clear" class="px-4 py-2 rounded-lg bg-red-50 text-red-600 text-sm font-semibold hover:bg-red-100 transition flex items-center gap-1.5 ml-auto"><span class="material-symbols-outlined text-[16px]">delete_sweep</span>Limpar Logs</button>
+          </div>
+          <div id="logs-table-container" class="overflow-x-auto">
+            <div class="flex items-center justify-center py-8 text-slate-400"><span class="material-symbols-outlined animate-spin text-3xl">progress_activity</span></div>
+          </div>
+        </div>
+      </section>
+    </div>
     ` : ''}
 
   </div>
@@ -313,6 +356,7 @@ export function settingsView() {
 
       document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
       document.getElementById(t.dataset.target).classList.remove('hidden');
+      if (t.dataset.target === 'tab-logs') initLogs();
     };
   });
 
@@ -322,6 +366,67 @@ export function settingsView() {
   document.getElementById('btn-logout').onclick = () => { store.logout(); document.getElementById('sidebar').classList.add('sidebar-hidden'); location.hash = '/login'; toast('Deslogado') };
 
   if (u.role === 'ADMIN') {
+    const ACTION_BADGE = {
+      LOGIN: { label: 'Login', cls: 'bg-emerald-100 text-emerald-800' },
+      LOGIN_FAIL: { label: 'Falha Login', cls: 'bg-red-100 text-red-800' },
+      CREATE: { label: 'Criação', cls: 'bg-blue-100 text-blue-800' },
+      UPDATE: { label: 'Edição', cls: 'bg-amber-100 text-amber-800' },
+      DELETE: { label: 'Exclusão', cls: 'bg-red-100 text-red-700' },
+      EXPORT: { label: 'Exportação', cls: 'bg-purple-100 text-purple-800' },
+    };
+    const RESOURCE_LABEL = { auth: '🔑 Auth', people: '👤 Pessoas', cells: '🏠 Células', users: '👥 Usuários', attendance: '📋 Chamadas', settings: '⚙️ Config' };
+
+    async function initLogs() {
+      const container = document.getElementById('logs-table-container');
+      if (!container) return;
+      container.innerHTML = `<div class="flex items-center justify-center py-8 text-slate-400"><span class="material-symbols-outlined animate-spin text-3xl">progress_activity</span></div>`;
+
+      const filters = {
+        action: document.getElementById('lf-action')?.value || '',
+        resource: document.getElementById('lf-resource')?.value || '',
+        from: document.getElementById('lf-from')?.value || '',
+        to: document.getElementById('lf-to')?.value || '',
+        limit: 200
+      };
+
+      const logs = await store.fetchActivityLogs(filters);
+
+      if (!logs.length) {
+        container.innerHTML = `<p class="text-sm text-slate-400 text-center py-8">Nenhum registro encontrado</p>`;
+        return;
+      }
+
+      const rows = logs.map(l => {
+        const ab = ACTION_BADGE[l.action] || { label: l.action, cls: 'bg-slate-100 text-slate-700' };
+        const dt = new Date(l.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        return `<tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+          <td class="py-2.5 pr-3 text-xs text-slate-500 whitespace-nowrap">${dt}</td>
+          <td class="py-2.5 pr-3 text-xs font-medium text-slate-800 whitespace-nowrap">${l.userName || '—'}</td>
+          <td class="py-2.5 pr-3"><span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${ab.cls}">${ab.label}</span></td>
+          <td class="py-2.5 pr-3 text-xs text-slate-600 whitespace-nowrap">${RESOURCE_LABEL[l.resource] || l.resource}</td>
+          <td class="py-2.5 pr-3 text-xs text-slate-500 max-w-[180px] truncate" title="${l.detail || ''}">${l.detail || '—'}</td>
+          <td class="py-2.5 text-[10px] text-slate-400 whitespace-nowrap font-mono">${l.ip || '—'}</td>
+        </tr>`;
+      }).join('');
+
+      container.innerHTML = `<table class="w-full text-left">
+        <thead><tr class="text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+          <th class="pb-2 pr-3">Data/Hora</th><th class="pb-2 pr-3">Usuário</th><th class="pb-2 pr-3">Ação</th>
+          <th class="pb-2 pr-3">Recurso</th><th class="pb-2 pr-3">Detalhe</th><th class="pb-2">IP</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p class="text-[10px] text-slate-400 mt-2 text-right">Mostrando ${logs.length} registro(s)</p>`;
+    }
+
+    document.getElementById('btn-log-filter')?.addEventListener('click', initLogs);
+    document.getElementById('btn-log-clear')?.addEventListener('click', async () => {
+      if (!confirm('Tem certeza que deseja limpar TODOS os logs? Esta ação não pode ser desfeita.')) return;
+      await store.clearActivityLogs();
+      toast('Logs limpos!');
+      initLogs();
+    });
+
     // Carrega config atual nos inputs
     store.fetchConfig().then(cfg => {
       const nvEn = document.getElementById('cfg-novisit-en');

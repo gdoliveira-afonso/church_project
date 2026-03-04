@@ -12,6 +12,9 @@ import { publicFormView } from './views/public-form.js';
 import { formListView, formBuilderView } from './views/form-builder.js';
 import { calendarView } from './views/calendar.js';
 import { generationsView } from './views/generations.js';
+import { apiKeysView } from './views/api-keys.js';
+import { webhooksView } from './views/webhooks.js';
+import { apiDocsView } from './views/api-docs.js';
 
 function restoreTheme() { const t = localStorage.getItem('theme'); if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark'); } }
 function guard(fn) { return (p) => { if (!store.isLoggedIn()) { navigate('/login'); return } restoreTheme(); fn(p) } }
@@ -35,6 +38,9 @@ route('/form-builder', roleGuard(['ADMIN', 'SUPERVISOR'], formBuilderView));
 route('/triage', roleGuard(['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO'], triageView));
 route('/generations', roleGuard(['ADMIN', 'SUPERVISOR'], generationsView));
 route('/calendar', guard(calendarView));
+route('/api-keys', roleGuard(['ADMIN'], apiKeysView));
+route('/webhooks', roleGuard(['ADMIN'], webhooksView));
+route('/api-docs', guard(apiDocsView));
 
 window.addEventListener('system-settings-loaded', () => {
     const s = store.systemSettings;

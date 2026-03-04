@@ -95,10 +95,12 @@ export function personFormView(params) {
         <select id="inp-status" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20">
           ${(() => {
       const opts = ['Visitante', 'Novo Convertido', 'Membro', 'Reconciliação'];
+      const inactiveOpts = ['Inativo', 'Afastado', 'Mudou-se'];
       if (p?.status === 'Líder') opts.push('Líder');
       if (p?.status === 'Vice-Líder') opts.push('Vice-Líder');
-      if (p?.status && !opts.includes(p.status)) opts.push(p.status);
-      return opts.map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('');
+      if (p?.status && !opts.includes(p.status) && !inactiveOpts.includes(p.status)) opts.push(p.status);
+      return `<optgroup label="Ativos">${opts.map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('')}</optgroup>
+              <optgroup label="Inativos / Saída">${inactiveOpts.map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('')}</optgroup>`;
     })()}
         </select>
       </div>

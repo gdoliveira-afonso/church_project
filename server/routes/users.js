@@ -60,6 +60,7 @@ router.post('/', async (req, res) => {
         }
 
         res.status(201).json(user);
+        req.log?.('CREATE', 'users', user.id, `${user.name} (${user.username})`);
     } catch (error) {
         if (error.code === 'P2002') {
             return res.status(400).json({ error: 'Username já existe' });
@@ -84,6 +85,7 @@ router.put('/:id', async (req, res) => {
             select: { id: true, name: true, username: true, role: true, avatar: true, generationId: true }
         });
         res.json(user);
+        req.log?.('UPDATE', 'users', user.id, `${user.name} (${user.username})`);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao atualizar usuário' });
     }
@@ -101,6 +103,7 @@ router.delete('/:id', async (req, res) => {
             where: { id: req.params.id }
         });
         res.json({ success: true });
+        req.log?.('DELETE', 'users', req.params.id);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao deletar usuário' });
     }

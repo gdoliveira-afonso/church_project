@@ -107,6 +107,7 @@ function buildHtml(type, data) {
         .badge-purple { background: #f3e8ff; color: #6b21a8; }
         .badge-red { background: #fee2e2; color: #991b1b; }
         .badge-amber { background: #fef3c7; color: #92400e; }
+        .badge-orange { background: #ffedd5; color: #9a3412; }
     `;
 
     const commonHeader = `
@@ -152,6 +153,11 @@ function buildHtml(type, data) {
         bodyHtml += renderMetricsReport(data);
     }
 
+    if (type === 'inativos' || type === 'analytical') {
+        bodyHtml += `<div class="section-title">Membros Inativos / Afastados / Mudou-se</div>`;
+        bodyHtml += renderInactiveMembersTable(data);
+    }
+
     return `
         <!DOCTYPE html>
         <html>
@@ -171,7 +177,8 @@ function getReportTitle(type) {
         'members': 'Relatório de Membros',
         'cells': 'Relatório de Células',
         'visits': 'Relatório de Visitas',
-        'metrics': 'Relatório de Métricas Customizadas'
+        'metrics': 'Relatório de Métricas Customizadas',
+        'inativos': 'Relatório de Inativos / Saída'
     };
     return titles[type] || 'Relatório';
 }
@@ -283,7 +290,7 @@ function renderMembersTable(d) {
         ${vc.visits !== false ? '<th class="text-center">Visitas</th>' : ''}
     </tr>`;
 
-    const statusMap = { 'Novo Convertido': 'badge-green', 'Reconciliação': 'badge-purple', 'Visitante': 'badge-blue', 'Membro': 'badge-gray' };
+    const statusMap = { 'Novo Convertido': 'badge-green', 'Reconciliação': 'badge-purple', 'Visitante': 'badge-blue', 'Membro': 'badge-gray', 'Inativo': 'badge-gray', 'Afastado': 'badge-orange', 'Mudou-se': 'badge-gray' };
 
     let trs = d.people.map(p => {
         const c = p.cellName || '—';
@@ -396,6 +403,41 @@ function renderMetricsReport(d) {
     `;
 
     return html;
+}
+
+function renderInactiveMembersTable(d) {
+    const STATUSES = ['Inativo', 'Afastado', 'Mudou-se'];
+    const badgeMap = { 'Inativo': 'badge-gray', 'Afastado': 'badge-orange', 'Mudou-se': 'badge-gray' };
+    const people = (d.inativoPeople || []);
+
+    if (!people.length) {
+        return '<p style="color:#64748b; font-size: 11px; margin-top:10px;">Nenhum membro inativo, afastado ou que se mudou registrado.</p>';
+    }
+
+    // Summary counts
+    const counts = STATUSES.map(s => ({ s, n: people.filter(p => p.status === s).length }));
+    const summaryKpis = counts.map(({ s, n }) =>
+        `<div class="kpi-card"><div class="kpi-val">${n}</div><div class="kpi-label">${s}</div></div>`
+    ).join('');
+
+    const th = `<tr>
+        <th>Nome</th><th>Status</th><th>Célula</th><th>Telefone</th>
+    </tr>`;
+
+    const trs = people.map(p => {
+        const badge = badgeMap[p.status] || 'badge-gray';
+        return `<tr>
+            <td class="font-bold">${p.name}</td>
+            <td><span class="badge ${badge}">${p.status}</span></td>
+            <td>${p.cellName || '—'}</td>
+            <td>${p.phone || '—'}</td>
+        </tr>`;
+    }).join('');
+
+    return `
+        <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr);">${summaryKpis}</div>
+        <table><thead>${th}</thead><tbody>${trs}</tbody></table>
+    `;
 }
 
 module.exports = {

@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 
 const prisma = new PrismaClient();
 const app = express();
+const { createLog, activityLoggerMiddleware } = require('./middleware/activityLogger');
 
 app.use(cors());
 app.use(express.json());
@@ -23,7 +24,13 @@ if (!fs.existsSync(uploadsDir)) {
 app.use('/uploads', express.static(uploadsDir));
 
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-jwt-key'; // Mudar em produção
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+    console.error('ERRO: A variável de ambiente JWT_SECRET é obrigatória.');
+    console.error('Recusando iniciar o servidor por razões de segurança.');
+    process.exit(1);
+}
 
 // Seed inicial para o Admin (se não existir)
 async function seedAdmin() {
@@ -148,7 +155,11 @@ app.post('/api/login', async (req, res) => {
             validPassword = await bcrypt.compare(password, user.password);
         }
 
-        if (!validPassword) return res.status(401).json({ error: 'Senha incorreta' });
+        if (!validPassword) {
+            const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress;
+            await createLog({ action: 'LOGIN_FAIL', resource: 'auth', detail: `Tentativa falha: ${username}`, ip });
+            return res.status(401).json({ error: 'Senha incorreta' });
+        }
 
         // Gera o token limitando o payload
         const tokenPayload = {
@@ -159,6 +170,10 @@ app.post('/api/login', async (req, res) => {
         };
 
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '24h' });
+
+        // Log de login bem-sucedido
+        const ip = req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress;
+        await createLog({ userId: user.id, userName: user.name, action: 'LOGIN', resource: 'auth', detail: user.username, ip });
 
         // Retorna o token e os dados essenciais (sem a senha)
         res.json({
@@ -220,17 +235,31 @@ const generationsRouter = require('./routes/generations');
 const settingsRouter = require('./routes/settings');
 const { getNotificationConfig } = require('./routes/config');
 const reportsRouter = require('./routes/reports');
+const logsRouter = require('./routes/logs');
 
-app.use('/api/public/settings', settingsRouter); // A rota get /public é manipulada dentro de settingsRouter
-app.use('/api/users', authenticateToken, usersRouter);
-app.use('/api/people', authenticateToken, peopleRouter);
-app.use('/api/cells', authenticateToken, cellsRouter);
-app.use('/api/events', authenticateToken, eventsRouter);
-app.use('/api/dash', authenticateToken, othersRouter);
-app.use('/api/forms', authenticateToken, formsRouter);
-app.use('/api/generations', authenticateToken, generationsRouter);
-app.use('/api/settings', authenticateToken, settingsRouter);
-app.use('/api/reports', authenticateToken, reportsRouter);
+// API Pública v1 e gerenciamento admin
+const apiV1Router = require('./api/routes/v1/index');
+const apiKeysRouter = require('./api/routes/apiKeys');
+const webhooksAdminRouter = require('./api/routes/webhooks');
+
+app.use('/api/public/settings', settingsRouter);
+app.use('/api/users', authenticateToken, activityLoggerMiddleware, usersRouter);
+app.use('/api/people', authenticateToken, activityLoggerMiddleware, peopleRouter);
+app.use('/api/cells', authenticateToken, activityLoggerMiddleware, cellsRouter);
+app.use('/api/events', authenticateToken, activityLoggerMiddleware, eventsRouter);
+app.use('/api/dash', authenticateToken, activityLoggerMiddleware, othersRouter);
+app.use('/api/forms', authenticateToken, activityLoggerMiddleware, formsRouter);
+app.use('/api/generations', authenticateToken, activityLoggerMiddleware, generationsRouter);
+app.use('/api/settings', authenticateToken, activityLoggerMiddleware, settingsRouter);
+app.use('/api/reports', authenticateToken, activityLoggerMiddleware, reportsRouter);
+app.use('/api/logs', authenticateToken, logsRouter);
+
+// ----------------------------------------------------------------------------
+// API PÚBLICA v1 (autenticada por API Key) e Admin
+// ----------------------------------------------------------------------------
+app.use('/api/v1', apiV1Router);
+app.use('/api/admin/api-keys', authenticateToken, apiKeysRouter);
+app.use('/api/admin/webhooks', authenticateToken, webhooksAdminRouter);
 
 // Health check
 app.get('/health', (req, res) => {

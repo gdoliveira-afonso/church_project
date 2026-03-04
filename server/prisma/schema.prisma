@@ -84,6 +84,7 @@ model Person {
   attendanceRecords AttendanceRecord[]
   personTracks     PersonTrack[]
   consolidation    Consolidation?
+  milestones       PersonMilestone[]
 }
 
 model Consolidation {
@@ -93,6 +94,30 @@ model Consolidation {
   startDate     DateTime  @default(now())
   completedDate DateTime?
   person        Person    @relation(fields: [personId], references: [id], onDelete: Cascade)
+}
+
+model PersonMilestone {
+  id        String   @id @default(cuid())
+  personId  String
+  type      String   // STATUS_CHANGE, CELL_CHANGE, TRACK_COMPLETED, ROLE_CHANGE, MANUAL
+  label     String
+  detail    String?
+  icon      String?
+  color     String?
+  date      DateTime @default(now())
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  userName   String?
+  action     String   // LOGIN, LOGIN_FAIL, CREATE, UPDATE, DELETE, EXPORT
+  resource   String   // people, cells, users, settings, auth, attendance
+  resourceId String?
+  detail     String?
+  ip         String?
+  createdAt  DateTime @default(now())
 }
 
 model Attendance {
@@ -275,3 +300,37 @@ model SystemConfig {
   value     String   // JSON serializado
   updatedAt DateTime @updatedAt
 }
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  keyHash     String    @unique
+  keyPrefix   String    // primeiros chars para exibição (ex: "sk_live_xxxx")
+  permissions String    @default("read_membros,read_eventos")
+  status      String    @default("active") // active | revoked
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime?
+}
+
+model Webhook {
+  id        String       @id @default(cuid())
+  name      String
+  url       String
+  secret    String
+  events    String       // JSON array serializado ex: ["membro.created"]
+  status    String       @default("active") // active | inactive
+  createdAt DateTime     @default(now())
+  logs      WebhookLog[]
+}
+
+model WebhookLog {
+  id           String   @id @default(cuid())
+  webhookId    String
+  event        String
+  statusCode   Int?
+  responseTime Int?     // ms
+  success      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  webhook      Webhook  @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+}
+

@@ -135,6 +135,19 @@ router.post('/', async (req, res) => {
 
         const resPerson = { ...person, tracksData: data.tracksData || {} };
         res.status(201).json(resPerson);
+        req.log?.('CREATE', 'people', person.id, person.name);
+
+        // ── Marcos iniciais ──
+        if (createData.status && STATUS_MILESTONES[createData.status]) {
+            const m = STATUS_MILESTONES[createData.status];
+            await createMilestone(person.id, { type: m.type, label: m.label, icon: m.icon, color: m.color });
+        } else {
+            await createMilestone(person.id, { type: 'STATUS_CHANGE', label: 'Cadastrado no sistema', icon: 'person_add', color: 'blue' });
+        }
+        if (createData.cellId) {
+            const cell = await prisma.cell.findUnique({ where: { id: createData.cellId }, select: { name: true } });
+            await createMilestone(person.id, { type: 'CELL_CHANGE', label: 'Ingresso na Célula', detail: cell?.name, icon: 'groups', color: 'teal' });
+        }
     } catch (error) {
         res.status(500).json({ error: 'Erro ao criar pessoa', details: error.message });
     }
@@ -222,6 +235,44 @@ router.put('/:id', async (req, res) => {
         const resPerson = { ...person, tracksData: data.tracksData || {} };
         delete resPerson.personTracks;
         res.json(resPerson);
+        req.log?.('UPDATE', 'people', req.params.id, person.name);
+
+        // ── Marcos automáticos no update ──
+        const today = new Date();
+        // 1. Mudança de status
+        if (data.status && data.status !== existing.status && STATUS_MILESTONES[data.status]) {
+            const m = STATUS_MILESTONES[data.status];
+            await createMilestone(req.params.id, {
+                type: m.type, label: m.label, icon: m.icon, color: m.color,
+                detail: `Anterior: ${existing.status}`, date: today
+            });
+        }
+        // 2. Troca de célula
+        if (data.cellId && data.cellId !== existing.cellId) {
+            const newCell = await prisma.cell.findUnique({ where: { id: data.cellId }, select: { name: true } });
+            const oldCell = existing.cellId ? await prisma.cell.findUnique({ where: { id: existing.cellId }, select: { name: true } }) : null;
+            await createMilestone(req.params.id, {
+                type: 'CELL_CHANGE', label: 'Transferência de Célula',
+                icon: 'swap_horiz', color: 'blue',
+                detail: oldCell ? `${oldCell.name} → ${newCell?.name}` : newCell?.name,
+                date: today
+            });
+        }
+        // 3. Novos tracks marcados
+        if (data.tracksData) {
+            const oldTrackIds = new Set((existing.personTracks || []).map(pt => pt.trackId));
+            const newMarked = Object.keys(data.tracksData).filter(tid => data.tracksData[tid] && !oldTrackIds.has(tid));
+            if (newMarked.length) {
+                const tracks = await prisma.track.findMany({ where: { id: { in: newMarked } } });
+                for (const track of tracks) {
+                    await createMilestone(req.params.id, {
+                        type: 'TRACK_COMPLETED', label: track.name,
+                        icon: track.icon || 'star', color: track.color || 'emerald',
+                        date: today
+                    });
+                }
+            }
+        }
     } catch (error) {
         res.status(500).json({ error: 'Erro ao atualizar pessoa' });
     }
@@ -234,9 +285,56 @@ router.delete('/:id', async (req, res) => {
             where: { id: req.params.id }
         });
         res.json({ success: true });
+        req.log?.('DELETE', 'people', req.params.id);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao deletar pessoa' });
     }
+});
+
+// ─── Milestones helpers ────────────────────────────────────────
+const STATUS_MILESTONES = {
+    'Novo Convertido': { label: 'Decisão de Fé', icon: 'favorite', color: 'emerald', type: 'STATUS_CHANGE' },
+    'Membro': { label: 'Tornou-se Membro', icon: 'verified', color: 'primary', type: 'STATUS_CHANGE' },
+    'Reconciliação': { label: 'Reconciliação', icon: 'handshake', color: 'purple', type: 'STATUS_CHANGE' },
+    'Líder': { label: 'Líder de Célula', icon: 'shield_person', color: 'indigo', type: 'ROLE_CHANGE' },
+    'Vice-Líder': { label: 'Vice-Líder de Célula', icon: 'supervisor_account', color: 'cyan', type: 'ROLE_CHANGE' },
+    'Inativo': { label: 'Ficou Inativo', icon: 'person_off', color: 'gray', type: 'STATUS_CHANGE' },
+    'Afastado': { label: 'Afastado', icon: 'person_remove', color: 'orange', type: 'STATUS_CHANGE' },
+    'Mudou-se': { label: 'Mudou de Cidade', icon: 'moving', color: 'slate', type: 'STATUS_CHANGE' },
+};
+
+async function createMilestone(personId, data) {
+    try {
+        await prisma.personMilestone.create({ data: { personId, ...data } });
+    } catch (e) { console.error('Erro ao criar marco:', e.message); }
+}
+
+// Busca milestones de uma pessoa
+router.get('/:id/milestones', async (req, res) => {
+    try {
+        const milestones = await prisma.personMilestone.findMany({
+            where: { personId: req.params.id },
+            orderBy: { date: 'desc' }
+        });
+        res.json(milestones);
+    } catch (e) { res.status(500).json({ error: 'Erro ao buscar marcos' }); }
+});
+
+// Marco manual
+router.post('/:id/milestones', async (req, res) => {
+    try {
+        const m = await prisma.personMilestone.create({
+            data: {
+                personId: req.params.id,
+                type: 'MANUAL',
+                label: req.body.label,
+                detail: req.body.detail || null,
+                icon: req.body.icon || 'star',
+                color: req.body.color || 'amber',
+            }
+        });
+        res.status(201).json(m);
+    } catch (e) { res.status(500).json({ error: 'Erro ao criar marco' }); }
 });
 
 module.exports = router;

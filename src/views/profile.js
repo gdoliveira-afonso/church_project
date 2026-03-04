@@ -28,7 +28,7 @@ export function profileView(params) {
       </div>
     </div>
     <!-- Tabs -->
-    <div class="flex gap-1 px-4 md:px-6 py-3 overflow-x-auto no-scrollbar">${['Dados', 'Espiritual', 'Retiros', 'Visitas', 'Notas'].map((t, i) => `<button class="tab whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition ${i === 0 ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" data-t="${t.toLowerCase()}">${t}</button>`).join('')}</div>
+    <div class="flex gap-1 px-4 md:px-6 py-3 overflow-x-auto no-scrollbar">${['Dados', 'Espiritual', 'Retiros', 'Visitas', 'Marcos', 'Notas'].map((t, i) => `<button class="tab whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition ${i === 0 ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" data-t="${t.toLowerCase()}">${t}</button>`).join('')}</div>
     <div id="tab-c" class="px-4 md:px-6 lg:px-10 pb-6 max-w-4xl mx-auto w-full"></div>
   </div>
   <div class="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-4 md:px-6 py-3 z-10">
@@ -87,6 +87,55 @@ export function profileView(params) {
       tc.innerHTML = card('🏠 Visitas', `${visits.length ? visits.map(v => `<div class="p-3 border border-slate-100 rounded-lg mb-2"><div class="flex justify-between mb-1"><span class="text-sm font-semibold text-primary">${v.type || 'Visita'}</span><span class="text-[11px] text-slate-400">${v.date}</span></div><p class="text-xs text-slate-600">${v.observation || ''}</p>${v.result ? `<p class="text-[11px] text-slate-500 mt-1 font-medium">Resultado: ${v.result}</p>` : ''}</div>`).join('') : '<p class="text-sm text-slate-400 text-center py-4">Nenhuma visita registrada</p>'}<button id="btn-visit" class="mt-3 w-full bg-primary/10 text-primary py-2 rounded-lg text-sm font-semibold hover:bg-primary/20 transition">+ Registrar Visita</button>`);
       document.getElementById('btn-visit')?.addEventListener('click', () => openVisitModal());
     }
+    if (t === 'marcos') {
+      tc.innerHTML = `<div class="flex items-center justify-center py-8"><span class="material-symbols-outlined animate-spin text-3xl text-slate-300">progress_activity</span></div>`;
+      store.getMilestones(p.id).then(milestones => {
+        const COLOR_MAP = {
+          emerald: '#059669', primary: '#2563eb', blue: '#2563eb', purple: '#7c3aed',
+          indigo: '#4f46e5', cyan: '#0891b2', teal: '#0d9488', orange: '#ea580c',
+          gray: '#6b7280', slate: '#64748b', amber: '#d97706', red: '#dc2626'
+        };
+        const ICON_DEFAULT = 'emoji_events';
+
+        if (!milestones.length) {
+          tc.innerHTML = `<div class="flex flex-col items-center py-12 text-slate-400">
+            <span class="material-symbols-outlined text-5xl mb-3">timeline</span>
+            <p class="text-sm font-medium mb-1">Nenhum marco registrado ainda</p>
+            <p class="text-xs">Os marcos aparecem automaticamente ao salvar alterações</p>
+          </div>
+          <button id="btn-add-marco" class="w-full mt-3 bg-primary/10 text-primary py-2 rounded-lg text-sm font-semibold hover:bg-primary/20 transition flex items-center justify-center gap-1.5">
+            <span class="material-symbols-outlined text-sm">add_circle</span>Adicionar Marco Manual
+          </button>`;
+        } else {
+          const timelineItems = milestones.map((m, idx) => {
+            const color = COLOR_MAP[m.color] || '#64748b';
+            const date = new Date(m.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+            const isLast = idx === milestones.length - 1;
+            return `<div class="flex gap-3 ${isLast ? '' : 'pb-5'}">
+              <div class="flex flex-col items-center shrink-0">
+                <div class="w-9 h-9 rounded-full flex items-center justify-center shadow-sm" style="background:${color}18; border: 2px solid ${color}40">
+                  <span class="material-symbols-outlined text-base" style="color:${color}">${m.icon || ICON_DEFAULT}</span>
+                </div>
+                ${isLast ? '' : `<div class="w-0.5 flex-1 mt-1.5" style="background:${color}25"></div>`}
+              </div>
+              <div class="flex-1 pt-1 pb-1">
+                <div class="flex items-start justify-between gap-2">
+                  <p class="text-sm font-bold text-slate-800">${m.label}</p>
+                  <span class="text-[10px] text-slate-400 whitespace-nowrap shrink-0">${date}</span>
+                </div>
+                ${m.detail ? `<p class="text-xs text-slate-500 mt-0.5">${m.detail}</p>` : ''}
+                <span class="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded mt-1 inline-block" style="background:${color}15; color:${color}">${m.type === 'MANUAL' ? 'Marco Manual' : m.type === 'STATUS_CHANGE' ? 'Status' : m.type === 'CELL_CHANGE' ? 'Célula' : m.type === 'TRACK_COMPLETED' ? 'Espiritual' : m.type}</span>
+              </div>
+            </div>`;
+          }).join('');
+          tc.innerHTML = `<div class="py-2">${timelineItems}</div>
+          <button id="btn-add-marco" class="w-full mt-2 bg-primary/10 text-primary py-2 rounded-lg text-sm font-semibold hover:bg-primary/20 transition flex items-center justify-center gap-1.5">
+            <span class="material-symbols-outlined text-sm">add_circle</span>Adicionar Marco Manual
+          </button>`;
+        }
+        document.getElementById('btn-add-marco')?.addEventListener('click', openMarcoModal);
+      });
+    }
     if (t === 'notas') {
       const notes = getNotes();
       tc.innerHTML = `<div class="space-y-3">${notes.length ? notes.map(n => {
@@ -103,6 +152,93 @@ export function profileView(params) {
         </div>`;
       }).join('') : '<p class="text-sm text-slate-400 text-center py-6">Nenhuma nota registrada</p>'}</div>`;
     }
+  }
+
+  function openMarcoModal() {
+    const ICON_OPTS = [
+      ['emoji_events', 'Evento'], ['favorite', 'Fé'], ['verified', 'Membro'], ['handshake', 'Reconciliação'],
+      ['water_drop', 'Batismo'], ['local_fire_department', 'Espírito Santo'], ['school', 'Escola'],
+      ['volunteer_activism', 'Retiro'], ['groups', 'Célula'], ['swap_horiz', 'Transfer.'],
+      ['shield_person', 'Líder'], ['supervisor_account', 'Vice-Líder'],
+      ['person_off', 'Inativo'], ['person_remove', 'Afastado'], ['moving', 'Mudou-se'],
+      ['star', 'Destaque'], ['church', 'Igreja'], ['celebration', 'Celebração']
+    ];
+    const COLOR_OPTS = [
+      ['emerald', 'Verde'], ['blue', 'Azul'], ['purple', 'Roxo'], ['indigo', 'Índigo'],
+      ['cyan', 'Ciano'], ['teal', 'Teal'], ['amber', 'Âmbar'], ['orange', 'Laranja'],
+      ['gray', 'Cinza'], ['slate', 'Slate']
+    ];
+    openModal(`<div class="p-5 md:p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base font-bold">Adicionar Marco Manual</h3>
+        <button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="p-1 rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-slate-400">close</span></button>
+      </div>
+      <form id="marco-form" class="space-y-3">
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-1 block">Título do Marco</label>
+          <input id="mf-label" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Ex: Casamento, Batismo, Liderança..." required/>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-1 block">Detalhe (opcional)</label>
+          <input id="mf-detail" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Informação adicional..."/>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-2 block">Ícone</label>
+          <div class="flex flex-wrap gap-1.5">
+            ${ICON_OPTS.map(([ic, label], i) => `<label title="${label}" class="cursor-pointer">
+              <input type="radio" name="mf-icon" value="${ic}" class="sr-only" ${i === 0 ? 'checked' : ''}>
+              <span class="icon-opt w-9 h-9 flex items-center justify-center rounded-lg border-2 transition ${i === 0 ? 'border-primary bg-primary/10' : 'border-slate-200 hover:border-slate-300'}">
+                <span class="material-symbols-outlined text-base">${ic}</span>
+              </span>
+            </label>`).join('')}
+          </div>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-2 block">Cor</label>
+          <div class="flex flex-wrap gap-1.5">
+            ${COLOR_OPTS.map(([c, label], i) => `<label title="${label}" class="cursor-pointer">
+              <input type="radio" name="mf-color" value="${c}" class="sr-only" ${i === 0 ? 'checked' : ''}>
+              <span class="color-opt w-6 h-6 rounded-full border-2 transition block ${i === 0 ? 'border-slate-800 scale-110' : 'border-transparent hover:border-slate-400'}" style="background:var(--color-${c}, ${{
+        emerald: '#059669', blue: '#2563eb', purple: '#7c3aed', indigo: '#4f46e5', cyan: '#0891b2',
+        teal: '0d9488', amber: '#d97706', orange: '#ea580c', gray: '#6b7280', slate: '#64748b'
+      }[c]})"></span>
+            </label>`).join('')}
+          </div>
+        </div>
+        <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-bold hover:bg-primary/90 active:scale-[.98] transition-all">Salvar Marco</button>
+      </form>
+    </div>`);
+
+    // Icon selector visual
+    document.querySelectorAll('input[name="mf-icon"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        document.querySelectorAll('.icon-opt').forEach(s => { s.classList.remove('border-primary', 'bg-primary/10'); s.classList.add('border-slate-200'); });
+        radio.nextElementSibling.classList.add('border-primary', 'bg-primary/10'); radio.nextElementSibling.classList.remove('border-slate-200');
+      });
+    });
+    document.querySelectorAll('input[name="mf-color"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        document.querySelectorAll('.color-opt').forEach(s => { s.classList.remove('border-slate-800', 'scale-110'); s.classList.add('border-transparent'); });
+        radio.nextElementSibling.classList.add('border-slate-800', 'scale-110'); radio.nextElementSibling.classList.remove('border-transparent');
+      });
+    });
+
+    document.getElementById('marco-form').onsubmit = async e => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      const orig = btn.innerHTML; btn.innerHTML = 'Salvando...'; btn.disabled = true;
+      try {
+        await store.addManualMilestone(p.id, {
+          label: document.getElementById('mf-label').value.trim(),
+          detail: document.getElementById('mf-detail').value.trim() || null,
+          icon: document.querySelector('input[name="mf-icon"]:checked')?.value || 'star',
+          color: document.querySelector('input[name="mf-color"]:checked')?.value || 'amber',
+        });
+        closeModal();
+        toast('Marco adicionado!');
+        show('marcos');
+      } catch (err) { toast('Erro ao salvar', 'error'); btn.innerHTML = orig; btn.disabled = false; }
+    };
   }
 
   function openVisitModal() {
