@@ -536,7 +536,13 @@ export function settingsView() {
       try {
         await store.saveCellFields(editingFields.join(', '));
         const statusEl = document.getElementById('cf-status');
-        if (statusEl) { statusEl.textContent = 'Salvo ✓'; setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000); }
+        if (statusEl) {
+          statusEl.textContent = 'Salvo ✓';
+          setTimeout(() => {
+            const el = document.getElementById('cf-status');
+            if (el) el.textContent = '';
+          }, 2000);
+        }
       } catch (e) {
         toast('Erro ao salvar métrica', 'error');
       }
@@ -554,14 +560,16 @@ export function settingsView() {
           <div class="flex items-center gap-2"><span class="material-symbols-outlined text-slate-400 text-base">drag_indicator</span><span class="text-sm font-semibold text-slate-700">${f}</span></div>
           <button type="button" class="btn-remove-cf w-7 h-7 flex items-center justify-center rounded-full text-slate-300 hover:text-red-500 hover:bg-red-50 transition" data-idx="${i}"><span class="material-symbols-outlined text-lg">delete</span></button>
         </div>
-      `).join('<span id="cf-status" class="hidden"></span>');
+      `).join('');
 
-      // Add an inline status element after the list
-      const container2 = document.getElementById('custom-fields-list');
-      const statusEl = document.createElement('div');
-      statusEl.id = 'cf-status';
-      statusEl.className = 'text-xs text-green-600 font-semibold text-right px-1 h-4 transition-all';
-      container2.after(statusEl);
+      // Add or reuse the inline status element
+      let statusEl = document.getElementById('cf-status');
+      if (!statusEl) {
+        statusEl = document.createElement('div');
+        statusEl.id = 'cf-status';
+        statusEl.className = 'text-xs text-green-600 font-semibold text-right px-1 h-4 transition-all';
+        container.after(statusEl);
+      }
 
       document.querySelectorAll('.btn-remove-cf').forEach(btn => {
         btn.onclick = async () => {
@@ -576,7 +584,7 @@ export function settingsView() {
 
     async function addField() {
       const inp = document.getElementById('new-custom-field-input');
-      const val = inp.value.trim();
+      const val = inp?.value?.trim();
       if (!val) return;
       if (editingFields.includes(val)) { toast('Este campo já existe', 'warning'); return; }
       editingFields.push(val);
