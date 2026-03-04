@@ -154,7 +154,10 @@ export async function publicFormView(params) {
   };
 
   render();
-  window.addEventListener('system-settings-loaded', render, { once: true });
+  window.addEventListener('system-settings-loaded', () => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#/form/public') || hash.startsWith('#/f')) render();
+  }, { once: true });
 
   if (window.__removeSplashScreen) {
     if (document.fonts && document.fonts.ready) {

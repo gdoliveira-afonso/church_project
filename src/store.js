@@ -69,7 +69,7 @@ class Store {
     async updateSystemSettings(data) {
         const res = await this.apiFetch('/settings', { method: 'PUT', body: JSON.stringify(data) });
         this.systemSettings = res;
-        this.applySystemSettings(); // Re-aplica cor/nome logo após salvar
+        await this.applySystemSettings(); // Re-aplica cor/nome logo após salvar
         return res;
     }
 

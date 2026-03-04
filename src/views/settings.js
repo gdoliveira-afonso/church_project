@@ -393,11 +393,22 @@ export function settingsView() {
         ev.preventDefault();
         const btn = bForm.querySelector('button[type="submit"]');
         const origText = btn.innerHTML;
+
+        // Capture inputs locally to avoid null errors after await
+        const appNameInp = document.getElementById('cfg-app-name');
+        const primaryHexInp = document.getElementById('cfg-primary-hex');
+        const loginMsgInp = document.getElementById('cfg-login-msg');
+        const congNameInp = document.getElementById('cfg-congregation-name');
+        const nucleusInp = document.getElementById('cfg-nucleus');
+        const pastorNameInp = document.getElementById('cfg-pastor-name');
+        const addrInp = document.getElementById('cfg-congregation-address');
+        const urlInp = document.getElementById('cfg-logo-url');
+
         btn.innerHTML = '<span class="material-symbols-outlined animate-spin mr-2">refresh</span> Salvando Identidade...';
         btn.disabled = true;
 
         try {
-          let finalLogoUrl = document.getElementById('cfg-logo-url').value.trim();
+          let finalLogoUrl = urlInp?.value.trim() || '';
 
           if (fInput && fInput.files.length > 0) {
             const uploadRes = await store.uploadSystemLogo(fInput.files[0]);
@@ -405,29 +416,32 @@ export function settingsView() {
           }
 
           const data = {
-            appName: document.getElementById('cfg-app-name').value.trim(),
-            primaryColor: document.getElementById('cfg-primary-hex').value.trim(),
+            appName: appNameInp?.value.trim() || 'Gestão Celular',
+            primaryColor: primaryHexInp?.value.trim() || '#135bec',
             logoUrl: finalLogoUrl,
-            loginMessage: document.getElementById('cfg-login-msg').value.trim(),
-            congregationName: document.getElementById('cfg-congregation-name').value.trim(),
-            nucleus: document.getElementById('cfg-nucleus').value.trim(),
-            pastorName: document.getElementById('cfg-pastor-name').value.trim(),
-            congregationAddress: document.getElementById('cfg-congregation-address').value.trim(),
+            loginMessage: loginMsgInp?.value.trim() || '',
+            congregationName: congNameInp?.value.trim() || '',
+            nucleus: nucleusInp?.value.trim() || '',
+            pastorName: pastorNameInp?.value.trim() || '',
+            congregationAddress: addrInp?.value.trim() || '',
           };
           await store.updateSystemSettings(data);
           toast('Identidade Visual salva e aplicada!');
 
-          if (fInput) {
-            fInput.value = '';
-            document.getElementById('cfg-logo-url').value = finalLogoUrl;
+          if (fInput) fInput.value = '';
+          if (urlInp) urlInp.value = finalLogoUrl;
+
+          // Re-render only if still in settings
+          if (location.hash.startsWith('#/settings')) {
+            setTimeout(settingsView, 300);
           }
-          // Re-render to update displayed values and potentially the logo in header/sidebar
-          setTimeout(settingsView, 500);
         } catch (e) {
           toast(e.message || 'Erro ao salvar as configurações SaaS', 'error');
         } finally {
-          btn.innerHTML = origText;
-          btn.disabled = false;
+          if (btn) {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+          }
         }
       };
     }

@@ -120,5 +120,7 @@ export async function loginView() {
   render();
 
   // Se as configurações do sistema carregarem depois, re-renderiza para aplicar branding
-  window.addEventListener('system-settings-loaded', render, { once: true });
+  window.addEventListener('system-settings-loaded', () => {
+    if (window.location.hash === '#/login' || !window.location.hash) render();
+  }, { once: true });
 }
