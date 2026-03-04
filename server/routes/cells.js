@@ -7,7 +7,14 @@ const prisma = new PrismaClient();
 // Lista todas as células (com acesso a seus membros via rota específica)
 router.get('/', async (req, res) => {
     try {
+        const whereClause = {};
+        if (req.user.role === 'LIDER_GERACAO') {
+            if (!req.user.generationId) return res.json([]);
+            whereClause.generationId = req.user.generationId;
+        }
+
         const cells = await prisma.cell.findMany({
+            where: whereClause,
             include: {
                 _count: {
                     select: { people: true }
@@ -42,6 +49,10 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
     const data = req.body;
     try {
+        if (req.user.role === 'LIDER_GERACAO' && data.generationId && data.generationId !== req.user.generationId) {
+            return res.status(403).json({ error: 'Você só pode criar células para a sua própria geração.' });
+        }
+
         const cell = await prisma.cell.create({
             data: {
                 name: data.name,
@@ -51,9 +62,19 @@ router.post('/', async (req, res) => {
                 address: data.address,
                 meetingDay: data.meetingDay,
                 meetingTime: data.meetingTime,
-                status: data.status || 'ativa'
+                status: data.status || 'ativa',
+                generationId: data.generationId || null
             }
         });
+
+        // Sincroniza Liderança
+        if (data.leaderId) {
+            await prisma.person.updateMany({ where: { userId: data.leaderId }, data: { cellId: cell.id } });
+        }
+        if (data.viceLeaderId) {
+            await prisma.person.updateMany({ where: { userId: data.viceLeaderId }, data: { cellId: cell.id } });
+        }
+
         res.status(201).json(cell);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao criar célula' });
@@ -64,6 +85,16 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     const data = req.body;
     try {
+        if (req.user.role === 'LIDER_GERACAO') {
+            const existingCell = await prisma.cell.findUnique({ where: { id: req.params.id } });
+            if (!existingCell || existingCell.generationId !== req.user.generationId) {
+                return res.status(403).json({ error: 'Acesso negado: célula não pertence à sua geração.' });
+            }
+            if (data.generationId && data.generationId !== req.user.generationId) {
+                return res.status(403).json({ error: 'Você não pode transferir a célula para outra geração.' });
+            }
+        }
+
         const cell = await prisma.cell.update({
             where: { id: req.params.id },
             data: {
@@ -74,9 +105,26 @@ router.put('/:id', async (req, res) => {
                 address: data.address,
                 meetingDay: data.meetingDay,
                 meetingTime: data.meetingTime,
-                status: data.status
+                status: data.status,
+                generationId: data.generationId || null
             }
         });
+
+        // Sincroniza Liderança
+        // Remove vínculo de quem não é mais líder dessa célula
+        await prisma.person.updateMany({
+            where: { cellId: cell.id, status: { in: ['Líder', 'Vice-Líder'] } },
+            data: { cellId: null }
+        });
+
+        // Vincula os líderes atuais
+        if (data.leaderId) {
+            await prisma.person.updateMany({ where: { userId: data.leaderId }, data: { cellId: cell.id } });
+        }
+        if (data.viceLeaderId) {
+            await prisma.person.updateMany({ where: { userId: data.viceLeaderId }, data: { cellId: cell.id } });
+        }
+
         res.json(cell);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao atualizar célula' });
@@ -134,6 +182,13 @@ router.post('/:id/attendance', async (req, res) => {
     const cellId = req.params.id;
 
     try {
+        if (req.user.role === 'LIDER_GERACAO') {
+            const cellInfo = await prisma.cell.findUnique({ where: { id: cellId } });
+            if (!cellInfo || cellInfo.generationId !== req.user.generationId) {
+                return res.status(403).json({ error: 'Célula não pertence a sua geração' });
+            }
+        }
+
         // Usa uma transação para deletar anterior e recriar se já existir (jeito simples de override no SQLite)
         const result = await prisma.$transaction(async (tx) => {
             // 1. Tenta deletar o Attendance existente naquele dia

@@ -11,6 +11,7 @@ import { settingsView, triageView } from './views/settings.js';
 import { publicFormView } from './views/public-form.js';
 import { formListView, formBuilderView } from './views/form-builder.js';
 import { calendarView } from './views/calendar.js';
+import { generationsView } from './views/generations.js';
 
 function restoreTheme() { const t = localStorage.getItem('theme'); if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark'); } }
 function guard(fn) { return (p) => { if (!store.isLoggedIn()) { navigate('/login'); return } restoreTheme(); fn(p) } }
@@ -27,17 +28,53 @@ route('/profile', guard(profileView));
 route('/cells', guard(cellsView));
 route('/cell', guard(cellDetailView));
 route('/attendance', guard(attendanceView));
-route('/reports', roleGuard(['ADMIN', 'SUPERVISOR'], reportsView));
+route('/reports', roleGuard(['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO'], reportsView));
 route('/settings', roleGuard(['ADMIN', 'SUPERVISOR'], settingsView));
 route('/forms', roleGuard(['ADMIN', 'SUPERVISOR'], formListView));
 route('/form-builder', roleGuard(['ADMIN', 'SUPERVISOR'], formBuilderView));
-route('/triage', roleGuard(['ADMIN', 'SUPERVISOR'], triageView));
+route('/triage', roleGuard(['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO'], triageView));
+route('/generations', roleGuard(['ADMIN', 'SUPERVISOR'], generationsView));
 route('/calendar', guard(calendarView));
 
-startRouter();
+window.addEventListener('system-settings-loaded', () => {
+    const s = store.systemSettings;
+    if (!s) return;
 
-// Garante que a tela seja recarregada assim que as informações chegarem do servidor remoto
-window.addEventListener('store-data-loaded', () => {
-    // Força o router a renderizar a página atual novamente agora que o Store tem dados
-    window.dispatchEvent(new Event('hashchange'));
+    // Sidebar update if exists
+    const titleEl = document.querySelector('#sidebar .text-sm.font-bold');
+    if (titleEl && s.appName) titleEl.textContent = s.appName;
+
+    const logoEl = document.querySelector('#sidebar .w-9.h-9');
+    if (logoEl && s.logoUrl) {
+        logoEl.innerHTML = `<img src="${s.logoUrl}" alt="${s.appName}" class="max-h-full max-w-full rounded-lg" />`;
+    }
 });
+
+startRouter();
+// Função global que remove a Splash Screen de forma segura
+window.__removeSplashScreen = function () {
+    if (!document.body.classList.contains('app-ready')) {
+        document.body.classList.add('app-ready');
+    }
+};
+
+window.addEventListener('store-data-loaded', () => {
+    window.dispatchEvent(new Event('hashchange'));
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(window.__removeSplashScreen);
+    } else {
+        setTimeout(window.__removeSplashScreen, 300);
+    }
+});
+
+if (!store.isLoggedIn()) {
+    const isPublicRoute = window.location.hash.startsWith('#/f');
+    if (!isPublicRoute) {
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(window.__removeSplashScreen);
+        } else {
+            window.addEventListener('load', window.__removeSplashScreen);
+        }
+    }
+}
+

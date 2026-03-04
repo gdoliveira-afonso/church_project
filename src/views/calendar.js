@@ -139,12 +139,17 @@ export async function calendarView() {
                     }
 
                     if (isAllDay) {
-                        dayEvents.push({ sortVal: 0, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] bg-${cColor}-100 text-${cColor}-800 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${title}">${title}</div>` });
+                        const scopeIcon = e.category === 'geral' ? '🌐 ' : '🏘️ ';
+                        const noteHtml = e.description ? `<span class="day-note hidden text-[11px] text-${cColor}-700 opacity-70 mt-0.5 leading-snug">${e.description.replace(/'/g, "&apos;")}</span>` : '';
+                        const tooltipText = `${e.category === 'geral' ? '[Geral] ' : '[Local] '}${title}${e.description ? ' — ' + e.description : ''}`;
+                        dayEvents.push({ sortVal: 0, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] bg-${cColor}-100 text-${cColor}-800 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${tooltipText}"><span class="truncate">${scopeIcon}${title}</span>${noteHtml}</div>` });
                     } else {
-                        // Transform '14:30' into 14.5 for sorting
                         const [h, m] = e.startTime.split(':').map(Number);
                         const sVal = h + (m / 60);
-                        dayEvents.push({ sortVal: sVal, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full truncate flex items-center gap-1 text-[9px] md:text-[10px] text-${cColor}-700 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${e.startTime} - ${title}"><div class="w-1.5 h-1.5 rounded-full bg-${cColor}-500 flex-shrink-0"></div><span class="truncate">${e.startTime} ${title}</span></div>` });
+                        const scopeIcon = e.category === 'geral' ? '🌐 ' : '';
+                        const noteHtml = e.description ? `<span class="day-note hidden text-[11px] text-${cColor}-600 opacity-70 mt-0.5 leading-snug col-span-2">${e.description.replace(/'/g, "&apos;")}</span>` : '';
+                        const tooltipText = `${e.category === 'geral' ? '[Geral] ' : '[Local] '}${e.startTime} - ${title}${e.description ? ' — ' + e.description : ''}`;
+                        dayEvents.push({ sortVal: sVal, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] text-${cColor}-700 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${tooltipText}"><div class="flex items-center gap-1 w-full"><div class="w-1.5 h-1.5 rounded-full bg-${cColor}-500 flex-shrink-0"></div><span class="truncate">${scopeIcon}${e.startTime} ${title}</span></div>${noteHtml}</div>` });
                     }
                 }
             });
@@ -199,6 +204,8 @@ export async function calendarView() {
               .day-modal-events .md\\:text-\\[10px\\] { font-size: 14px !important; }
               .day-modal-events .w-1\\.5 { width: 12px !important; height: 12px !important; }
               .day-modal-events .gap-1 { gap: 12px !important; }
+              .day-modal-events .day-note { display: block !important; font-size: 12px !important; }
+              .day-modal-events .truncate { overflow: visible !important; text-overflow: unset !important; white-space: normal !important; }
             </style>
         </div>`);
     };
@@ -232,7 +239,7 @@ export async function calendarView() {
                     <label class="text-xs font-semibold text-slate-600 mb-1 block">Título da Ocorrência</label>
                     <div class="flex gap-2">
                         <input id="mef-title" value="${currentTitle}" class="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
-                        <button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition">Salvar</button>
+                        <button type="submit" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-primary/90 transition">Salvar</button>
                     </div>
                 </div>
                 ${recurrence !== 'none' ? `<button type="button" id="mef-cancel-day" class="w-full bg-amber-50 text-amber-700 py-2.5 rounded-lg text-sm font-bold hover:bg-amber-100 border border-amber-200 transition">Cancelar Evento Apenas Neste Dia</button>` : ''}
@@ -249,18 +256,18 @@ export async function calendarView() {
         
         </div>`);
 
-        document.getElementById('manage-evt-form').onsubmit = evt => {
+        document.getElementById('manage-evt-form').onsubmit = async evt => {
             evt.preventDefault();
             const t = document.getElementById('mef-title').value.trim();
             if (!t) return;
-            store.setEventException(eventId, dateStr, false, t);
+            await store.setEventException(eventId, dateStr, false, t);
             closeModal(); calendarView();
         };
 
         const cancelDayBtn = document.getElementById('mef-cancel-day');
         if (cancelDayBtn) {
-            cancelDayBtn.onclick = () => {
-                store.setEventException(eventId, dateStr, true, '');
+            cancelDayBtn.onclick = async () => {
+                await store.setEventException(eventId, dateStr, true, '');
                 closeModal(); toast('Ocorrência cancelada!'); calendarView();
             };
         }
@@ -287,6 +294,8 @@ function eventForm(existingEventId = null, prefilledDateStr = null) {
     const sTime = ev && ev.startTime ? ev.startTime : '';
     const eTime = ev && ev.endTime ? ev.endTime : '';
     const evColor = ev && ev.color ? ev.color : 'blue';
+    const evScope = ev && ev.category ? ev.category : 'local';
+    const evNote = ev && ev.description ? ev.description : '';
 
     const colors = [
         { id: 'blue', code: 'bg-blue-500' },
@@ -301,6 +310,8 @@ function eventForm(existingEventId = null, prefilledDateStr = null) {
 
     <form id="evt-form" class="space-y-4">
         <div><label class="text-xs font-semibold text-slate-600 mb-1 block">Título do Evento</label><input id="ef-title" value="${initialTitle}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Ex: Culto Jovem, Reunião..."/></div>
+
+        <div><label class="text-xs font-semibold text-slate-600 mb-1 block">Nota / Endereço <span class="text-slate-400 font-normal">(Opcional)</span></label><textarea id="ef-note" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 resize-none" placeholder="Ex: Rua das Flores, 123 — trazer Bíblia...">${evNote}</textarea></div>
         
         <div class="grid grid-cols-2 gap-3">
             <div><label class="text-xs font-semibold text-slate-600 mb-1 block">Data inicial</label><input id="ef-date" type="date" value="${today}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none"/></div>
@@ -327,7 +338,27 @@ function eventForm(existingEventId = null, prefilledDateStr = null) {
             </div>
         </div>
 
-        <button type="submit" class="w-full bg-primary text-white py-3 mt-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition">${ev ? 'Salvar Edição' : 'Salvar Evento'}</button>
+        <div>
+            <label class="text-xs font-semibold text-slate-600 mb-2 block">Abrangência</label>
+            <div class="grid grid-cols-2 gap-2">
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="evt-scope" value="local" class="peer sr-only" ${evScope === 'local' ? 'checked' : ''}>
+                    <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-primary peer-checked:bg-primary/5 transition-all">
+                        <span class="text-lg">🏘️</span>
+                        <div><p class="text-xs font-bold text-slate-700">Local</p><p class="text-[10px] text-slate-400">Congregação</p></div>
+                    </div>
+                </label>
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="evt-scope" value="geral" class="peer sr-only" ${evScope === 'geral' ? 'checked' : ''}>
+                    <div class="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-slate-200 peer-checked:border-purple-500 peer-checked:bg-purple-50 transition-all">
+                        <span class="text-lg">🌐</span>
+                        <div><p class="text-xs font-bold text-slate-700">Geral</p><p class="text-[10px] text-slate-400">Núcleo</p></div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <button type="submit" class="w-full bg-primary text-white py-3 mt-2 rounded-lg text-sm font-bold hover:bg-primary/90 transition">${ev ? 'Salvar Edição' : 'Salvar Evento'}</button>
     </form>
     </div>`);
 
@@ -364,20 +395,22 @@ function eventForm(existingEventId = null, prefilledDateStr = null) {
         const orig = btn.innerHTML; btn.innerHTML = 'Salvando...'; btn.disabled = true;
 
         const title = document.getElementById('ef-title').value.trim();
+        const note = document.getElementById('ef-note').value.trim();
         const date = document.getElementById('ef-date').value;
         const recurrence = document.getElementById('ef-recurrence').value;
         const startTime = document.getElementById('ef-start').value;
         const endTime = document.getElementById('ef-end').value;
         const color = document.querySelector('input[name="evt-color"]:checked').value;
+        const scope = document.querySelector('input[name="evt-scope"]:checked')?.value || 'local';
 
         if (!title || !date) { toast('Preencha os campos', 'error'); btn.innerHTML = orig; btn.disabled = false; return; }
 
         try {
             if (ev) {
-                await store.updateEvent(ev.id, { title, date, recurrence, startTime, endTime, color });
+                await store.updateEvent(ev.id, { title, description: note, date, recurrence, startTime, endTime, color, category: scope });
                 toast('Evento atualizado!');
             } else {
-                await store.addEvent({ title, date, recurrence, startTime, endTime, color, authorId: store.currentUser.id });
+                await store.addEvent({ title, description: note, date, recurrence, startTime, endTime, color, category: scope, authorId: store.currentUser.id });
                 toast('Evento criado!');
             }
             closeModal();
@@ -447,7 +480,7 @@ function cellActionsModal(cellId, dateStr) {
 
         content += `
         <div class="space-y-3">
-            ${!isFuture ? `<a href="#/attendance?cellId=${c.id}&date=${dateStr}" onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition"><span class="material-symbols-outlined text-lg">checklist</span> Fazer Chamada</a>` : `<div class="p-3 bg-amber-50 text-amber-700 text-xs text-center rounded-lg border border-amber-100 font-medium">Aguarde a data do encontro para realizar a chamada ou justificar.</div>`}
+            ${!isFuture ? `<a href="#/attendance?cellId=${c.id}&date=${dateStr}" onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition"><span class="material-symbols-outlined text-lg">checklist</span> Fazer Chamada</a>` : `<div class="p-3 bg-amber-50 text-amber-700 text-xs text-center rounded-lg border border-amber-100 font-medium">Aguarde a data do encontro para realizar a chamada ou justificar.</div>`}
             
             ${store.hasRole('ADMIN', 'SUPERVISOR') ? (
                 isCanceled

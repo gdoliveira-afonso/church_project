@@ -3,7 +3,7 @@ const API_URL = '/api';
 const D = {
     currentUser: null,
     users: [], people: [], cells: [], attendance: [], pastoralNotes: [], visits: [], events: [], cellCancellations: [], cellJustifications: [], eventExceptions: [],
-    forms: [], tracks: [], triageQueue: [], notifications: []
+    forms: [], tracks: [], triageQueue: [], notifications: [], generations: []
 };
 
 class Store {
@@ -19,6 +19,69 @@ class Store {
             // Carrega todos os dados do servidor pro cache em memória (como era no array local)
             this.loadInitialData();
         }
+
+        this.applySystemSettings();
+    }
+
+    async applySystemSettings() {
+        try {
+            const res = await fetch(`${API_URL}/public/settings/public`);
+            if (res.ok) {
+                const settings = await res.json();
+                this.systemSettings = settings;
+
+                // Color injection
+                if (settings.primaryColor) {
+                    const hexToRgb = hex => {
+                        let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                        return result ? `${parseInt(result[1], 16)} ${parseInt(result[2], 16)} ${parseInt(result[3], 16)}` : null;
+                    };
+                    const rbgStr = hexToRgb(settings.primaryColor);
+                    if (rbgStr) document.documentElement.style.setProperty('--color-primary', rbgStr);
+                }
+
+                // Title and Favicon
+                if (settings.appName) {
+                    document.title = settings.appName;
+                }
+                if (settings.logoUrl) {
+                    let link = document.querySelector("link[rel~='icon']");
+                    if (!link) {
+                        link = document.createElement('link');
+                        link.rel = 'icon';
+                        document.head.appendChild(link);
+                    }
+                    link.href = settings.logoUrl;
+                }
+
+                window.dispatchEvent(new Event('system-settings-loaded'));
+            }
+        } catch (e) {
+            console.error('Falha ao carregar configurações do sistema', e);
+        }
+    }
+
+    async updateSystemSettings(data) {
+        const res = await this.apiFetch('/settings', { method: 'PUT', body: JSON.stringify(data) });
+        this.systemSettings = res;
+        this.applySystemSettings(); // Re-aplica cor/nome logo após salvar
+        return res;
+    }
+
+    async uploadSystemLogo(file) {
+        const formData = new FormData();
+        formData.append('logo', file);
+        if (!this.token) throw new Error('Not authenticated');
+        const r = await fetch('/api/settings/upload-logo', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${this.token}` },
+            body: formData
+        });
+        if (!r.ok) {
+            const err = await r.json().catch(() => ({}));
+            throw new Error(err.error || 'Erro ao enviar logo');
+        }
+        return await r.json();
     }
 
     async apiFetch(endpoint, options = {}) {
@@ -52,11 +115,21 @@ class Store {
             this.tracks = await this.apiFetch('/dash/tracks');
             this.forms = await this.apiFetch('/forms');
             this.triageQueue = await this.apiFetch('/forms/triage/all');
+            this.generations = await this.apiFetch('/generations');
 
             const eventsData = await this.apiFetch('/events');
             this.events = eventsData.events || [];
             this.cellCancellations = eventsData.cellCancellations || [];
             this.cellJustifications = eventsData.cellJustifications || [];
+
+            // Carrega exceptions para todos os eventos (cache local)
+            this._eventExceptions = {};
+            await Promise.all(this.events.map(async ev => {
+                try {
+                    const exs = await this.apiFetch(`/events/${ev.id}/exceptions`);
+                    if (exs && exs.length) this._eventExceptions[ev.id] = exs;
+                } catch (e) { /* silencia */ }
+            }));
 
             this.pastoralNotes = await this.apiFetch('/dash/notes');
             this.visits = await this.apiFetch('/dash/visits');
@@ -70,6 +143,11 @@ class Store {
             // this.metrics = metricsRes;
 
             if (this.currentUser) {
+                const refreshedUser = this.users.find(u => u.id === this.currentUser.id);
+                if (refreshedUser) {
+                    this.currentUser = { ...this.currentUser, ...refreshedUser };
+                    localStorage.setItem('crm_user', JSON.stringify(this.currentUser));
+                }
                 this.notifications = await this.apiFetch(`/dash/notifications?userId=${this.currentUser.id}`);
             }
 
@@ -174,7 +252,7 @@ class Store {
     }
 
     // Cells
-    getVisibleCells() { return this.hasRole('ADMIN', 'SUPERVISOR') ? this.cells : this.cells.filter(c => c.leaderId === this.currentUser?.id || c.viceLeaderId === this.currentUser?.id); }
+    getVisibleCells() { return this.hasRole('ADMIN', 'SUPERVISOR') ? this.cells : this.hasRole('LIDER_GERACAO') ? this.cells.filter(c => c.generationId === this.currentUser?.generationId) : this.cells.filter(c => c.leaderId === this.currentUser?.id || c.viceLeaderId === this.currentUser?.id); }
     getCell(id) { return this.cells.find(c => c.id === id); }
     getCellMembers(cid) { return this.people.filter(p => p.cellId === cid); }
     async addCell(c) {
@@ -192,6 +270,25 @@ class Store {
         await this.apiFetch(`/cells/${id}`, { method: 'DELETE' });
         this.cells = this.cells.filter(c => c.id !== id);
         this.people.forEach(p => { if (p.cellId === id) p.cellId = null });
+    }
+
+    // Generations
+    async addGeneration(g) {
+        const res = await this.apiFetch('/generations', { method: 'POST', body: JSON.stringify(g) });
+        this.generations.push(res);
+        return res;
+    }
+    async updateGeneration(id, d) {
+        const res = await this.apiFetch(`/generations/${id}`, { method: 'PUT', body: JSON.stringify(d) });
+        const idx = this.generations.findIndex(x => x.id === id);
+        if (idx !== -1) {
+            this.generations[idx] = res;
+        }
+        return res;
+    }
+    async deleteGeneration(id) {
+        await this.apiFetch(`/generations/${id}`, { method: 'DELETE' });
+        this.generations = this.generations.filter(x => x.id !== id);
     }
 
     // Visits
@@ -243,9 +340,26 @@ class Store {
         await this.apiFetch(`/events/${id}`, { method: 'DELETE' });
         this.events = this.events.filter(e => e.id !== id);
     }
-    getEventException(eventId, date) { return null; /* TODO: load array from backend */ }
+    getEventException(eventId, date) {
+        // Cache de exceptions carregado pelo loadEvents ou setEventException
+        if (!this._eventExceptions) return null;
+        return (this._eventExceptions[eventId] || []).find(ex => ex.date === date) || null;
+    }
     async setEventException(eventId, date, canceled, newTitle) {
-        // Feature omitida no backend básico para escalar o tempo.
+        await this.apiFetch(`/events/${eventId}/exceptions`, {
+            method: 'POST',
+            body: JSON.stringify({ date, canceled, newTitle })
+        });
+        // Atualiza cache local
+        if (!this._eventExceptions) this._eventExceptions = {};
+        if (!this._eventExceptions[eventId]) this._eventExceptions[eventId] = [];
+        const existing = this._eventExceptions[eventId].find(ex => ex.date === date);
+        if (existing) {
+            existing.canceled = canceled;
+            existing.newTitle = newTitle;
+        } else {
+            this._eventExceptions[eventId].push({ eventId, date, canceled, newTitle });
+        }
     }
 
     async toggleCellCancellation(cellId, date, authorId) {
@@ -325,8 +439,10 @@ class Store {
         this.triageQueue.unshift(res);
         return res;
     }
-    async updateTriage(id, status) {
-        const res = await this.apiFetch(`/forms/triage/${id}`, { method: 'PUT', body: JSON.stringify({ status }) });
+    async updateTriage(id, status, payload = null) {
+        const bodyObj = { status };
+        if (payload) bodyObj.payload = payload;
+        const res = await this.apiFetch(`/forms/triage/${id}`, { method: 'PUT', body: JSON.stringify(bodyObj) });
         const idx = this.triageQueue.findIndex(x => x.id === id);
         if (idx !== -1) this.triageQueue[idx] = res;
         return res;
@@ -363,8 +479,30 @@ class Store {
             if (!this.hasRole('ADMIN', 'SUPERVISOR') && this.currentUser) {
                 url += `?userId=${this.currentUser.id}`;
             }
-            return await this.apiFetch(url);
+            const m = await this.apiFetch(url);
+            // Sincroniza a config retornada pelo metrics no store
+            if (m?.config) this.config = m.config;
+            return m;
         } catch (e) { return null; }
+    }
+
+    // System Config
+    async fetchConfig() {
+        try {
+            const res = await this.apiFetch('/dash/config');
+            this.config = res.dashboardActions || {};
+            return this.config;
+        } catch (e) { return {}; }
+    }
+
+    async saveConfig(dashboardActions) {
+        if (!this.hasRole('ADMIN')) throw new Error('Apenas administradores');
+        const res = await this.apiFetch('/dash/config', {
+            method: 'PUT',
+            body: JSON.stringify({ dashboardActions, role: this.currentUser.role })
+        });
+        this.config = res.dashboardActions || dashboardActions;
+        return this.config;
     }
 }
 

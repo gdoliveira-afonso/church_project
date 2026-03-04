@@ -21,12 +21,17 @@
             darkMode: 'class',
             theme: {
                 extend: {
-                    colors: { primary: '#135bec', 'primary-light': '#e8effd', success: '#22c55e', warning: '#f59e0b', danger: '#ef4444' },
+                    colors: { primary: 'rgb(var(--color-primary) / <alpha-value>)', 'primary-light': '#e8effd', success: '#22c55e', warning: '#f59e0b', danger: '#ef4444' },
                     fontFamily: { display: ['Inter', 'system-ui', 'sans-serif'] },
                 }
             }
         }
     </script>
+    <style>
+        :root {
+            --color-primary: 19 91 236;
+        }
+    </style>
     <script>
             // Apply theme before paint to prevent flash
             (function () {
@@ -37,6 +42,56 @@
             })();
     </script>
     <style>
+        /* ── Splash Screen & Preload ── */
+        #splash-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f1f5f9;
+            /* slate-100 */
+            transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+        }
+
+        .dark #splash-screen {
+            background-color: #0f172a;
+            /* slate-900 */
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(19, 91, 236, 0.2);
+            /* primary color with opacity */
+            border-top-color: #135bec;
+            /* primary color */
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 24px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        #app-shell {
+            opacity: 0;
+        }
+
+        .app-ready #app-shell {
+            opacity: 1;
+        }
+
+        .app-ready #splash-screen {
+            opacity: 0;
+            visibility: hidden;
+        }
+
         * {
             font-family: 'Inter', system-ui, sans-serif;
         }
@@ -267,6 +322,25 @@
 
 <body
     class="bg-slate-100 dark:bg-slate-900 font-display text-slate-900 dark:text-slate-100 antialiased h-[100dvh] overflow-hidden transition-colors duration-300">
+
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="spinner"></div>
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px"
+                    fill="currentColor">
+                    <path
+                        d="M480-120v-80h160v-240L480-692 320-440v240h160v80H240v-320L480-840l240 380v340H480ZM360-320h240v-60H360v60Zm0-140h240v-60H360v60ZM480-560q17 0 28.5-11.5T520-600q0-17-11.5-28.5T480-640q-17 0-28.5 11.5T440-600q0 17 11.5 28.5T480-560Z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-base font-bold text-slate-900 dark:text-slate-100 leading-tight">Gestão Celular</p>
+                <p class="text-xs text-slate-400 dark:text-slate-500 leading-tight">Carregando...</p>
+            </div>
+        </div>
+    </div>
+
     <div id="toast-container"></div>
     <div id="app-shell" class="flex h-[100dvh] w-full bg-slate-100 dark:bg-slate-900 transition-colors duration-300">
         <nav id="sidebar"

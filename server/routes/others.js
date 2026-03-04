@@ -1,5 +1,6 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
+const { getNotificationConfig } = require('./config');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -87,6 +88,67 @@ router.delete('/tracks/person/:personId/:trackId', async (req, res) => {
 });
 
 // ------------------------------------------------------------------
+// CONFIGURAÇÕES DO SISTEMA (ADMIN)
+// ------------------------------------------------------------------
+const DEFAULT_DASHBOARD_CONFIG = {
+    noVisit: { enabled: true, days: 60 },
+    baptism: { enabled: true },
+    consolidation: { enabled: true, days: 15 },
+    reconciliation: { enabled: true }
+};
+
+async function getDashboardConfig() {
+    try {
+        const rows = await prisma.$queryRawUnsafe(
+            `SELECT value FROM "SystemConfig" WHERE key = 'dashboardActions' LIMIT 1`
+        );
+        if (rows && rows.length > 0) return JSON.parse(rows[0].value);
+    } catch (e) { /* tabela ainda não existe: retorna default */ }
+    return DEFAULT_DASHBOARD_CONFIG;
+}
+
+router.get('/config', async (req, res) => {
+    try {
+        const dashboardActions = await getDashboardConfig();
+        const notificationConfig = await getNotificationConfig();
+        res.json({ dashboardActions, notificationConfig });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao buscar configurações' });
+    }
+});
+
+router.put('/config', async (req, res) => {
+    try {
+        const { dashboardActions, notificationConfig, role } = req.body;
+        if (role !== 'ADMIN') return res.status(403).json({ error: 'Apenas administradores podem alterar configurações' });
+
+        if (dashboardActions) {
+            const value = JSON.stringify(dashboardActions);
+            await prisma.$executeRawUnsafe(`
+                INSERT INTO "SystemConfig" ("key", "value", "updatedAt")
+                VALUES ('dashboardActions', ?, CURRENT_TIMESTAMP)
+                ON CONFLICT("key") DO UPDATE SET "value" = excluded.value, "updatedAt" = CURRENT_TIMESTAMP
+            `, value);
+        }
+
+        if (notificationConfig) {
+            const value = JSON.stringify(notificationConfig);
+            await prisma.$executeRawUnsafe(`
+                INSERT INTO "SystemConfig" ("key", "value", "updatedAt")
+                VALUES ('notificationConfig', ?, CURRENT_TIMESTAMP)
+                ON CONFLICT("key") DO UPDATE SET "value" = excluded.value, "updatedAt" = CURRENT_TIMESTAMP
+            `, value);
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Erro ao salvar configurações' });
+    }
+});
+
+// ------------------------------------------------------------------
 // DASHBOARD METRICS / RELATÓRIOS GERAIS
 // ------------------------------------------------------------------
 router.get('/metrics', async (req, res) => {
@@ -108,6 +170,20 @@ router.get('/metrics', async (req, res) => {
                 const myCellIds = myCells.map(c => c.id);
                 peopleFilter = { cellId: { in: myCellIds } };
                 cellsFilter = { id: { in: myCellIds } };
+            } else if (reqUser && reqUser.role === 'LIDER_GERACAO') {
+                if (reqUser.generationId) {
+                    const myCells = await prisma.cell.findMany({
+                        where: { generationId: reqUser.generationId },
+                        select: { id: true }
+                    });
+                    const myCellIds = myCells.map(c => c.id);
+                    peopleFilter = { cellId: { in: myCellIds } };
+                    cellsFilter = { generationId: reqUser.generationId };
+                } else {
+                    // Sem geração atribuída, vê zero pessoas
+                    peopleFilter = { id: 'none' };
+                    cellsFilter = { id: 'none' };
+                }
             }
         }
 
@@ -127,6 +203,9 @@ router.get('/metrics', async (req, res) => {
         const reconciliations = [];
 
         const now = new Date();
+        const cfg = await getDashboardConfig();
+        const noVisitDays = cfg.noVisit?.days ?? 60;
+        const consolidateDays = cfg.consolidation?.days ?? 15;
 
         people.forEach(p => {
             const hasBatismo = p.personTracks.some(pt => pt.track.name.includes('Batismo'));
@@ -142,10 +221,10 @@ router.get('/metrics', async (req, res) => {
             if (p.visits && p.visits.length > 0) {
                 const lastVis = new Date(p.visits.sort((a, b) => b.date.localeCompare(a.date))[0].date);
                 const daysDiff = Math.floor((now - lastVis) / (1000 * 60 * 60 * 24));
-                if (daysDiff > 60 && createdDaysAgo > 60) noVisit.push(p);
+                if (daysDiff > noVisitDays && createdDaysAgo > noVisitDays) noVisit.push(p);
             } else {
-                // Membro nunca foi visitado, vamos olhar se ele já é membro há mais de 60 dias pra poder alertar
-                if (createdDaysAgo > 60) noVisit.push(p);
+                // Membro nunca foi visitado, vamos olhar se ele já é membro há mais de X dias pra poder alertar
+                if (createdDaysAgo > noVisitDays) noVisit.push(p);
             }
 
             if (p.status === 'Novo Convertido') {
@@ -153,9 +232,9 @@ router.get('/metrics', async (req, res) => {
                 if (consVisits.length > 0) {
                     const lastVis = new Date(consVisits.sort((a, b) => b.date.localeCompare(a.date))[0].date);
                     const daysDiff = Math.floor((now - lastVis) / (1000 * 60 * 60 * 24));
-                    if (daysDiff > 15 && createdDaysAgo > 15) delayedConsolidation.push(p);
+                    if (daysDiff > consolidateDays && createdDaysAgo > consolidateDays) delayedConsolidation.push(p);
                 } else {
-                    if (createdDaysAgo > 15) delayedConsolidation.push(p);
+                    if (createdDaysAgo > consolidateDays) delayedConsolidation.push(p);
                 }
             }
 
@@ -173,6 +252,7 @@ router.get('/metrics', async (req, res) => {
             noVisit: noVisit.length,
             delayedConsolidations: delayedConsolidation.length,
             reconciliations: reconciliations.length,
+            config: cfg,
             actionLists: {
                 noVisit,
                 pendingBaptism,

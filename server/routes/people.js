@@ -1,5 +1,6 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
+const { getNotificationConfig } = require('./config');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -7,7 +8,18 @@ const prisma = new PrismaClient();
 // Listar todas as pessoas
 router.get('/', async (req, res) => {
     try {
+        let whereClause = {};
+        if (req.user.role === 'LIDER_GERACAO') {
+            if (!req.user.generationId) return res.json([]);
+            const genCells = await prisma.cell.findMany({
+                where: { generationId: req.user.generationId },
+                select: { id: true }
+            });
+            whereClause.cellId = { in: genCells.map(c => c.id) };
+        }
+
         const people = await prisma.person.findMany({
+            where: whereClause,
             include: {
                 cell: { select: { id: true, name: true } },
                 consolidation: true,
@@ -101,19 +113,21 @@ router.post('/', async (req, res) => {
 
         // NOTIFICAÇÃO AO LÍDER (Se tiver cellId)
         if (createData.cellId) {
-            const cell = await prisma.cell.findUnique({
-                where: { id: createData.cellId },
-                select: { leaderId: true, viceLeaderId: true, name: true }
-            });
-            if (cell && (cell.leaderId || cell.viceLeaderId)) {
-                const notifsToCreate = [];
-                const msg = `${person.name} foi adicionado(a) à sua célula (${cell.name}). Verifique a lista de membros.`;
-                const actionUrl = `#/profile?id=${person.id}`;
-                if (cell.leaderId) notifsToCreate.push({ userId: cell.leaderId, title: "Novo membro", message: msg, action: actionUrl });
-                if (cell.viceLeaderId) notifsToCreate.push({ userId: cell.viceLeaderId, title: "Novo membro", message: msg, action: actionUrl });
-
-                if (notifsToCreate.length > 0) {
-                    await prisma.notification.createMany({ data: notifsToCreate });
+            const notifCfg = await getNotificationConfig();
+            if (notifCfg.newMember?.enabled !== false) {
+                const cell = await prisma.cell.findUnique({
+                    where: { id: createData.cellId },
+                    select: { leaderId: true, viceLeaderId: true, name: true }
+                });
+                if (cell && (cell.leaderId || cell.viceLeaderId)) {
+                    const notifsToCreate = [];
+                    const msg = `${person.name} foi adicionado(a) à sua célula (${cell.name}). Verifique a lista de membros.`;
+                    const actionUrl = `#/profile?id=${person.id}`;
+                    if (cell.leaderId) notifsToCreate.push({ userId: cell.leaderId, title: "Novo membro", message: msg, action: actionUrl });
+                    if (cell.viceLeaderId) notifsToCreate.push({ userId: cell.viceLeaderId, title: "Novo membro", message: msg, action: actionUrl });
+                    if (notifsToCreate.length > 0) {
+                        await prisma.notification.createMany({ data: notifsToCreate });
+                    }
                 }
             }
         }
@@ -186,19 +200,21 @@ router.put('/:id', async (req, res) => {
 
         // NOTIFICAÇÃO AO LÍDER (Se ele entrou numa célula nova agora)
         if (data.cellId && data.cellId !== existing.cellId) {
-            const cell = await prisma.cell.findUnique({
-                where: { id: data.cellId },
-                select: { leaderId: true, viceLeaderId: true, name: true }
-            });
-            if (cell && (cell.leaderId || cell.viceLeaderId)) {
-                const notifs = [];
-                const msg = `${person.name} foi recém-transferido ou atribuído à sua célula (${cell.name}).`;
-                const actionUrl = `#/profile?id=${person.id}`;
-                if (cell.leaderId) notifs.push({ userId: cell.leaderId, title: "Novo membro na Célula", message: msg, action: actionUrl });
-                if (cell.viceLeaderId) notifs.push({ userId: cell.viceLeaderId, title: "Novo membro na Célula", message: msg, action: actionUrl });
-
-                if (notifs.length > 0) {
-                    await prisma.notification.createMany({ data: notifs });
+            const notifCfg = await getNotificationConfig();
+            if (notifCfg.newMember?.enabled !== false) {
+                const cell = await prisma.cell.findUnique({
+                    where: { id: data.cellId },
+                    select: { leaderId: true, viceLeaderId: true, name: true }
+                });
+                if (cell && (cell.leaderId || cell.viceLeaderId)) {
+                    const notifs = [];
+                    const msg = `${person.name} foi recém-transferido ou atribuído à sua célula (${cell.name}).`;
+                    const actionUrl = `#/profile?id=${person.id}`;
+                    if (cell.leaderId) notifs.push({ userId: cell.leaderId, title: "Novo membro na Célula", message: msg, action: actionUrl });
+                    if (cell.viceLeaderId) notifs.push({ userId: cell.viceLeaderId, title: "Novo membro na Célula", message: msg, action: actionUrl });
+                    if (notifs.length > 0) {
+                        await prisma.notification.createMany({ data: notifs });
+                    }
                 }
             }
         }

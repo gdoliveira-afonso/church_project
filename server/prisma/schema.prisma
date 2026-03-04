@@ -11,16 +11,19 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  username  String   @unique
-  password  String
-  role      String   @default("USER") // ADMIN, SUPERVISOR, LEADER, etc.
-  avatar    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  username     String   @unique
+  password     String
+  role         String   @default("USER") // ADMIN, SUPERVISOR, LIDER_GERACAO, LEADER, etc.
+  avatar       String?
+  generationId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
+  generation   Generation?    @relation(fields: [generationId], references: [id])
   notifications Notification[]
+  person       Person?
 }
 
 model Cell {
@@ -33,13 +36,26 @@ model Cell {
   meetingDay   String?
   meetingTime  String?
   status       String      @default("ativa")
+  generationId String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
+  generation        Generation? @relation(fields: [generationId], references: [id])
   people            Person[]
   attendances       Attendance[]
   cellCancellations CellCancellation[]
   cellJustifications CellJustification[]
+}
+
+model Generation {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  cells       Cell[]
 }
 
 model Person {
@@ -55,10 +71,12 @@ model Person {
   returnReason     String?
   prayerRequest    String?
   cellId           String?
+  userId           String?  @unique
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   cell             Cell?    @relation(fields: [cellId], references: [id])
+  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   visits           Visit[]
   pastoralNotes    PastoralNote[]
   attendanceRecords AttendanceRecord[]
@@ -122,6 +140,19 @@ model Visit {
   createdAt DateTime @default(now())
 
   person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+}
+
+model SystemSettings {
+  id                  String   @id @default(cuid())
+  appName             String   @default("Gestão Celular")
+  primaryColor        String   @default("#0f172a") // Default to slate-900 / primary
+  logoUrl             String?
+  loginMessage        String?
+  congregationName    String?
+  congregationAddress String?
+  pastorName          String?
+  nucleus             String?
+  updatedAt           DateTime @updatedAt
 }
 
 model Event {
@@ -233,4 +264,10 @@ model TriageQueue {
   createdAt DateTime @default(now())
 
   form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+}
+
+model SystemConfig {
+  key       String   @id
+  value     String   // JSON serializado
+  updatedAt DateTime @updatedAt
 }

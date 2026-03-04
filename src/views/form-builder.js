@@ -16,7 +16,7 @@ const FIELD_TYPES = [
 export function formListView() {
   const app = document.getElementById('app');
   app.innerHTML = `
-  ${header('Formulários', true, `<button id="btn-new-form" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-blue-700 transition active:scale-95"><span class="material-symbols-outlined text-[16px]">add</span>Novo</button>`)}
+  ${header('Formulários', true, `<button id="btn-new-form" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition active:scale-95"><span class="material-symbols-outlined text-[16px]">add</span>Novo</button>`)}
   <div class="flex-1 overflow-y-auto px-4 md:px-6 lg:px-10 py-4 space-y-3 max-w-5xl mx-auto w-full">
     ${store.forms.length ? store.forms.map(f => `
     <div class="bg-white rounded-xl border border-slate-100 hover:border-primary/30 transition group">
@@ -54,7 +54,7 @@ export function formListView() {
       </div>
       <form id="new-form-form" class="space-y-4">
         <div><label class="text-xs font-semibold text-slate-600 mb-1 block">Nome do Formulário</label><input id="nf-name" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Ex: Ficha de Visitante" autofocus/></div>
-        <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition">Criar Formulário</button>
+        <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition">Criar Formulário</button>
       </form>
     </div>`);
     document.getElementById('new-form-form').onsubmit = async e => {
@@ -216,7 +216,7 @@ export function formBuilderView(params) {
             <label class="text-xs font-semibold text-slate-600 mb-1.5 block">Cor</label>
             <div class="flex gap-2" id="fs-colors">${colors.map(c => `<button type="button" class="fs-color px-3 py-1.5 rounded-full text-xs font-semibold border transition ${form.color === c.v ? 'border-primary bg-primary/10 text-primary' : 'border-slate-200 text-slate-500 hover:border-primary/50'}" data-color="${c.v}">${c.l}</button>`).join('')}</div>
           </div>
-          <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition">Salvar</button>
+          <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition">Salvar</button>
         </form>
       </div>`);
 
@@ -438,7 +438,7 @@ export function formBuilderView(params) {
           <input type="checkbox" id="fm-req" ${initReq ? 'checked' : ''} class="accent-primary w-4 h-4"/>
           <div><p class="text-sm font-semibold">Obrigatório</p><p class="text-[11px] text-slate-400">O usuário deve preencher este campo</p></div>
         </label>
-        <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 active:scale-[.98] transition-all">${isEdit ? 'Salvar Alterações' : 'Adicionar Campo'}</button>
+        <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 active:scale-[.98] transition-all">${isEdit ? 'Salvar Alterações' : 'Adicionar Campo'}</button>
       </form>
     </div>`);
 

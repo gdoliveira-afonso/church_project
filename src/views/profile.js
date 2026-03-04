@@ -32,7 +32,7 @@ export function profileView(params) {
     <div id="tab-c" class="px-4 md:px-6 lg:px-10 pb-6 max-w-4xl mx-auto w-full"></div>
   </div>
   <div class="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-4 md:px-6 py-3 z-10">
-    <button id="btn-note" class="w-full md:w-auto bg-primary text-white py-3 px-6 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-[.98] transition-all shadow-sm"><span class="material-symbols-outlined text-lg">edit_note</span>Nota</button>
+    <button id="btn-note" class="w-full md:w-auto bg-primary text-white py-3 px-6 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-primary/90 active:scale-[.98] transition-all shadow-sm"><span class="material-symbols-outlined text-lg">edit_note</span>Nota</button>
   </div>`;
 
   const tc = document.getElementById('tab-c');
@@ -137,7 +137,7 @@ export function profileView(params) {
             <option value="Recusada">Recusada</option>
           </select>
         </div>
-        <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 active:scale-[.98] transition-all">Salvar Visita</button>
+        <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-bold hover:bg-primary/90 active:scale-[.98] transition-all">Salvar Visita</button>
       </form>
     </div>`);
     document.getElementById('visit-form').onsubmit = async e => {
@@ -183,7 +183,7 @@ export function profileView(params) {
           <label class="text-xs font-semibold text-slate-600 mb-1 block">Texto</label>
           <textarea id="nf-text" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 resize-none" placeholder="Escreva a nota..." required></textarea>
         </div>
-        <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-bold hover:bg-blue-700 active:scale-[.98] transition-all">Salvar Nota</button>
+        <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-bold hover:bg-primary/90 active:scale-[.98] transition-all">Salvar Nota</button>
       </form>
     </div>`);
     document.getElementById('note-form').onsubmit = async e => {

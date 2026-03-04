@@ -75,11 +75,16 @@ router.get('/triage/all', async (req, res) => {
             orderBy: { createdAt: 'desc' },
             include: { form: true }
         });
-        const processed = triage.map(t => ({
+        let processed = triage.map(t => ({
             ...t,
             data: t.data ? JSON.parse(t.data) : {},
             formName: t.form ? t.form.name : 'Formulário Excluído'
         }));
+
+        if (req.user.role === 'LIDER_GERACAO') {
+            processed = processed.filter(t => t.status === 'forwarded_generation' && String(t.data.generationId) === String(req.user.generationId));
+        }
+
         res.json(processed);
     } catch (err) { res.status(500).json({ error: 'Erro ao buscar fila de triagem' }); }
 });
@@ -100,10 +105,20 @@ router.post('/triage/new', async (req, res) => {
 
 router.put('/triage/:id', async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, payload } = req.body;
+        const updateData = { status };
+
+        if (payload) {
+            const existing = await prisma.triageQueue.findUnique({ where: { id: req.params.id } });
+            if (existing) {
+                const currentData = existing.data ? JSON.parse(existing.data) : {};
+                updateData.data = JSON.stringify({ ...currentData, ...payload });
+            }
+        }
+
         const triage = await prisma.triageQueue.update({
             where: { id: req.params.id },
-            data: { status }
+            data: updateData
         });
         triage.data = JSON.parse(triage.data);
         res.json(triage);

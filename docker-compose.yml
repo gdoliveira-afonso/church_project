@@ -14,6 +14,8 @@ services:
     volumes:
       # Volume mapeado garante que o dev.db não morra ao reiniciar container
       - crm_db_data:/app/prisma
+      # Salva as imagens e uploads entre os reboots do backend
+      - crm_uploads_data:/app/uploads
     # ports:
     # Não precisa expor a porta 3000 para a máquina host principal, apenas internamente.
     # Exposta apenas para testes locais se quiser, descomente abaixo:
@@ -36,4 +38,5 @@ services:
       - backend # Garante que o nginx só sobe após o backend
 
 volumes:
-  crm_db_data: # Nome do disco lógico
+  crm_db_data: # Nome do disco lógico DB local
+  crm_uploads_data: # Nome do disco lógico pra imagens

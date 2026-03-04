@@ -22,7 +22,7 @@ export async function publicFormView(params) {
   let form = null;
 
   if (formId) {
-    app.innerHTML = '<div class="flex-1 flex items-center justify-center p-12 text-slate-400"><span class="material-symbols-outlined animate-spin mr-2">refresh</span> Carregando formulário...</div>';
+    app.innerHTML = '<div class="flex-1"></div>'; // Mantém vazio pois a splash screen cobre
     try {
       const res = await fetch(`/api/public/forms/${formId}`);
       if (res.ok) form = await res.json();
@@ -129,4 +129,12 @@ export async function publicFormView(params) {
       btn.innerHTML = origText; btn.disabled = false;
     }
   };
+
+  if (window.__removeSplashScreen) {
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(window.__removeSplashScreen);
+    } else {
+      window.__removeSplashScreen();
+    }
+  }
 }

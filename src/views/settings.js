@@ -1,73 +1,473 @@
 import { store } from '../store.js';
 import { header, bottomNav, badge, toast, openModal, closeModal, updateSidebar } from '../components/ui.js';
 
-const RL = { ADMIN: 'Administrador', SUPERVISOR: 'Supervisor', LEADER: 'Líder de Célula', VICE_LEADER: 'Vice-Líder' };
-const RC = { ADMIN: 'blue', SUPERVISOR: 'purple', LEADER: 'green', VICE_LEADER: 'orange' };
+const RL = { ADMIN: 'Administrador', SUPERVISOR: 'Supervisor', LIDER_GERACAO: 'Líder de Geração', LEADER: 'Líder de Célula', VICE_LEADER: 'Vice-Líder' };
+const RC = { ADMIN: 'blue', SUPERVISOR: 'purple', LIDER_GERACAO: 'indigo', LEADER: 'green', VICE_LEADER: 'orange' };
 
 export function settingsView() {
   const app = document.getElementById('app'); const u = store.currentUser;
   app.innerHTML = `
   ${header('Configurações', false)}
-  <div class="flex-1 overflow-y-auto px-4 md:px-6 lg:px-10 py-5 space-y-6 max-w-5xl mx-auto w-full">
-    <!-- My Profile -->
-    <section>
-      <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3">Meu Perfil</h3>
-      <div class="bg-white rounded-xl p-5 border border-slate-100">
-        <div class="flex items-center gap-4 mb-4">
-          <div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl font-bold">${u.name.charAt(0)}</div>
-          <div class="flex-1"><p class="text-base font-bold">${u.name}</p><p class="text-xs text-slate-500">@${u.username}</p><div class="mt-1">${badge(RL[u.role] || u.role, RC[u.role] || 'slate')}</div></div>
+  <div class="bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 md:px-6 sticky top-14 z-10 shrink-0">
+    <div class="flex gap-6 overflow-x-auto no-scrollbar max-w-5xl mx-auto" id="settings-tabs">
+      <button class="settings-tab active whitespace-nowrap py-3.5 text-sm font-bold text-primary border-b-2 border-primary transition-colors" data-target="tab-account">Conta & Perfil</button>
+      <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-team">Equipe</button>
+      <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-tools">Ferramentas & Acesso</button>
+      ${u.role === 'ADMIN' ? `<button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-system">Sistema & Alertas</button>` : ''}
+    </div>
+  </div>
+
+  <div class="flex-1 overflow-y-auto px-4 md:px-6 lg:px-10 py-5 max-w-5xl mx-auto w-full pb-20">
+    
+    <!-- TAG ACCOUNT -->
+    <div id="tab-account" class="tab-content space-y-6">
+      <section>
+        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
+          <div class="flex items-center gap-4 mb-4">
+            <div class="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl font-bold">${u.name.charAt(0)}</div>
+            <div class="flex-1"><p class="text-base font-bold">${u.name}</p><p class="text-xs text-slate-500">@${u.username}</p><div class="mt-1">${badge(RL[u.role] || u.role, RC[u.role] || 'slate')}</div></div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="btn-name" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-sm font-medium text-slate-700 hover:bg-slate-100 border border-slate-100 transition"><span class="material-symbols-outlined text-base text-primary">edit</span>Editar Nome</button>
+            <button id="btn-pass" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-sm font-medium text-slate-700 hover:bg-slate-100 border border-slate-100 transition"><span class="material-symbols-outlined text-base text-primary">lock_reset</span>Mudar Senha</button>
+          </div>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <button id="btn-name" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 text-sm font-medium text-slate-700 hover:bg-slate-200 transition"><span class="material-symbols-outlined text-base">edit</span>Nome</button>
-          <button id="btn-pass" class="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 text-sm font-medium text-slate-700 hover:bg-slate-200 transition"><span class="material-symbols-outlined text-base">lock</span>Senha</button>
+      </section>
+      <section>
+        <button id="btn-logout" class="w-full flex items-center justify-center gap-2 rounded-xl bg-white border border-slate-200 px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 hover:border-red-200 transition shadow-sm"><span class="material-symbols-outlined text-lg">logout</span>Sair da Conta</button>
+      </section>
+    </div>
+
+    <!-- TAG TEAM -->
+    <div id="tab-team" class="tab-content hidden space-y-6">
+      <section>
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400">Gerenciar Usuários</h3>
+          <button id="btn-add-user" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition shadow-sm"><span class="material-symbols-outlined text-[16px]">person_add</span>Adicionar</button>
         </div>
-      </div>
-    </section>
-    <!-- Users -->
-    <section>
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400">Equipe</h3>
-        <button id="btn-add-user" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-blue-700 transition active:scale-95"><span class="material-symbols-outlined text-[16px]">person_add</span>Novo</button>
-      </div>
-      <div id="team-list"></div>
-    </section>
-    <!-- Tools -->
-    <section>
-      <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3">Ferramentas</h3>
-      <div class="bg-white rounded-xl border border-slate-100 divide-y divide-slate-100">
-        ${toolLink('description', 'Formulários', `${store.forms.length} formulários`, '#/forms', 'emerald')}
-        ${toolLink('assignment', 'Triagem', `${store.triageQueue.filter(t => t.status === 'new').length} pendentes`, '#/triage', 'orange')}
-      </div>
-    </section>
-    <!-- Tracks -->
-    <section>
-      <div class="flex justify-between items-center mb-3">
-        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400">Trilhas (Espiritual / Retiros)</h3>
-        <button id="btn-add-track" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-blue-700 transition active:scale-95"><span class="material-symbols-outlined text-[16px]">add</span>Nova</button>
-      </div>
-      <div id="tracks-list"></div>
-    </section>
-    <!-- Danger -->
-    <section class="space-y-2 pb-6">
-      <button id="btn-logout" class="w-full flex items-center justify-center gap-2 rounded-xl bg-slate-50 border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition"><span class="material-symbols-outlined text-lg">logout</span>Sair da Conta</button>
+        <div id="team-list"></div>
+      </section>
+    </div>
+
+    <!-- TAG TOOLS -->
+    <div id="tab-tools" class="tab-content hidden space-y-6">
+      <section>
+        <div class="bg-white rounded-xl border border-slate-100 divide-y divide-slate-100 shadow-sm">
+          ${toolLink('groups', 'Gerações', `${(store.generations || []).length} gerações cadastradas`, '#/generations', 'indigo')}
+          ${toolLink('description', 'Formulários Customizados', `${store.forms.length} formulários`, '#/forms', 'emerald')}
+          ${toolLink('assignment', 'Fila de Triagem', `${store.triageQueue.filter(t => t.status === 'new').length} membros pendentes`, '#/triage', 'orange')}
+        </div>
+      </section>
+      <section class="pt-2">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400">Trilhas & Retiros</h3>
+          <button id="btn-add-track" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 transition shadow-sm"><span class="material-symbols-outlined text-[16px]">add_circle</span>Nova Trilha</button>
+        </div>
+        <div id="tracks-list"></div>
+      </section>
+    </div>
+
+    <!-- TAG SYSTEM -->
+    ${u.role === 'ADMIN' ? `<div id="tab-system" class="tab-content hidden space-y-8">
       
-      ${u.role === 'ADMIN' ? `<div class="mt-8 pt-6 border-t border-red-100">
-        <h3 class="text-sm font-bold uppercase tracking-wider text-red-500 mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-lg">warning</span> Zona de Perigo</h3>
-        <button id="btn-reset" class="w-full flex items-center justify-center gap-2 rounded-xl bg-white border-2 border-red-200 px-4 py-3.5 text-sm font-bold text-red-600 hover:bg-red-50 hover:border-red-500 transition shadow-sm"><span class="material-symbols-outlined text-lg">delete_forever</span>Apagar Todos os Dados</button>
-        <p class="text-[10px] text-slate-400 text-center mt-2 px-4 leading-relaxed">Atenção: Esta ação é irreversível e limpará todas as pessoas, células, eventos, relatórios e configurações armazenadas no navegador.</p>
-      </div>` : ''}
-    </section>
+      <section>
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 ml-1 flex items-center gap-2"><span class="material-symbols-outlined text-lg text-primary">palette</span>Branding & Identidade Visual</h3>
+        <form id="branding-form" class="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                  <label class="text-xs font-semibold text-slate-600 mb-1 block">Nome do Sistema</label>
+                  <input id="cfg-app-name" type="text" value="${store.systemSettings?.appName || 'Gestão Celular'}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+              </div>
+              <div>
+                  <label class="text-xs font-semibold text-slate-600 mb-1 block">Cor Primária (Hexadecimal)</label>
+                  <div class="flex gap-2">
+                    <input id="cfg-primary-color" type="color" value="${store.systemSettings?.primaryColor || '#135bec'}" class="h-9 w-12 p-1 rounded cursor-pointer border border-slate-200 bg-slate-50"/>
+                    <input id="cfg-primary-hex" type="text" value="${store.systemSettings?.primaryColor || '#135bec'}" class="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 uppercase"/>
+                  </div>
+              </div>
+          </div>
+          <div class="grid grid-cols-1 gap-4">
+                  <!-- Logo Container -->
+                  <div class="mb-5">
+                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Logo do Sistema (Link Direto)</label>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                      <div class="flex-1 w-full flex gap-2">
+                        <div class="relative flex-1">
+                          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">image</span>
+                          <input id="cfg-logo-url" type="text" value="${store.systemSettings?.logoUrl || ''}" placeholder="Ex: https://... ou clique ao lado 👉" class="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+                        </div>
+                        <label class="w-10 h-10 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center cursor-pointer hover:bg-primary hover:text-white transition group relative shrink-0" title="Fazer Upload">
+                          <input type="file" id="cfg-logo-upload" accept="image/*" class="hidden">
+                          <span class="material-symbols-outlined text-xl">upload</span>
+                        </label>
+                      </div>
+                      <div id="cfg-logo-preview" class="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-lg ${store.systemSettings?.logoUrl ? '' : 'hidden'} sm:w-64 shrink-0 h-16 w-full">
+                        <div class="w-10 h-10 rounded bg-white flex items-center justify-center shrink-0 border border-slate-100 overflow-hidden">
+                          <img id="cfg-logo-img" src="${store.systemSettings?.logoUrl || ''}" class="max-w-full max-h-full object-contain" />
+                        </div>
+                        <button type="button" id="cfg-logo-clear" class="text-[11px] text-red-500 font-semibold hover:underline mt-auto mb-auto ml-auto">Remover</button>
+                      </div>
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-1">Insira uma URL direta ou faça upload de um arquivo. Para melhor resultado, use uma imagem com fundo transparente (PNG).</p>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-4 mt-2">
+                    <div>
+                      <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Nome da Congregação / Igreja</label>
+                      <input id="cfg-congregation-name" type="text" value="${store.systemSettings?.congregationName || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Ex: Igreja Metodista"/>
+                    </div>
+                    <div>
+                      <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Núcleo / Região (Nº)</label>
+                      <input id="cfg-nucleus" type="text" value="${store.systemSettings?.nucleus || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Ex: 5ª Região"/>
+                    </div>
+                    <div>
+                      <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Pastor Titular / Responsável</label>
+                      <input id="cfg-pastor-name" type="text" value="${store.systemSettings?.pastorName || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Ex: Pr. João Silva"/>
+                    </div>
+                    <div>
+                      <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Endereço da Sede</label>
+                      <input id="cfg-congregation-address" type="text" value="${store.systemSettings?.congregationAddress || ''}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Ex: Rua Central, 123 - Centro"/>
+                    </div>
+                  </div>
+
+                  <div class="border-t border-slate-100 pt-4 mt-4">
+                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Texto / Propósito na Tela de Login</label>
+                    <textarea id="cfg-login-msg" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 resize-none h-20">${store.systemSettings?.loginMessage || 'Transformando o cuidado pastoral...'}</textarea>
+                    <p class="text-[10px] text-slate-400 mt-1">Este texto aparece abaixo do logo na tela de login.</p>
+                  </div><button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-bold shadow-sm hover:bg-opacity-90 transition mt-2 flex items-center justify-center gap-2"><span class="material-symbols-outlined text-lg">save</span> Salvar Identidade</button>
+        </form>
+      </section>
+
+      <section>
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 ml-1 flex items-center gap-2"><span class="material-symbols-outlined text-lg text-primary">dashboard_customize</span>Alertas Automáticos no Dashboard</h3>
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden" id="dash-actions-section">
+          <div class="p-4 space-y-4">
+            <div class="flex items-center justify-between gap-4 pb-3 border-b border-slate-50">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shrink-0"><span class="material-symbols-outlined text-base">person_alert</span></div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">Sem Visita Prolongada</p>
+                  <p class="text-[11px] text-slate-500 leading-snug">Alerta para membros sem visita há muito tempo</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <input id="cfg-novisit-days" type="number" min="1" max="365" value="60" class="w-14 px-1 py-1 rounded-md border border-slate-200 bg-slate-50 text-xs font-bold text-center outline-none focus:ring-2 focus:ring-primary/20"/>
+                <span class="text-[10px] text-slate-400 font-medium">dias</span>
+                <label class="relative inline-flex items-center cursor-pointer ml-1">
+                  <input type="checkbox" id="cfg-novisit-en" class="sr-only peer" checked>
+                  <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-4 pb-3 border-b border-slate-50">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0"><span class="material-symbols-outlined text-base">water_drop</span></div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">Pendentes de Batismo</p>
+                  <p class="text-[11px] text-slate-500 leading-snug">Membros listados que ainda não foram às águas</p>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="cfg-baptism-en" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+            <div class="flex items-center justify-between gap-4 pb-3 border-b border-slate-50">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 shrink-0"><span class="material-symbols-outlined text-base">route</span></div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">Atraso na Consolidação</p>
+                  <p class="text-[11px] text-slate-500 leading-snug">Novos convertidos recém captados</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                <input id="cfg-cons-days" type="number" min="1" max="90" value="15" class="w-14 px-1 py-1 rounded-md border border-slate-200 bg-slate-50 text-xs font-bold text-center outline-none focus:ring-2 focus:ring-primary/20"/>
+                <span class="text-[10px] text-slate-400 font-medium">dias</span>
+                <label class="relative inline-flex items-center cursor-pointer ml-1">
+                  <input type="checkbox" id="cfg-cons-en" class="sr-only peer" checked>
+                  <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                </label>
+              </div>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 shrink-0"><span class="material-symbols-outlined text-base">handshake</span></div>
+                <div>
+                  <p class="text-sm font-semibold text-slate-800">Reconciliações</p>
+                  <p class="text-[11px] text-slate-500 leading-snug">Pessoas marcadas com perfil de reconciliação</p>
+                </div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="cfg-recon-en" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+          </div>
+          <div class="px-4 pb-4">
+            <button id="btn-save-dash-cfg" class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary text-white text-[13px] font-bold hover:bg-primary/90 active:scale-[.98] transition-all"><span class="material-symbols-outlined text-lg">save</span>Salvar Configurações</button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 ml-1 flex items-center gap-2"><span class="material-symbols-outlined text-lg text-emerald-500">notifications_active</span>Push Notifications</h3>
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden" id="notif-cfg-section">
+          <div class="p-4 space-y-4">
+            <div class="flex items-center justify-between gap-4 pb-3 border-b border-slate-50">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-500 shrink-0"><span class="material-symbols-outlined text-base">person_add</span></div>
+                <div><p class="text-sm font-semibold text-slate-800">Novo membro na célula</p><p class="text-[11px] text-slate-500">Ao adicionar ou transferir um membro</p></div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="ncfg-newmember" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+            <div class="flex items-center justify-between gap-4 pb-3 border-b border-slate-50">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 shrink-0"><span class="material-symbols-outlined text-base">calendar_add_on</span></div>
+                <div><p class="text-sm font-semibold text-slate-800">Nova programação</p><p class="text-[11px] text-slate-500">Quando um evento é adicionado ao calendário</p></div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="ncfg-newevent" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+              </label>
+            </div>
+            <div class="flex items-center justify-between gap-4 pb-3 border-b border-slate-50">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 shrink-0"><span class="material-symbols-outlined text-base">edit_calendar</span></div>
+                <div><p class="text-sm font-semibold text-slate-800">Programação atualizada</p><p class="text-[11px] text-slate-500">Quando a data ou título de um evento muda</p></div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="ncfg-updatedevent" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+              </label>
+            </div>
+            <div class="flex items-center justify-between gap-4">
+              <div class="flex items-start gap-3">
+                <div class="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 shrink-0"><span class="material-symbols-outlined text-base">alarm</span></div>
+                <div><p class="text-sm font-semibold text-slate-800">Lembrete diário</p><p class="text-[11px] text-slate-500">Aviso automático de agenda de amanhã</p></div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="ncfg-dailyreminder" class="sr-only peer" checked>
+                <div class="w-9 h-5 bg-slate-200 peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+              </label>
+            </div>
+          </div>
+          <div class="px-4 pb-4">
+            <button id="btn-save-notif-cfg" class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-emerald-600 text-white text-[13px] font-bold hover:bg-emerald-700 active:scale-[.98] transition-all"><span class="material-symbols-outlined text-lg">save</span>Salvar Notificações</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="pb-10">
+        <div class="bg-red-50 border border-red-100 rounded-xl p-6 text-center shadow-sm">
+          <div class="w-12 h-12 rounded-full bg-red-100 mx-auto flex items-center justify-center text-red-600 mb-3"><span class="material-symbols-outlined text-2xl">warning</span></div>
+          <h3 class="text-base font-bold text-red-700">Ação Destrutiva (Reset)</h3>
+          <p class="text-xs text-red-500/80 mt-1 max-w-sm mx-auto mb-4 leading-relaxed">Apaga todas as entidades permanentemente: Membros, Eventos, Células. Não há recuperação.</p>
+          <button id="btn-reset" class="px-5 py-2 rounded-lg bg-white border border-red-200 text-xs font-bold text-red-600 outline-none hover:bg-red-600 hover:text-white transition shadow-sm"><span class="material-symbols-outlined text-[14px] align-middle mr-1 relative -top-[1px]">delete_forever</span>Deletar tudo</button>
+        </div>
+      </section>
+
+    </div>` : ''}
+
   </div>
   ${bottomNav('settings')}`;
 
   renderTeam();
   renderTracks();
+
+  // Tabs routing manual bindings
+  document.querySelectorAll('.settings-tab').forEach(btn => {
+    btn.onclick = (e) => {
+      document.querySelectorAll('.settings-tab').forEach(b => {
+        b.classList.remove('active', 'text-primary', 'border-primary');
+        b.classList.add('text-slate-500', 'border-transparent');
+      });
+      const t = e.currentTarget;
+      t.classList.remove('text-slate-500', 'border-transparent');
+      t.classList.add('active', 'text-primary', 'border-primary');
+
+      document.querySelectorAll('.tab-content').forEach(tc => tc.classList.add('hidden'));
+      document.getElementById(t.dataset.target).classList.remove('hidden');
+    };
+  });
+
   document.getElementById('btn-name').onclick = () => editNameModal();
   document.getElementById('btn-pass').onclick = () => editPassModal();
   document.getElementById('btn-add-user').onclick = () => userModal();
   document.getElementById('btn-logout').onclick = () => { store.logout(); document.getElementById('sidebar').classList.add('sidebar-hidden'); location.hash = '/login'; toast('Deslogado') };
 
   if (u.role === 'ADMIN') {
+    // Carrega config atual nos inputs
+    store.fetchConfig().then(cfg => {
+      const nvEn = document.getElementById('cfg-novisit-en');
+      const nvDays = document.getElementById('cfg-novisit-days');
+      const bpEn = document.getElementById('cfg-baptism-en');
+      const cnEn = document.getElementById('cfg-cons-en');
+      const cnDays = document.getElementById('cfg-cons-days');
+      const rcEn = document.getElementById('cfg-recon-en');
+      if (nvEn) nvEn.checked = cfg.noVisit?.enabled !== false;
+      if (nvDays) nvDays.value = cfg.noVisit?.days ?? 60;
+      if (bpEn) bpEn.checked = cfg.baptism?.enabled !== false;
+      if (cnEn) cnEn.checked = cfg.consolidation?.enabled !== false;
+      if (cnDays) cnDays.value = cfg.consolidation?.days ?? 15;
+      if (rcEn) rcEn.checked = cfg.reconciliation?.enabled !== false;
+    });
+
+    // Salvar Branding
+    const bForm = document.getElementById('branding-form');
+    if (bForm) {
+      const cPicker = document.getElementById('cfg-primary-color');
+      const cHex = document.getElementById('cfg-primary-hex');
+      cPicker.addEventListener('input', e => { cHex.value = e.target.value.toUpperCase(); });
+      cHex.addEventListener('input', e => { if (/^#[0-9A-F]{6}$/i.test(e.target.value)) cPicker.value = e.target.value; });
+
+      const fInput = document.getElementById('cfg-logo-upload'); // Changed ID
+      const uInput = document.getElementById('cfg-logo-url');
+      const pBox = document.getElementById('cfg-logo-preview');
+      const pImg = document.getElementById('cfg-logo-img');
+      const pClear = document.getElementById('cfg-logo-clear');
+
+      if (fInput) {
+        fInput.addEventListener('change', e => {
+          if (e.target.files.length) {
+            const file = e.target.files[0];
+            if (uInput) uInput.value = ''; // Clear URL input if file is selected
+            if (pBox && pImg) {
+              pImg.src = URL.createObjectURL(file);
+              pBox.classList.remove('hidden');
+            }
+          } else {
+            if (pBox && uInput && !uInput.value) pBox.classList.add('hidden');
+          }
+        });
+      }
+
+      if (uInput) {
+        uInput.addEventListener('input', e => {
+          const val = e.target.value.trim();
+          if (val) {
+            if (pImg) pImg.src = val;
+            if (pBox) pBox.classList.remove('hidden');
+            if (fInput) fInput.value = ''; // Clear file input if URL is entered
+          } else {
+            if (pBox && (!fInput || !fInput.files.length)) pBox.classList.add('hidden');
+          }
+        });
+      }
+
+      if (pClear) {
+        pClear.onclick = () => {
+          if (uInput) uInput.value = '';
+          if (fInput) fInput.value = '';
+          if (pBox) pBox.classList.add('hidden');
+          if (pImg) pImg.src = '';
+        };
+      }
+
+      bForm.onsubmit = async (ev) => {
+        ev.preventDefault();
+        const btn = bForm.querySelector('button[type="submit"]');
+        const origText = btn.innerHTML;
+        btn.innerHTML = '<span class="material-symbols-outlined animate-spin mr-2">refresh</span> Salvando Identidade...';
+        btn.disabled = true;
+
+        try {
+          let finalLogoUrl = document.getElementById('cfg-logo-url').value.trim();
+
+          if (fInput && fInput.files.length > 0) {
+            const uploadRes = await store.uploadSystemLogo(fInput.files[0]);
+            finalLogoUrl = uploadRes.url;
+          }
+
+          const data = {
+            appName: document.getElementById('cfg-app-name').value.trim(),
+            primaryColor: document.getElementById('cfg-primary-hex').value.trim(),
+            logoUrl: finalLogoUrl,
+            loginMessage: document.getElementById('cfg-login-msg').value.trim(),
+            congregationName: document.getElementById('cfg-congregation-name').value.trim(),
+            nucleus: document.getElementById('cfg-nucleus').value.trim(),
+            pastorName: document.getElementById('cfg-pastor-name').value.trim(),
+            congregationAddress: document.getElementById('cfg-congregation-address').value.trim(),
+          };
+          await store.updateSystemSettings(data);
+          toast('Identidade Visual salva e aplicada!');
+
+          if (fInput) {
+            fInput.value = '';
+            document.getElementById('cfg-logo-url').value = finalLogoUrl;
+          }
+          // Re-render to update displayed values and potentially the logo in header/sidebar
+          setTimeout(settingsView, 500);
+        } catch (e) {
+          toast(e.message || 'Erro ao salvar as configurações SaaS', 'error');
+        } finally {
+          btn.innerHTML = origText;
+          btn.disabled = false;
+        }
+      };
+    }
+
+    // Salvar configurações
+    document.getElementById('btn-save-dash-cfg')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-save-dash-cfg');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-lg">refresh</span>Salvando...';
+      btn.disabled = true;
+      try {
+        const dashboardActions = {
+          noVisit: { enabled: document.getElementById('cfg-novisit-en').checked, days: parseInt(document.getElementById('cfg-novisit-days').value) || 60 },
+          baptism: { enabled: document.getElementById('cfg-baptism-en').checked },
+          consolidation: { enabled: document.getElementById('cfg-cons-en').checked, days: parseInt(document.getElementById('cfg-cons-days').value) || 15 },
+          reconciliation: { enabled: document.getElementById('cfg-recon-en').checked }
+        };
+        await store.saveConfig(dashboardActions);
+        toast('Configurações salvas!');
+      } catch (e) {
+        toast('Erro ao salvar configurações', 'error');
+      }
+      btn.innerHTML = orig;
+      btn.disabled = false;
+    });
+
+    // Carrega config de Notificações via API
+    store.apiFetch('/dash/config').then(full => {
+      const nc = full.notificationConfig || {};
+      const nm = document.getElementById('ncfg-newmember');
+      const ne = document.getElementById('ncfg-newevent');
+      const ue = document.getElementById('ncfg-updatedevent');
+      const dr = document.getElementById('ncfg-dailyreminder');
+      if (nm) nm.checked = nc.newMember?.enabled !== false;
+      if (ne) ne.checked = nc.newEvent?.enabled !== false;
+      if (ue) ue.checked = nc.updatedEvent?.enabled !== false;
+      if (dr) dr.checked = nc.dailyReminder?.enabled !== false;
+    }).catch(() => { });
+
+    document.getElementById('btn-save-notif-cfg')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-save-notif-cfg');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-lg">refresh</span>Salvando...';
+      btn.disabled = true;
+      try {
+        const notificationConfig = {
+          newMember: { enabled: document.getElementById('ncfg-newmember').checked },
+          newEvent: { enabled: document.getElementById('ncfg-newevent').checked },
+          updatedEvent: { enabled: document.getElementById('ncfg-updatedevent').checked },
+          dailyReminder: { enabled: document.getElementById('ncfg-dailyreminder').checked }
+        };
+        await store.apiFetch('/dash/config', {
+          method: 'PUT',
+          body: JSON.stringify({ notificationConfig, role: store.currentUser.role })
+        });
+        toast('Configurações de notificação salvas!');
+      } catch (e) {
+        toast('Erro ao salvar', 'error');
+      }
+      btn.innerHTML = orig;
+      btn.disabled = false;
+    });
+
     document.getElementById('btn-reset').onclick = () => {
       openModal(`<div class="p-6 text-center">
         <div class="w-16 h-16 rounded-full bg-red-100 mx-auto mb-4 flex items-center justify-center">
@@ -125,7 +525,7 @@ function renderTeam() {
 function editNameModal() {
   openModal(`<div class="p-6"><div class="flex justify-between items-center mb-5"><h3 class="text-base font-bold">Editar Nome</h3><button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="p-1 rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-slate-400">close</span></button></div>
   <input id="inp-n" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 mb-4" value="${store.currentUser.name}"/>
-  <button id="btn-sn" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition">Salvar</button></div>`);
+  <button id="btn-sn" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition">Salvar</button></div>`);
   document.getElementById('btn-sn').onclick = async () => { const n = document.getElementById('inp-n').value.trim(); if (!n) { toast('Nome vazio', 'error'); return } await store.updateUser(store.currentUser.id, { name: n }); closeModal(); toast('Nome atualizado!'); settingsView() };
 }
 
@@ -135,7 +535,7 @@ function editPassModal() {
     <input id="inp-op" type="password" placeholder="Senha atual" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
     <input id="inp-np" type="password" placeholder="Nova senha" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
     <input id="inp-cp" type="password" placeholder="Confirmar nova senha" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
-    <button id="btn-sp" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition mt-1">Alterar Senha</button>
+    <button id="btn-sp" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition mt-1">Alterar Senha</button>
   </div></div>`);
   document.getElementById('btn-sp').onclick = async () => {
     const o = document.getElementById('inp-op').value, n = document.getElementById('inp-np').value, c = document.getElementById('inp-cp').value;
@@ -151,19 +551,30 @@ function userModal(id) {
   if (e && store.currentUser.role === 'SUPERVISOR' && ['ADMIN', 'SUPERVISOR'].includes(e.role)) {
     toast('Sem permissão para editar este usuário', 'error'); return;
   }
-  const allowedRoles = store.currentUser.role === 'ADMIN' ? Object.entries(RL) : Object.entries(RL).filter(([k]) => ['LEADER', 'VICE_LEADER'].includes(k));
+  const allowedRoles = store.currentUser.role === 'ADMIN' ? Object.entries(RL) : Object.entries(RL).filter(([k]) => ['LIDER_GERACAO', 'LEADER', 'VICE_LEADER'].includes(k));
   openModal(`<div class="p-6"><div class="flex justify-between items-center mb-5"><h3 class="text-base font-bold">${e ? 'Editar' : 'Novo'} Usuário</h3><button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="p-1 rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-slate-400">close</span></button></div>
   <form id="user-form" class="space-y-3">
     <input id="uf-name" placeholder="Nome completo" value="${e?.name || ''}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
     <input id="uf-username" type="text" placeholder="Nome de usuário (sem espaços)" value="${e?.username || ''}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
     ${!e ? `<input id="uf-pass" type="password" placeholder="Senha inicial" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" required/>` : (store.currentUser.role === 'ADMIN' ? `<input id="uf-pass" type="password" placeholder="Nova senha (deixe vazio para manter)" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>` : '')}
-    <div><p class="text-xs font-semibold text-slate-600 mb-1.5">Função</p><div class="grid grid-cols-2 gap-1.5" id="role-grid">${allowedRoles.map(([k, v]) => `<button type="button" class="role-opt flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-medium transition ${(e?.role || 'LEADER') === k ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary' : 'border-slate-200 text-slate-500 hover:border-slate-300'}" data-r="${k}"><span class="material-symbols-outlined text-[16px]">${k === 'ADMIN' ? 'shield_person' : k === 'SUPERVISOR' ? 'supervisor_account' : 'person'}</span>${v}</button>`).join('')}</div><input type="hidden" id="uf-role" value="${e?.role || 'LEADER'}"/></div>
-    <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition mt-1">${e ? 'Salvar' : 'Criar'}</button>
+    <div><p class="text-xs font-semibold text-slate-600 mb-1.5">Função</p><div class="grid grid-cols-2 gap-1.5" id="role-grid">${allowedRoles.map(([k, v]) => `<button type="button" class="role-opt flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-medium transition ${(e?.role || 'LEADER') === k ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary' : 'border-slate-200 text-slate-500 hover:border-slate-300'}" data-r="${k}"><span class="material-symbols-outlined text-[16px]">${k === 'ADMIN' ? 'shield_person' : k === 'SUPERVISOR' ? 'supervisor_account' : k === 'LIDER_GERACAO' ? 'groups' : 'person'}</span>${v}</button>`).join('')}</div><input type="hidden" id="uf-role" value="${e?.role || 'LEADER'}"/></div>
+    <div id="gen-div" class="${(e?.role === 'LIDER_GERACAO') ? '' : 'hidden'} mt-3">
+        <label class="text-xs font-semibold text-slate-600 mb-1 block">Geração (Obrigatório para Líder de Geração)</label>
+        <select id="uf-generation" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+           <option value="">— Selecione —</option>
+           ${(store.generations || []).map(g => `<option value="${g.id}" ${e?.generationId === g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
+        </select>
+    </div>
+    <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition mt-1">${e ? 'Salvar' : 'Criar'}</button>
   </form></div>`);
   document.querySelectorAll('.role-opt').forEach(b => b.onclick = () => {
     document.querySelectorAll('.role-opt').forEach(x => { x.classList.remove('border-primary', 'bg-primary/10', 'text-primary', 'ring-1', 'ring-primary'); x.classList.add('border-slate-200', 'text-slate-500') });
     b.classList.add('border-primary', 'bg-primary/10', 'text-primary', 'ring-1', 'ring-primary'); b.classList.remove('border-slate-200', 'text-slate-500');
     document.getElementById('uf-role').value = b.dataset.r;
+    const genDiv = document.getElementById('gen-div');
+    if (genDiv) {
+      if (b.dataset.r === 'LIDER_GERACAO') genDiv.classList.remove('hidden'); else genDiv.classList.add('hidden');
+    }
   });
   document.getElementById('user-form').onsubmit = async ev => {
     ev.preventDefault();
@@ -174,12 +585,14 @@ function userModal(id) {
     const n = document.getElementById('uf-name').value.trim();
     const un = document.getElementById('uf-username').value.trim().toLowerCase().replace(/\\s+/g, '');
     const r = document.getElementById('uf-role').value;
+    const gen = document.getElementById('uf-generation')?.value || null;
 
     if (!n || !un) { toast('Preencha nome e usuário', 'error'); btn.innerHTML = origText; btn.disabled = false; return }
+    if (r === 'LIDER_GERACAO' && !gen) { toast('Selecione uma geração', 'error'); btn.innerHTML = origText; btn.disabled = false; return; }
 
     try {
       if (e) {
-        const updatePayload = { name: n, username: un, role: r };
+        const updatePayload = { name: n, username: un, role: r, generationId: gen };
         const pwField = document.getElementById('uf-pass');
         if (pwField && pwField.value.trim().length > 0) {
           if (pwField.value.length < 4) { toast('Senha min. 4 chars', 'error'); btn.innerHTML = origText; btn.disabled = false; return; }
@@ -193,7 +606,7 @@ function userModal(id) {
         const pw = document.getElementById('uf-pass').value;
         if (!pw || pw.length < 4) { toast('Senha min. 4 chars', 'error'); btn.innerHTML = origText; btn.disabled = false; return }
         if (store.users.find(u => u.username === un)) { toast('Usuário já existe', 'error'); btn.innerHTML = origText; btn.disabled = false; return }
-        await store.addUser({ name: n, username: un, password: pw, role: r, avatar: null });
+        await store.addUser({ name: n, username: un, password: pw, role: r, generationId: gen, avatar: null });
         toast('Usuário criado!')
       }
       closeModal(); renderTeam();
@@ -262,7 +675,7 @@ function trackModal(id) {
         ${colors.map(c => `<button type="button" class="color-opt w-8 h-8 rounded-full bg-${c}-500 ring-offset-2 transition ${t?.color === c || (!t && c === colors[0]) ? 'ring-2 ring-slate-400 scale-90' : 'hover:scale-110'}" data-c="${c}"></button>`).join('')}
       </div><input type="hidden" id="tf-color" value="${t?.color || colors[0]}"/>
     </div>
-    <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition mt-2">${t ? 'Salvar Alterações' : 'Criar Trilha'}</button>
+    <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition mt-2">${t ? 'Salvar Alterações' : 'Criar Trilha'}</button>
   </form></div>`);
 
   document.querySelectorAll('.icon-opt').forEach(b => b.onclick = () => {
@@ -304,7 +717,7 @@ export function formsView() {
 // ── Triage ──
 export function triageView() {
   const app = document.getElementById('app');
-  const pending = store.triageQueue.filter(t => t.status === 'new' || t.status === 'pendente');
+  const pending = store.triageQueue.filter(t => t.status === 'new' || t.status === 'pendente' || t.status === 'forwarded_generation');
   const done = store.triageQueue.filter(t => t.status === 'done' || t.status === 'rejected');
   app.innerHTML = `${header('Triagem', true)}<div class="flex-1 overflow-y-auto px-4 md:px-6 lg:px-10 py-4 space-y-5 max-w-5xl mx-auto w-full">
   <section>
@@ -334,7 +747,8 @@ function tCard(t, processed = false) {
   const phoneKey = Object.keys(t.data).find(k => k.toLowerCase().includes('tele') || k.toLowerCase().includes('whats') || k.toLowerCase().includes('celular'));
   const phone = phoneKey ? t.data[phoneKey] : '';
   const doneBadge = t.status === 'done' ? '<span class="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">✓ ACEITO</span>' :
-    t.status === 'rejected' ? '<span class="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">✕ REJEITADO</span>' : '';
+    t.status === 'rejected' ? '<span class="text-[9px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">✕ REJEITADO</span>' :
+      t.status === 'forwarded_generation' ? '<span class="text-[9px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">➟ DEL. GERAÇÃO</span>' : '';
 
   return `<div class="triage-card bg-white rounded-xl p-4 border border-slate-100 hover:border-primary/30 transition cursor-pointer group" data-id="${t.id}">
     <div class="flex items-center gap-3">
@@ -403,6 +817,14 @@ function openTriageDetail(id) {
           ${store.getVisibleCells().map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
         </select>
       </div>
+      ${store.hasRole('ADMIN', 'SUPERVISOR') && t.status !== 'forwarded_generation' ? `
+      <div>
+        <label class="text-xs font-semibold text-slate-600 mb-1 block">OU Delegar à Geração (Encaminha para Líderes de Geração)</label>
+        <select id="tr-generation" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20">
+           <option value="">— Selecione uma Geração —</option>
+           ${(store.generations || []).map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
+        </select>
+      </div>` : ''}
       <div class="flex gap-2 pt-2">
         <button type="submit" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 active:scale-[.98] transition-all flex items-center justify-center gap-1.5"><span class="material-symbols-outlined text-lg">check</span>Aceitar</button>
         <button type="button" id="tr-reject" class="flex-1 bg-red-50 text-red-600 py-2.5 rounded-lg text-sm font-bold hover:bg-red-100 active:scale-[.98] transition-all flex items-center justify-center gap-1.5 border border-red-100"><span class="material-symbols-outlined text-lg">close</span>Rejeitar</button>
@@ -419,6 +841,18 @@ function openTriageDetail(id) {
       const trPhone = document.getElementById('tr-phone').value.trim();
       const trEmail = document.getElementById('tr-email').value.trim();
       const trCell = document.getElementById('tr-cell').value;
+      const trGenSelect = document.getElementById('tr-generation');
+      const trGeneration = trGenSelect ? trGenSelect.value : '';
+
+      if (trGeneration) {
+        t.status = 'forwarded_generation';
+        await store.updateTriage(t.id, 'forwarded_generation', { generationId: trGeneration });
+        closeModal();
+        toast('Encaminhado para a equipe da Geração!');
+        triageView();
+        return;
+      }
+
       const personData = {
         name: trName, phone: trPhone, email: trEmail,
         status: f?.personStatus || 'Novo Convertido',

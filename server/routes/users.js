@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 router.get('/', async (req, res) => {
     try {
         const users = await prisma.user.findMany({
-            select: { id: true, name: true, username: true, role: true, avatar: true }
+            select: { id: true, name: true, username: true, role: true, avatar: true, generationId: true }
         });
         res.json(users);
     } catch (error) {
@@ -22,7 +22,7 @@ router.get('/:id', async (req, res) => {
     try {
         const user = await prisma.user.findUnique({
             where: { id: req.params.id },
-            select: { id: true, name: true, username: true, role: true, avatar: true }
+            select: { id: true, name: true, username: true, role: true, avatar: true, generationId: true }
         });
         if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
         res.json(user);
@@ -33,7 +33,7 @@ router.get('/:id', async (req, res) => {
 
 // Cria usuário
 router.post('/', async (req, res) => {
-    const { name, username, password, role, avatar } = req.body;
+    const { name, username, password, role, avatar, generationId } = req.body;
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await prisma.user.create({
@@ -42,10 +42,23 @@ router.post('/', async (req, res) => {
                 username,
                 password: hashedPassword,
                 role: role || 'USER',
-                avatar
+                avatar: avatar || null,
+                generationId: generationId || null
             },
-            select: { id: true, name: true, username: true, role: true, avatar: true }
+            select: { id: true, name: true, username: true, role: true, avatar: true, generationId: true }
         });
+
+        // Se o usuário criado for um Líder ou Vice, cria o perfil correspondente na tabela de Pessoas
+        if (user.role === 'LEADER' || user.role === 'VICE_LEADER') {
+            await prisma.person.create({
+                data: {
+                    name: user.name,
+                    status: user.role === 'LEADER' ? 'Líder' : 'Vice-Líder',
+                    userId: user.id
+                }
+            });
+        }
+
         res.status(201).json(user);
     } catch (error) {
         if (error.code === 'P2002') {
@@ -57,8 +70,8 @@ router.post('/', async (req, res) => {
 
 // Atualiza usuário
 router.put('/:id', async (req, res) => {
-    const { name, username, password, role, avatar } = req.body;
-    const updateData = { name, username, role, avatar };
+    const { name, username, password, role, avatar, generationId } = req.body;
+    const updateData = { name, username, role, avatar, generationId: generationId || null };
 
     if (password) {
         updateData.password = await bcrypt.hash(password, 10);
@@ -68,7 +81,7 @@ router.put('/:id', async (req, res) => {
         const user = await prisma.user.update({
             where: { id: req.params.id },
             data: updateData,
-            select: { id: true, name: true, username: true, role: true, avatar: true }
+            select: { id: true, name: true, username: true, role: true, avatar: true, generationId: true }
         });
         res.json(user);
     } catch (error) {

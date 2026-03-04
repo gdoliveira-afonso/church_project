@@ -10,6 +10,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-jwt-key'; // Mudar em produção
@@ -47,6 +49,47 @@ async function seedAdmin() {
             await prisma.track.create({ data: dt });
         }
     }
+
+    // Cria tabela SystemConfig se não existir (failsafe para migrações manuais)
+    try {
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "SystemConfig" (
+                "key" TEXT NOT NULL PRIMARY KEY,
+                "value" TEXT NOT NULL,
+                "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+    } catch (e) { /* já existe */ }
+
+    // Seed da config padrão do dashboard
+    const cfgKey = 'dashboardActions';
+    const cfgDefault = JSON.stringify({
+        noVisit: { enabled: true, days: 60 },
+        baptism: { enabled: true },
+        consolidation: { enabled: true, days: 15 },
+        reconciliation: { enabled: true }
+    });
+    try {
+        await prisma.$executeRawUnsafe(`
+            INSERT OR IGNORE INTO "SystemConfig" ("key", "value", "updatedAt")
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+        `, cfgKey, cfgDefault);
+    } catch (e) { /* já existe */ }
+
+    // Seed da config padrão de notificações
+    const notifKey = 'notificationConfig';
+    const notifDefault = JSON.stringify({
+        newMember: { enabled: true },
+        newEvent: { enabled: true },
+        updatedEvent: { enabled: true },
+        dailyReminder: { enabled: true }
+    });
+    try {
+        await prisma.$executeRawUnsafe(`
+            INSERT OR IGNORE INTO "SystemConfig" ("key", "value", "updatedAt")
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+        `, notifKey, notifDefault);
+    } catch (e) { /* já existe */ }
 }
 
 // Inicializa a seed
@@ -61,8 +104,17 @@ function authenticateToken(req, res, next) {
 
     if (token == null) return res.sendStatus(401);
 
-    jwt.verify(token, JWT_SECRET, (err, user) => {
+    jwt.verify(token, JWT_SECRET, async (err, user) => {
         if (err) return res.sendStatus(403);
+        try {
+            const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true, generationId: true } });
+            if (dbUser) {
+                user.role = dbUser.role;
+                user.generationId = dbUser.generationId;
+            }
+        } catch (error) {
+            // Ignora pra não travar login em caso isolado de db timeout
+        }
         req.user = user;
         next();
     });
@@ -93,7 +145,8 @@ app.post('/api/login', async (req, res) => {
         const tokenPayload = {
             id: user.id,
             username: user.username,
-            role: user.role
+            role: user.role,
+            generationId: user.generationId
         };
 
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '24h' });
@@ -101,7 +154,7 @@ app.post('/api/login', async (req, res) => {
         // Retorna o token e os dados essenciais (sem a senha)
         res.json({
             token,
-            user: { id: user.id, name: user.name, username: user.username, role: user.role, avatar: user.avatar }
+            user: { id: user.id, name: user.name, username: user.username, role: user.role, avatar: user.avatar, generationId: user.generationId }
         });
     } catch (err) {
         console.error(err);
@@ -151,21 +204,93 @@ app.post('/api/public/triage', async (req, res) => {
 const usersRouter = require('./routes/users');
 const peopleRouter = require('./routes/people');
 const cellsRouter = require('./routes/cells');
-const eventsRouter = require('./routes/events');
+const { router: eventsRouter, notifyAllLeaders } = require('./routes/events');
 const othersRouter = require('./routes/others');
 const formsRouter = require('./routes/forms');
+const generationsRouter = require('./routes/generations');
+const settingsRouter = require('./routes/settings');
+const { getNotificationConfig } = require('./routes/config');
 
+app.use('/api/public/settings', settingsRouter); // A rota get /public é manipulada dentro de settingsRouter
 app.use('/api/users', authenticateToken, usersRouter);
 app.use('/api/people', authenticateToken, peopleRouter);
 app.use('/api/cells', authenticateToken, cellsRouter);
 app.use('/api/events', authenticateToken, eventsRouter);
 app.use('/api/dash', authenticateToken, othersRouter);
 app.use('/api/forms', authenticateToken, formsRouter);
+app.use('/api/generations', authenticateToken, generationsRouter);
+app.use('/api/settings', authenticateToken, settingsRouter);
 
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', time: new Date() });
 });
+
+// ------------------------------------------------------------------
+// JOB DIÁRIO: Lembrete de eventos de amanhã
+// ------------------------------------------------------------------
+async function scheduleDailyEventReminder() {
+    const run = async () => {
+        try {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0]; // 'YYYY-MM-DD'
+
+            const events = await prisma.event.findMany({
+                where: { date: tomorrowStr, recurrence: 'none' }
+            });
+
+            // Eventos recorrentes que caem amanhã (weekly/monthly/yearly)
+            const allEvents = await prisma.event.findMany({
+                where: { date: { lte: tomorrowStr }, recurrence: { not: 'none' } }
+            });
+            const tomorrowDate = new Date(tomorrowStr + 'T12:00:00');
+            const tomorrowDay = tomorrowDate.getDay(); // 0=Dom
+            const tomorrowDD = tomorrowDate.getDate();
+            const tomorrowMM = tomorrowDate.getMonth();
+
+            allEvents.forEach(ev => {
+                const evDate = new Date(ev.date + 'T12:00:00');
+                let match = false;
+                if (ev.recurrence === 'weekly' && evDate.getDay() === tomorrowDay) match = true;
+                if (ev.recurrence === 'monthly-date' && evDate.getDate() === tomorrowDD) match = true;
+                if (ev.recurrence === 'yearly' && evDate.getDate() === tomorrowDD && evDate.getMonth() === tomorrowMM) match = true;
+                if (match) events.push(ev);
+            });
+
+            for (const ev of events) {
+                const timeStr = ev.startTime ? ` às ${ev.startTime}` : '';
+                const locationStr = ev.location ? ` — ${ev.location}` : '';
+                // Evita notificação duplicada: só envia se não houver notif do mesmo título nas últimas 20h
+                const recent = await prisma.notification.findFirst({
+                    where: {
+                        title: { contains: ev.title },
+                        createdAt: { gte: new Date(Date.now() - 20 * 60 * 60 * 1000) }
+                    }
+                });
+                if (!recent) {
+                    const notifCfg = await getNotificationConfig();
+                    if (notifCfg.dailyReminder?.enabled !== false) {
+                        await notifyAllLeaders(
+                            `⏰ Lembrete: ${ev.title} amanhã`,
+                            `A programação "${ev.title}" acontece amanhã${timeStr}${locationStr}. Confirme a presença da sua célula!`,
+                            `#/calendar`
+                        );
+                        console.log(`[Lembrete] Notificação enviada para: ${ev.title}`);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('[scheduleDailyEventReminder] Erro:', e.message);
+        }
+    };
+
+    // Roda AGORA e depois a cada 24h
+    run();
+    setInterval(run, 24 * 60 * 60 * 1000);
+}
+
+scheduleDailyEventReminder();
 
 app.post('/api/settings/reset', authenticateToken, async (req, res) => {
     try {

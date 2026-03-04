@@ -36,15 +36,24 @@ export async function loginView() {
           </div>
         </div>` : '';
 
+  const appName = store.systemSettings?.appName || 'Gestão Celular';
+  const loginMsg = store.systemSettings?.loginMessage || 'Sistema completo de CRM Celular para gestão de membros, células e discipulado.';
+  const logoSrc = store.systemSettings?.logoUrl
+    ? `<img src="${store.systemSettings.logoUrl}" alt="Logo" class="max-h-full max-w-full rounded-2xl" />`
+    : `<span class="material-symbols-outlined text-primary text-4xl">church</span>`;
+  const logoSrcSm = store.systemSettings?.logoUrl
+    ? `<img src="${store.systemSettings.logoUrl}" alt="Logo" class="max-h-full max-w-full rounded-2xl" />`
+    : `<span class="material-symbols-outlined text-primary text-3xl">church</span>`;
+
   app.innerHTML = `
   <div class="flex flex-col md:flex-row flex-1 h-full w-full">
     <div class="hidden md:flex md:flex-1 bg-gradient-to-br from-primary/20 via-primary/5 to-slate-50 flex-col items-center justify-center p-12 relative overflow-hidden">
       <div class="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/3"></div>
       <div class="absolute bottom-0 left-0 w-72 h-72 bg-primary/5 rounded-full translate-y-1/3 -translate-x-1/4"></div>
       <div class="relative z-10 text-center">
-        <div class="w-20 h-20 bg-white rounded-2xl shadow-lg flex items-center justify-center mx-auto mb-6"><span class="material-symbols-outlined text-primary text-4xl">church</span></div>
-        <h2 class="text-3xl font-extrabold text-slate-800 mb-2">Gestão Celular</h2>
-        <p class="text-slate-500 max-w-sm">Sistema completo de CRM Celular para gestão de membros, células e discipulado.</p>
+        <div class="w-20 h-20 bg-white rounded-2xl shadow-lg flex items-center justify-center mx-auto mb-6 p-2">${logoSrc}</div>
+        <h2 class="text-3xl font-extrabold text-slate-800 mb-2">${appName}</h2>
+        <p class="text-slate-500 max-w-sm mx-auto">${loginMsg}</p>
         <div class="flex gap-6 mt-8 justify-center text-sm text-slate-500">
           <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-primary text-lg">groups</span>Membros</span>
           <span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-primary text-lg">diversity_3</span>Células</span>
@@ -55,11 +64,13 @@ export async function loginView() {
     <div class="flex flex-col flex-1 w-full md:max-w-lg overflow-y-auto bg-white/50 md:bg-white no-scrollbar">
       <div class="relative w-full h-44 shrink-0 bg-gradient-to-br from-primary/30 to-primary/5 md:hidden">
         <div class="absolute inset-0 bg-gradient-to-t from-white to-transparent"></div>
-        <div class="absolute -bottom-7 left-1/2 -translate-x-1/2"><div class="w-16 h-16 bg-white rounded-2xl shadow-lg flex items-center justify-center"><span class="material-symbols-outlined text-primary text-3xl">church</span></div></div>
+        <div class="absolute -bottom-7 left-1/2 -translate-x-1/2">
+            <div class="w-16 h-16 bg-white rounded-2xl shadow-lg flex items-center justify-center p-2">${logoSrcSm}</div>
+        </div>
       </div>
       <div class="flex-1 flex flex-col justify-center px-8 py-8 max-w-sm mx-auto w-full shrink-0">
         <div class="text-center mb-8 mt-4 md:mt-0">
-          <h1 class="text-2xl font-extrabold text-slate-900 mb-1 md:text-3xl">Gestão Celular</h1>
+          <h1 class="text-2xl font-extrabold text-slate-900 mb-1 md:text-3xl">${appName}</h1>
           <p class="text-sm text-slate-500">Bem-vindo, faça login para continuar.</p>
         </div>
         <form id="login-form" class="space-y-4">
@@ -77,7 +88,7 @@ export async function loginView() {
               <input id="password" type="password" placeholder="Digite sua senha" class="w-full pl-10 pr-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition"/>
             </div>
           </div>
-          <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 active:scale-[.98] transition-all mt-2">Entrar no Sistema</button>
+          <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold shadow-sm hover:bg-primary/90 active:scale-[.98] transition-all mt-2">Entrar</button>
         </form>
         ${formButtons}
       </div>

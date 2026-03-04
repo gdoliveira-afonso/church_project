@@ -7,7 +7,7 @@ export function cellsView() {
   ${header('Células', false, store.hasRole('ADMIN', 'SUPERVISOR') ? `<button id="btn-add-cell" class="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"><span class="material-symbols-outlined text-lg">add</span></button>` : '')}
   <div class="flex-1 overflow-y-auto px-4 md:px-6 py-4">
     ${(() => {
-      const visibleCells = store.hasRole('ADMIN', 'SUPERVISOR') ? store.cells : store.cells.filter(c => c.leaderId === store.currentUser?.id || c.viceLeaderId === store.currentUser?.id);
+      const visibleCells = store.hasRole('ADMIN', 'SUPERVISOR') ? store.cells : store.cells.filter(c => c.leaderId === store.currentUser?.id || c.viceLeaderId === store.currentUser?.id || (store.currentUser?.role === 'LIDER_GERACAO' && c.generationId === store.currentUser?.generationId));
       return visibleCells.length ? `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">${visibleCells.map(c => {
         const leader = store.users.find(u => u.id === c.leaderId); const vice = c.viceLeaderId ? store.users.find(u => u.id === c.viceLeaderId) : null; const mem = store.getCellMembers(c.id);
         return `<a href="#/cell?id=${c.id}" class="block bg-white rounded-xl p-4 border border-slate-100 hover:border-primary/30 hover:shadow-sm transition group">
@@ -47,7 +47,13 @@ function cellForm(cellId) {
         <option value="">Nenhum...</option>${store.users.map(u => `<option value="${u.id}" ${c?.viceLeaderId === u.id ? 'selected' : ''}>${u.name}</option>`).join('')}
       </select></div>
     </div>
-    <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 transition mt-2">${c ? 'Salvar' : 'Criar Célula'}</button>
+    <div><label class="text-xs font-semibold text-slate-600 mb-1 block">Geração (Opcional)</label>
+      <select id="cf-generation" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+        <option value="">Nenhuma / Não se aplica</option>
+        ${(store.generations || []).map(g => `<option value="${g.id}" ${c?.generationId === g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
+      </select>
+    </div>
+    <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition mt-2">${c ? 'Salvar' : 'Criar Célula'}</button>
     ${c ? `<button type="button" id="btn-del-cell" class="w-full bg-red-50 text-red-600 border border-red-200 py-2 rounded-lg text-sm font-semibold hover:bg-red-100">Excluir Célula</button>` : ''}
   </form></div>`);
   document.getElementById('cell-form').onsubmit = async e => {
@@ -55,7 +61,7 @@ function cellForm(cellId) {
     const btn = e.target.querySelector('button[type="submit"]');
     const orig = btn.innerHTML; btn.innerHTML = 'Salvando...'; btn.disabled = true;
 
-    const data = { name: document.getElementById('cf-name').value.trim(), meetingDay: document.getElementById('cf-day').value, meetingTime: document.getElementById('cf-time').value, capacity: parseInt(document.getElementById('cf-cap').value) || 12, address: document.getElementById('cf-addr').value, leaderId: document.getElementById('cf-leader').value, viceLeaderId: document.getElementById('cf-vice-leader').value || null, region: '' };
+    const data = { name: document.getElementById('cf-name').value.trim(), meetingDay: document.getElementById('cf-day').value, meetingTime: document.getElementById('cf-time').value, capacity: parseInt(document.getElementById('cf-cap').value) || 12, address: document.getElementById('cf-addr').value, leaderId: document.getElementById('cf-leader').value, viceLeaderId: document.getElementById('cf-vice-leader').value || null, generationId: document.getElementById('cf-generation').value || null, region: '' };
     if (!data.name) { toast('Nome obrigatório', 'error'); btn.innerHTML = orig; btn.disabled = false; return }
 
     try {
@@ -79,7 +85,7 @@ export function cellDetailView(params) {
   const c = store.getCell(params?.id);
   if (!c) { app.innerHTML = '<div class="flex-1 flex items-center justify-center text-slate-400">Célula não encontrada</div>'; return }
 
-  if (!store.hasRole('ADMIN', 'SUPERVISOR') && c.leaderId !== store.currentUser?.id && c.viceLeaderId !== store.currentUser?.id) {
+  if (!store.hasRole('ADMIN', 'SUPERVISOR') && c.leaderId !== store.currentUser?.id && c.viceLeaderId !== store.currentUser?.id && !(store.currentUser?.role === 'LIDER_GERACAO' && c.generationId === store.currentUser?.generationId)) {
     app.innerHTML = '<div class="flex-1 flex items-center justify-center text-slate-400">Você não tem permissão para visualizar esta célula.</div>'; return;
   }
 
@@ -98,7 +104,7 @@ export function cellDetailView(params) {
     <div class="px-4 md:px-6 md:grid md:grid-cols-2 md:gap-3 space-y-2 md:space-y-0 mb-4">${mem.map(m => `<a href="#/profile?id=${m.id}" class="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 hover:border-primary/30 transition cursor-pointer">${avatar(m.name, 'h-9 w-9')}<div class="flex-1 min-w-0"><p class="text-sm font-semibold truncate">${m.name}</p><p class="text-[11px] text-slate-500">${m.status}</p></div><span class="material-symbols-outlined text-slate-300 text-lg">chevron_right</span></a>`).join('')}
     ${!mem.length ? '<p class="text-sm text-slate-400 text-center py-4">Nenhum membro nesta célula</p>' : ''}
     </div>
-    <div class="px-4 md:px-6 mb-4"><a href="#/attendance?cellId=${c.id}" class="flex items-center justify-center gap-2 w-full bg-primary text-white py-3 rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-sm"><span class="material-symbols-outlined text-lg">checklist</span>Registrar Presença</a></div>
+    <div class="px-4 md:px-6 mb-4"><a href="#/attendance?cellId=${c.id}" class="flex items-center justify-center gap-2 w-full bg-primary text-white py-3 rounded-xl text-sm font-bold hover:bg-primary/90 transition shadow-sm"><span class="material-symbols-outlined text-lg">checklist</span>Registrar Presença</a></div>
     ${att.length ? `<div class="px-4 md:px-6 pb-4"><h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Últimos Encontros</h3>${att.slice(0, 3).map(a => `<div class="p-3 bg-white rounded-lg border border-slate-100 mb-2"><div class="flex justify-between text-sm"><span class="font-medium">${a.date}</span><span class="text-primary font-semibold">${a.records.filter(r => r.status === 'present').length}/${a.records.length}</span></div>${a.notes ? `<p class="text-[11px] text-slate-500 mt-1">${a.notes}</p>` : ''}</div>`).join('')}</div>` : ''}
   </div>`;
   const editBtn = document.getElementById('btn-edit-cell');

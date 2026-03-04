@@ -15,13 +15,12 @@ COPY . .
 # Gera o Prisma Client DENTRO do sistema operacional do container (Debian Músculo)
 RUN npx prisma generate
 
-# Remove as 'devDependencies' como o CLI do Prisma pesadão e mantém o cache leve pra produção
-RUN npm prune --omit=dev
+# Mantém o Prisma CLI instalado para rodar migrations (db push) na inicialização do container
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
 EXPOSE 3000
 
-# Executa diretamente o node (já que no package original não havia script de "start")
-CMD ["node", "index.js"]
+# Atualiza o banco com eventuais novos campos do schema.prisma ANTES de rodar a aplicação
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node index.js"]

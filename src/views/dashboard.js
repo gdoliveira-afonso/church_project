@@ -31,9 +31,9 @@ export async function dashboardView() {
     <div class="px-4 md:px-6 lg:px-10 py-5 space-y-6 max-w-7xl mx-auto w-full">
       <section>
         <div class="flex items-center justify-between mb-3"><h2 class="text-base font-bold md:text-lg">Visão Geral</h2>${badge('Hoje', 'blue')}</div>
-        <div class="grid grid-cols-2 ${store.hasRole('ADMIN', 'SUPERVISOR') ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-3">
+        <div class="grid grid-cols-2 ${store.hasRole('ADMIN', 'SUPERVISOR', 'LIDER_GERACAO') ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-3">
           ${kpi('groups', 'Total Membros', m.total, `${m.newConverts} novos`, 'blue')}
-          ${store.hasRole('ADMIN', 'SUPERVISOR') ? kpi('diversity_3', 'Células Ativas', m.cells, `${store.people.filter(p => !p.cellId).length} sem célula`, 'indigo') : ''}
+          ${store.hasRole('ADMIN', 'SUPERVISOR', 'LIDER_GERACAO') ? kpi('diversity_3', 'Células Ativas', m.cells, `${store.people.filter(p => !p.cellId).length} sem célula`, 'indigo') : ''}
           ${kpi('water_drop', 'Batizados', m.waterBaptism + '%', `${m.total - Math.round(m.waterBaptism * m.total / 100)} pendentes`, 'sky')}
           ${kpi('volunteer_activism', 'Encontros', m.encounter + '%', `${m.total - Math.round(m.encounter * m.total / 100)} pendentes`, 'emerald')}
         </div>
@@ -42,21 +42,31 @@ export async function dashboardView() {
         <section>
           <h3 class="text-base font-bold mb-3">Ação Requerida</h3>
           <div class="space-y-3">
-            ${m.noVisit ? actionCard('ac-novisit', 'person_alert', 'orange', 'Sem Visita > 60d', `<b>${m.noVisit}</b> pessoas em situação de abandono (última visita há mais de 60 dias).`, 'Urgente') : ''}
-            ${m.total - Math.round(m.waterBaptism * m.total / 100) ? actionCard('ac-baptism', 'water_drop', 'blue', 'Pendentes de Batismo', `<b>${m.total - Math.round(m.waterBaptism * m.total / 100)}</b> pessoas não batizadas.`) : ''}
-            ${m.delayedConsolidations ? actionCard('ac-cons', 'route', 'amber', 'Atraso na Consolidação', `<b>${m.delayedConsolidations}</b> novos convertidos sem receber visita há >15 dias.`, 'Atenção') : ''}
-            ${m.reconciliations ? actionCard('ac-recon', 'handshake', 'purple', 'Reconciliações', `<b>${m.reconciliations}</b> em acompanhamento.`, 'Novo') : ''}
-            ${!m.total ? '<div class="text-center py-8 bg-white rounded-xl border border-slate-100"><span class="material-symbols-outlined text-3xl text-slate-200 mb-2">inbox</span><p class="text-sm text-slate-400">Nenhuma ação pendente</p><p class="text-xs text-slate-300 mt-1">Cadastre membros para começar</p></div>' : ''}
+            ${(() => {
+      const cfg = store.config || {};
+      const cards = [];
+      if (cfg.noVisit?.enabled !== false && m.noVisit)
+        cards.push(actionCard('ac-novisit', 'person_alert', 'orange', `Sem Visita >${cfg.noVisit?.days ?? 60}d`, `<b>${m.noVisit}</b> pessoas em situação de abandono (última visita há mais de ${cfg.noVisit?.days ?? 60} dias).`, 'Urgente'));
+      if (cfg.baptism?.enabled !== false && m.total - Math.round(m.waterBaptism * m.total / 100))
+        cards.push(actionCard('ac-baptism', 'water_drop', 'blue', 'Pendentes de Batismo', `<b>${m.total - Math.round(m.waterBaptism * m.total / 100)}</b> pessoas não batizadas.`));
+      if (cfg.consolidation?.enabled !== false && m.delayedConsolidations)
+        cards.push(actionCard('ac-cons', 'route', 'amber', 'Atraso na Consolidação', `<b>${m.delayedConsolidations}</b> novos convertidos sem receber visita há >${cfg.consolidation?.days ?? 15} dias.`, 'Atenção'));
+      if (cfg.reconciliation?.enabled !== false && m.reconciliations)
+        cards.push(actionCard('ac-recon', 'handshake', 'purple', 'Reconciliações', `<b>${m.reconciliations}</b> em acompanhamento.`, 'Novo'));
+      if (!cards.length)
+        cards.push(`<div class="text-center py-8 bg-white rounded-xl border border-slate-100"><span class="material-symbols-outlined text-3xl text-slate-200 mb-2">inbox</span><p class="text-sm text-slate-400">Nenhuma ação pendente</p><p class="text-xs text-slate-300 mt-1">${!m.total ? 'Cadastre membros para começar' : 'Tudo em dia!'}</p></div>`);
+      return cards.join('');
+    })()}
           </div>
         </section>
-        ${store.hasRole('ADMIN', 'SUPERVISOR') ? `<section>
+        ${store.hasRole('ADMIN', 'SUPERVISOR', 'LIDER_GERACAO') ? `<section>
           <div class="flex items-center justify-between mb-3"><h3 class="text-base font-bold">Triagem</h3><a href="#/triage" class="text-xs font-semibold text-primary">Ver tudo</a></div>
-          ${store.triageQueue.filter(t => t.status === 'new').length ? store.triageQueue.filter(t => t.status === 'new').slice(0, 3).map(t => {
-    const f = store.forms.find(x => x.id === t.formId);
-    const formNameValue = t.data['Nome'] || t.data['Nome Completo'] || t.data['name'] || Object.values(t.data)[0];
-    const displayStr = formNameValue ? String(formNameValue).trim() : 'Anônimo';
-    return `<div class="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 mb-2 hover:border-primary/30 cursor-pointer transition" onclick="location.hash='/triage'"><div class="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-primary font-bold text-sm">${displayStr.charAt(0).toUpperCase()}</div><div class="flex-1 min-w-0"><p class="text-sm font-semibold truncate">${displayStr}</p><p class="text-[11px] text-slate-500">${f?.name || 'Formulário'}</p></div><span class="material-symbols-outlined text-slate-300 text-lg">chevron_right</span></div>`
-  }).join('') : '<div class="text-center py-8 bg-white rounded-xl border border-slate-100"><span class="material-symbols-outlined text-3xl text-slate-200">assignment_turned_in</span><p class="text-sm text-slate-400 mt-1">Triagem vazia</p></div>'}
+          ${store.triageQueue.filter(t => t.status === 'new' || t.status === 'forwarded_generation').length ? store.triageQueue.filter(t => t.status === 'new' || t.status === 'forwarded_generation').slice(0, 3).map(t => {
+      const f = store.forms.find(x => x.id === t.formId);
+      const formNameValue = t.data['Nome'] || t.data['Nome Completo'] || t.data['name'] || Object.values(t.data)[0];
+      const displayStr = formNameValue ? String(formNameValue).trim() : 'Anônimo';
+      return `<div class="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 mb-2 hover:border-primary/30 cursor-pointer transition" onclick="location.hash='/triage'"><div class="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-primary font-bold text-sm">${displayStr.charAt(0).toUpperCase()}</div><div class="flex-1 min-w-0"><p class="text-sm font-semibold truncate">${displayStr}</p><p class="text-[11px] text-slate-500">${f?.name || 'Formulário'}</p></div><span class="material-symbols-outlined text-slate-300 text-lg">chevron_right</span></div>`
+    }).join('') : '<div class="text-center py-8 bg-white rounded-xl border border-slate-100"><span class="material-symbols-outlined text-3xl text-slate-200">assignment_turned_in</span><p class="text-sm text-slate-400 mt-1">Triagem vazia</p></div>'}
         </section>`: ''}
       </div>
     </div>

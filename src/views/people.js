@@ -93,33 +93,53 @@ export function personFormView(params) {
       <div>
         <label class="text-xs font-semibold text-slate-600 mb-1 block">Status</label>
         <select id="inp-status" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20">
-          ${['Novo Convertido', 'Membro', 'Reconciliação'].map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+          ${(() => {
+      const opts = ['Visitante', 'Novo Convertido', 'Membro', 'Reconciliação'];
+      if (p?.status === 'Líder') opts.push('Líder');
+      if (p?.status === 'Vice-Líder') opts.push('Vice-Líder');
+      if (p?.status && !opts.includes(p.status)) opts.push(p.status);
+      return opts.map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('');
+    })()}
         </select>
       </div>
       <div>
         <label class="text-xs font-semibold text-slate-600 mb-1 block">Célula</label>
-        <select id="inp-cell" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+        <select id="inp-cell" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50" ${(p?.status === 'Líder' || p?.status === 'Vice-Líder') ? 'disabled' : ''}>
           <option value="">Sem célula</option>
           ${store.getVisibleCells().map(c => `<option value="${c.id}" ${p?.cellId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
         </select>
+        ${(p?.status === 'Líder' || p?.status === 'Vice-Líder') ? `<p class="text-[10px] text-slate-400 mt-1">A célula de líderes só pode ser alterada no menu de Células.</p>` : ''}
       </div>
       <div>
         <label class="text-xs font-semibold text-slate-600 mb-2 block">Marcos Espirituais & Retiros</label>
         <div class="grid grid-cols-2 lg:grid-cols-3 gap-2">
           ${store.tracks.map(t => {
-    const isChecked = p?.tracksData ? p.tracksData[t.id] : false;
-    return `<label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50">
+      const isChecked = p?.tracksData ? p.tracksData[t.id] : false;
+      return `<label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50">
               <input type="checkbox" id="chk-${t.id}" ${isChecked ? 'checked' : ''} class="sr-only peer track-checkbox" data-track-id="${t.id}"/>
               <div class="w-8 h-8 rounded-lg bg-${t.color}-100 flex items-center justify-center text-${t.color}-400 peer-checked:bg-${t.color}-500 peer-checked:text-white transition shrink-0"><span class="material-symbols-outlined text-base">${t.icon}</span></div>
               <span class="text-xs font-medium text-slate-600 leading-tight">${t.name}</span>
             </label>`;
-  }).join('')}
+    }).join('')}
         </div>
       </div>
-      <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-blue-700 active:scale-[.98] transition-all">${isEdit ? 'Salvar Alterações' : 'Cadastrar Pessoa'}</button>
+      <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 active:scale-[.98] transition-all">${isEdit ? 'Salvar Alterações' : 'Cadastrar Pessoa'}</button>
       ${isEdit ? `<button type="button" id="btn-del-person" class="w-full bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-100 transition">Excluir Pessoa</button>` : ''}
     </form>
   </div>`;
+
+  const phoneInp = document.getElementById('inp-phone');
+  if (phoneInp) {
+    const formatPhone = (val) => {
+      let v = val.replace(/\D/g, '');
+      if (v.length > 11) v = v.slice(0, 11);
+      v = v.replace(/^(\d{2})(\d)/g, '($1) $2');
+      v = v.replace(/(\d)(\d{4})$/, '$1-$2');
+      return v;
+    };
+    phoneInp.addEventListener('input', (e) => e.target.value = formatPhone(e.target.value));
+    if (phoneInp.value) phoneInp.value = formatPhone(phoneInp.value);
+  }
 
   document.getElementById('person-form').onsubmit = async e => {
     e.preventDefault();

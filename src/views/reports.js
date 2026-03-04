@@ -3,20 +3,29 @@ import { header, toast } from '../components/ui.js';
 
 export function reportsView() {
   const app = document.getElementById('app');
-  let period = 'month';
+  const currentY = new Date().getFullYear();
+  let filterY = currentY;
+  let filterM = new Date().getMonth(); // 0 a 11, ou -1 para Ano Inteiro
   let filterCell = '';
   let filterStatus = '';
   let search = '';
-  let visibleCols = { status: true, cell: true, phone: true, visits: true };
-  (store.tracks || []).forEach(t => visibleCols[t.id] = true);
+  let visibleCols = {};
+
+  function getPeriodLabel() {
+    if (filterM === -1) return `Ano de ${filterY}`;
+    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    return `${months[filterM]} de ${filterY}`;
+  }
 
   function computeData() {
-    const now = new Date();
-    const cutoff = period === 'week' ? new Date(Date.now() - 7 * 86400000)
-      : period === 'month' ? new Date(Date.now() - 30 * 86400000)
-        : period === 'semester' ? new Date(Date.now() - 180 * 86400000)
-          : period === 'year' ? new Date(Date.now() - 365 * 86400000)
-            : new Date(0);
+    let startDate, endDate;
+    if (filterM === -1) {
+      startDate = new Date(filterY, 0, 1);
+      endDate = new Date(filterY, 11, 31, 23, 59, 59);
+    } else {
+      startDate = new Date(filterY, filterM, 1);
+      endDate = new Date(filterY, filterM + 1, 0, 23, 59, 59); // Ultimo dia do mês
+    }
 
     let people = [...store.people];
     if (filterCell) people = people.filter(p => p.cellId === filterCell);
@@ -24,7 +33,11 @@ export function reportsView() {
     if (search) { const s = search.toLowerCase(); people = people.filter(p => p.name?.toLowerCase().includes(s)); }
 
     const total = people.length;
-    const inPeriod = people.filter(p => new Date(p.createdAt) >= cutoff);
+    // O array de "inPeriod" agora significa membros CRIADOS naquele mês/ano específico 
+    const inPeriod = people.filter(p => {
+      const d = new Date(p.createdAt);
+      return d >= startDate && d <= endDate;
+    });
     const novosConvertidos = inPeriod.filter(p => p.status === 'Novo Convertido').length;
     const reconciliacoes = inPeriod.filter(p => p.status === 'Reconciliação').length;
     const visitantes = inPeriod.filter(p => p.status === 'Visitante').length;
@@ -35,7 +48,11 @@ export function reportsView() {
 
     const pids = new Set(people.map(p => p.id));
     const allVisits = store.visits.filter(v => pids.has(v.personId));
-    const visitsInPeriod = allVisits.filter(v => new Date(v.date) >= cutoff);
+    // Visitas REALIZADAS naquele mês/ano específico
+    const visitsInPeriod = allVisits.filter(v => {
+      const d = new Date(v.date);
+      return d >= startDate && d <= endDate;
+    });
     const consolidacoes = visitsInPeriod.filter(v => v.type === 'Visita de Consolidação').length;
     const acompanhamentos = visitsInPeriod.filter(v => v.type === 'Visita de Acompanhamento').length;
 
@@ -51,16 +68,16 @@ export function reportsView() {
     const activeCells = store.cells.length;
     const avgMembers = activeCells ? Math.round(people.filter(p => p.cellId).length / activeCells) : 0;
 
-    const attInPeriod = store.attendance.filter(a => new Date(a.date) >= cutoff);
+    // Frequência REALIZADA naquele mês/ano específico
+    const attInPeriod = store.attendance.filter(a => {
+      const d = new Date(a.date);
+      return d >= startDate && d <= endDate;
+    });
     const totalAttRec = attInPeriod.reduce((s, a) => s + (a.records?.length || 0), 0);
     const presentRec = attInPeriod.reduce((s, a) => s + (a.records?.filter(r => r.status === 'present').length || 0), 0);
     const freqPct = totalAttRec ? Math.round(presentRec / totalAttRec * 100) : 0;
 
-    const periodLabel = period === 'week' ? 'Últimos 7 dias'
-      : period === 'month' ? 'Últimos 30 dias'
-        : period === 'semester' ? 'Últimos 6 meses'
-          : period === 'year' ? 'Último ano'
-            : 'Todo o período';
+    const periodLabel = getPeriodLabel();
 
     // Dynamic Tracks Counts
     const trackCounts = {};
@@ -72,7 +89,7 @@ export function reportsView() {
     return {
       people, total, inPeriod, novosConvertidos, reconciliacoes, visitantes,
       visitsInPeriod, consolidacoes, acompanhamentos, noVisit, zeroVisits, activeCells, avgMembers, freqPct, presentRec,
-      totalAttRec, periodLabel, cutoff, allVisits, trackCounts
+      totalAttRec, periodLabel, startDate, endDate, allVisits, trackCounts
     };
   }
 
@@ -80,6 +97,12 @@ export function reportsView() {
     const d = computeData();
     const statuses = [...new Set(store.people.map(p => p.status).filter(Boolean))];
     const tracks = store.tracks || [];
+
+    const currentY = new Date().getFullYear();
+    const arrYears = [];
+    for (let i = currentY; i >= currentY - 5; i--) arrYears.push(i);
+
+    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
     app.innerHTML = `
     ${header('Relatórios', true)}
@@ -93,13 +116,23 @@ export function reportsView() {
               <h2 class="text-lg font-extrabold flex items-center gap-2"><span class="material-symbols-outlined text-primary">analytics</span>Painel de Relatórios</h2>
               <p class="text-[11px] text-slate-400 mt-0.5">${d.periodLabel} • ${d.total} membros${filterCell ? ' • Célula filtrada' : ''}${filterStatus ? ' • ' + filterStatus : ''}</p>
             </div>
-            <div class="flex flex-wrap bg-slate-100 rounded-lg p-0.5 gap-0.5 shrink-0 w-full md:w-auto" id="period-tabs">
-              ${[['week', 'Semana'], ['month', 'Mês'], ['semester', '6 Meses'], ['year', '1 Ano'], ['all', 'Tudo']].map(([v, l]) =>
-      `<button class="period-btn flex-1 min-w-[40px] px-2 py-1.5 rounded-md text-[11px] font-bold transition ${period === v ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}" data-period="${v}">${l}</button>`
-    ).join('')}
-            </div>
           </div>
-          <div class="flex flex-col sm:flex-row gap-2">
+
+          <div class="flex flex-col md:flex-row gap-2">
+            <!-- Novo Seletor de Datas -->
+            <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+              <!-- Mês -->
+              <select id="f-month" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20 min-w-[140px] appearance-auto">
+                <option value="-1" ${filterM === -1 ? 'selected' : ''}>Ano Inteiro</option>
+                ${months.map((m, idx) => `<option value="${idx}" ${filterM === idx ? 'selected' : ''}>${m}</option>`).join('')}
+              </select>
+              <!-- Ano -->
+              <select id="f-year" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 min-w-[100px] appearance-auto">
+                ${arrYears.map(y => `<option value="${y}" ${filterY === y ? 'selected' : ''}>${y}</option>`).join('')}
+              </select>
+            </div>
+
+            <div class="w-full md:w-px md:h-9 bg-slate-200 mx-1 hidden md:block"></div>
             <div class="relative flex-1">
               <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-lg">search</span>
               <input id="f-search" type="text" value="${search}" placeholder="Buscar por nome..." class="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"/>
@@ -193,8 +226,15 @@ export function reportsView() {
   }
 
   function bindEvents(d) {
-    // Period tabs
-    document.querySelectorAll('.period-btn').forEach(btn => btn.addEventListener('click', () => { period = btn.dataset.period; render(); }));
+    // Novos Bindings de Data
+    document.getElementById('f-month')?.addEventListener('change', e => {
+      filterM = parseInt(e.target.value);
+      render();
+    });
+    document.getElementById('f-year')?.addEventListener('change', e => {
+      filterY = parseInt(e.target.value);
+      render();
+    });
 
     // Filters
     document.getElementById('f-search')?.addEventListener('input', e => {
@@ -233,8 +273,8 @@ export function reportsView() {
         if (csc) { csc.innerHTML = ''; csc.classList.add('hidden'); }
         if (tab === 'cells') rt.innerHTML = cellsTable();
         else if (tab === 'visits') rt.innerHTML = visitsTable(d.visitsInPeriod);
-        else if (tab === 'attendance') rt.innerHTML = attendanceTable(d.cutoff);
-        else if (tab === 'person_attendance') rt.innerHTML = personAttendanceTable(d.people, d.cutoff);
+        else if (tab === 'attendance') rt.innerHTML = attendanceTable(d.startDate, d.endDate);
+        else if (tab === 'person_attendance') rt.innerHTML = personAttendanceTable(d.people, d.startDate, d.endDate);
         else if (tab === 'consolidation') rt.innerHTML = consolidationTable(d.people);
       }
     }
@@ -322,8 +362,11 @@ function visitsTable(visits) {
   </table>`;
 }
 
-function attendanceTable(cutoff) {
-  const records = store.attendance.filter(a => new Date(a.date) >= cutoff).sort((a, b) => b.date.localeCompare(a.date));
+function attendanceTable(startDate, endDate) {
+  const records = store.attendance.filter(a => {
+    const d = new Date(a.date);
+    return d >= startDate && d <= endDate;
+  }).sort((a, b) => b.date.localeCompare(a.date));
   return `<table class="w-full text-left text-xs">
     <thead><tr class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider">
       <th class="px-3 py-2.5 rounded-l-lg">Data</th><th class="px-3 py-2.5">Célula</th><th class="px-3 py-2.5 text-center">Presentes</th>
@@ -345,8 +388,11 @@ function attendanceTable(cutoff) {
   </table>`;
 }
 
-function personAttendanceTable(people, cutoff) {
-  const attInPeriod = store.attendance.filter(a => new Date(a.date) >= cutoff);
+function personAttendanceTable(people, startDate, endDate) {
+  const attInPeriod = store.attendance.filter(a => {
+    const d = new Date(a.date);
+    return d >= startDate && d <= endDate;
+  });
   const stats = people.map(p => {
     let present = 0; let absent = 0; let total = 0;
     attInPeriod.forEach(a => {
@@ -564,7 +610,10 @@ function exportPDF(d, currentTab = 'members', visibleCols = {}) {
     }).join('')}</tbody>
     </table>`;
   } else if (currentTab === 'attendance') {
-    const attInPeriod = store.attendance.filter(a => new Date(a.date) >= d.cutoff).sort((a, b) => b.date.localeCompare(a.date));
+    const attInPeriod = store.attendance.filter(a => {
+      const ddate = new Date(a.date);
+      return ddate >= d.startDate && ddate <= d.endDate;
+    }).sort((a, b) => b.date.localeCompare(a.date));
     tabHtml = !attInPeriod.length ? '<p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:20px;">Nenhum registro de frequência no período.</p>' : `<div class="section-title">Registros de Frequência</div>
     <table>
       <thead><tr><th>Data</th><th>Célula</th><th>Presentes</th><th>Ausentes</th><th>% Presença</th></tr></thead>
@@ -583,7 +632,10 @@ function exportPDF(d, currentTab = 'members', visibleCols = {}) {
     }).join('')}</tbody>
     </table>`;
   } else if (currentTab === 'person_attendance') {
-    const attInPeriod = store.attendance.filter(a => new Date(a.date) >= d.cutoff);
+    const attInPeriod = store.attendance.filter(a => {
+      const ddate = new Date(a.date);
+      return ddate >= d.startDate && ddate <= d.endDate;
+    });
     const stats = d.people.map(p => {
       let present = 0; let absent = 0; let total = 0;
       attInPeriod.forEach(a => {
@@ -650,16 +702,40 @@ function exportPDF(d, currentTab = 'members', visibleCols = {}) {
     </div>`;
   }
 
+  const sys = store.systemSettings || {};
+  const congName = sys.congregationName || sys.appName || 'Gestão Celular';
+  const pastor = sys.pastorName ? `Pastor Titular: ${sys.pastorName}` : '';
+  const nucleusInfo = sys.nucleus ? `Núcleo/Região: ${sys.nucleus}` : '';
+  const address = sys.congregationAddress ? `Endereço: ${sys.congregationAddress}` : '';
+
+  let headerLeft = '';
+  if (sys.logoUrl) {
+    headerLeft = `<div style="display:flex; align-items:center; gap:16px;">
+        <img src="${sys.logoUrl}" style="max-height:60px; max-width:150px; object-fit:contain; border-radius:8px;" />
+        <div>
+          <h1>${congName}</h1>
+          <p style="font-size:11px;color:#64748b;margin-top:2px;"><b>${pastor}</b> ${nucleusInfo ? '• ' + nucleusInfo : ''}</p>
+          <p style="font-size:10px;color:#94a3b8;margin-top:2px;">${address}</p>
+        </div>
+      </div>`;
+  } else {
+    headerLeft = `<div>
+        <h1>${congName}</h1>
+        <p style="font-size:11px;color:#64748b;margin-top:2px;"><b>${pastor}</b> ${nucleusInfo ? '• ' + nucleusInfo : ''}</p>
+        <p style="font-size:10px;color:#94a3b8;margin-top:2px;">${address}</p>
+      </div>`;
+  }
+
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-    <title>Relatório - Gestão Celular</title>
+    <title>Relatório - ${congName}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
       * { margin:0; padding:0; box-sizing:border-box; }
       body { font-family:'Inter',sans-serif; color:#1e293b; background:white; padding:40px; }
       .header { display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #3B82F6; padding-bottom:16px; margin-bottom:30px; }
-      .header h1 { font-size:22px; font-weight:800; color:#1e293b; }
-      .header .meta { text-align:right; font-size:11px; color:#94a3b8; }
-      .header .meta b { color:#3B82F6; }
+      .header h1 { font-size:20px; font-weight:800; color:#1e293b; text-transform:uppercase; letter-spacing:-0.5px; }
+      .header .meta { text-align:right; font-size:11px; color:#64748b; }
+      .header .meta b { color:#1e293b; }
       .section-title { font-size:14px; font-weight:700; color:#1e293b; margin:24px 0 12px; display:flex; align-items:center; gap:8px; }
       .section-title::before { content:''; width:4px; height:18px; background:#3B82F6; border-radius:4px; }
       .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
@@ -689,14 +765,12 @@ function exportPDF(d, currentTab = 'members', visibleCols = {}) {
     </style>
   </head><body>
     <div class="header">
-      <div>
-        <h1>⛪ Relatório de Crescimento</h1>
-        <p style="font-size:12px;color:#64748b;margin-top:4px">Gestão Celular - CRM Celular</p>
-      </div>
+      ${headerLeft}
       <div class="meta">
+        <p style="font-size:14px;font-weight:700;color:#3B82F6;margin-bottom:4px">Relatório Gerencial</p>
         <p>Gerado em <b>${dateStr}</b></p>
         <p>Período: <b>${d.periodLabel}</b></p>
-        <p>${d.total} membros cadastrados</p>
+        <p>Total: <b>${d.total}</b> membros registrados</p>
       </div>
     </div>
 
