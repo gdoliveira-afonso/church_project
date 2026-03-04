@@ -20,27 +20,48 @@ async function getOrCreateSettings() {
     return settings;
 }
 
+// Helper: get cellCustomFields via SystemConfig table (bypasses stale Prisma client mapping to SystemSettings)
+async function getRawCellCustomFields() {
+    try {
+        const config = await prisma.systemConfig.findUnique({ where: { key: 'cellCustomFields' } });
+        return config ? config.value : '';
+    } catch (e) { return ''; }
+}
+
+async function saveRawCellCustomFields(value) {
+    try {
+        await prisma.systemConfig.upsert({
+            where: { key: 'cellCustomFields' },
+            update: { value: value || '' },
+            create: { key: 'cellCustomFields', value: value || '' }
+        });
+        return true;
+    } catch (e) {
+        console.error('Error saving raw cell fields:', e);
+        return false;
+    }
+}
+
 // ROTA PÚBLICA: GET /api/public/settings
 // Usada na tela de login e boot inicial do sistema
 router.get('/public', async (req, res) => {
     try {
         const settings = await getOrCreateSettings();
-        res.json(settings);
+        // Load custom fields from dedicated SystemConfig table
+        const cellCustomFields = await getRawCellCustomFields();
+        res.json({ ...settings, cellCustomFields });
     } catch (error) {
         console.error("Erro ao buscar configurações públicas:", error);
         res.status(500).json({ error: 'Erro ao buscar configurações' });
     }
 });
 
-// Middleware de Autenticação para a rota PUT abaixo (como ela não faz parte do index global da mesma forma, 
-// o index.js injetará mas vamos confiar no token validado lá)
-
 // ROTA PRIVADA: PUT /api/settings
 router.put('/', async (req, res) => {
     try {
-        const { appName, primaryColor, logoUrl, loginMessage, congregationName, congregationAddress, pastorName, nucleus } = req.body;
+        const { appName, primaryColor, logoUrl, loginMessage, congregationName, congregationAddress, pastorName, nucleus, cellCustomFields } = req.body;
+        console.log('[Settings PUT] Received cellCustomFields:', cellCustomFields);
 
-        // Verifica permissão (apenas ADMIN pode alterar isso)
         if (req.user.role !== 'ADMIN') {
             return res.status(403).json({ error: 'Acesso negado' });
         }
@@ -50,21 +71,52 @@ router.put('/', async (req, res) => {
         const updated = await prisma.systemSettings.update({
             where: { id: currentSettings.id },
             data: {
-                appName: appName || "Gestão Celular",
-                primaryColor: primaryColor || "#0f172a",
+                appName: appName !== undefined ? appName : currentSettings.appName,
+                primaryColor: primaryColor !== undefined ? primaryColor : currentSettings.primaryColor,
                 logoUrl: logoUrl !== undefined ? logoUrl : currentSettings.logoUrl,
                 loginMessage: loginMessage !== undefined ? loginMessage : currentSettings.loginMessage,
                 congregationName: congregationName !== undefined ? congregationName : currentSettings.congregationName,
                 congregationAddress: congregationAddress !== undefined ? congregationAddress : currentSettings.congregationAddress,
                 pastorName: pastorName !== undefined ? pastorName : currentSettings.pastorName,
                 nucleus: nucleus !== undefined ? nucleus : currentSettings.nucleus,
+                // cellCustomFields is ignored here as we use SystemConfig
             }
         });
 
-        res.json(updated);
+        // Save cellCustomFields via SystemConfig
+        if (cellCustomFields !== undefined) {
+            await saveRawCellCustomFields(cellCustomFields);
+            console.log('[Settings PUT] cellCustomFields saved to SystemConfig:', cellCustomFields);
+        }
+
+        const savedCellCustomFields = await getRawCellCustomFields();
+        res.json({ ...updated, cellCustomFields: savedCellCustomFields });
     } catch (error) {
         console.error("Erro ao atualizar configurações:", error);
         res.status(500).json({ error: 'Erro ao atualizar configurações' });
+    }
+});
+
+// ROTAS DEDICADAS para campos customizados
+router.get('/cell-fields', async (req, res) => {
+    try {
+        const value = await getRawCellCustomFields();
+        res.json({ cellCustomFields: value });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao buscar campos' });
+    }
+});
+
+router.put('/cell-fields', async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'ADMIN') {
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+        const { cellCustomFields } = req.body;
+        await saveRawCellCustomFields(cellCustomFields);
+        res.json({ cellCustomFields });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao salvar campos' });
     }
 });
 

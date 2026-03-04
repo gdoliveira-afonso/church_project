@@ -9,6 +9,8 @@ export function attendanceView(params) {
   const targetDate = params?.date || new Date().toISOString().split('T')[0];
   const mem = store.getCellMembers(cellId);
   const att = {}; mem.forEach(m => { att[m.id] = null });
+  let savedCustomFields = {};
+
   const existingAtt = store.getAttendanceForCell(cellId).find(a => a.date === targetDate);
   if (existingAtt && existingAtt.records) {
     existingAtt.records.forEach(r => { if (att[r.personId] !== undefined) att[r.personId] = r.status });
@@ -65,12 +67,14 @@ export function attendanceView(params) {
         </div>
       </div>`;
     }).join('');
+
     if (!blockedMessage) {
       document.getElementById('cnt-p').querySelector('span:last-child').textContent = `${Object.values(att).filter(v => v === 'present').length} Presentes`;
       document.getElementById('cnt-a').querySelector('span:last-child').textContent = `${Object.values(att).filter(v => v === 'absent').length} Ausentes`;
       document.querySelectorAll('.att-btn').forEach(b => b.onclick = () => { att[b.dataset.p] = b.dataset.s; render() });
     }
   }
+
   render();
 
   if (blockedMessage) {
@@ -78,6 +82,7 @@ export function attendanceView(params) {
     if (btn) btn.style.display = 'none';
     return;
   }
+
   document.getElementById('btn-save').onclick = async (e) => {
     const btn = e.currentTarget;
     const orig = btn.innerHTML; btn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> Salvando...'; btn.disabled = true;
@@ -86,7 +91,9 @@ export function attendanceView(params) {
     if (!recs.length) { toast('Marque pelo menos um membro', 'warning'); btn.innerHTML = orig; btn.disabled = false; return }
 
     try {
-      await store.addAttendance({ cellId, date: targetDate, records: recs, notes: '' });
+      await store.addAttendance({
+        cellId, date: targetDate, records: recs, notes: ''
+      });
       toast('Presença salva!'); location.hash = `/cell?id=${cellId}`;
     } catch (err) { toast('Erro de conexão ao salvar', 'error'); btn.innerHTML = orig; btn.disabled = false; }
   };

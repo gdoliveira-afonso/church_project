@@ -14,7 +14,7 @@ export async function calendarView() {
     for (const c of visibleCells) {
         try {
             const att = await store.loadAttendanceForCell(c.id);
-            c.__attendanceCache = att.map(a => a.date);
+            c.__attendanceCache = att.filter(a => a.records && a.records.length > 0).map(a => a.date);
         } catch (e) { c.__attendanceCache = []; }
     }
 
@@ -445,11 +445,16 @@ function cellActionsModal(cellId, dateStr) {
         const isCanceled = store.isCellCanceledOnDate(c.id, dateStr) || store.isCellCanceledOnDate('all', dateStr);
         const justification = store.getCellJustifications(c.id).find(j => j.date === dateStr);
 
-        if (attendanceMatch) {
+        if (attendanceMatch && attendanceMatch.records && attendanceMatch.records.length > 0) {
             const presences = attendanceMatch.records.filter(r => r.status === 'present').length;
             statusHtml = `<div class="p-3 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-3">
                 <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-sm">check_circle</span></div>
                 <div><p class="text-sm font-bold text-emerald-800">Célula Realizada</p><p class="text-xs text-emerald-600 mt-0.5">${presences} membros presentes registrados.</p></div>
+            </div>`;
+        } else if (attendanceMatch && attendanceMatch.customFields && attendanceMatch.customFields !== '{}') {
+            statusHtml = `<div class="p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-sm">monitoring</span></div>
+                <div><p class="text-sm font-bold text-blue-800">Métricas Lançadas</p><p class="text-xs text-blue-600 mt-0.5">Apenas dados customizados foram registrados.</p></div>
             </div>`;
         } else if (isCanceled) {
             statusHtml = `<div class="p-3 bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-3">

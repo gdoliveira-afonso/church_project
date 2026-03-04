@@ -68,14 +68,37 @@ export function reportsView() {
     const activeCells = store.cells.length;
     const avgMembers = activeCells ? Math.round(people.filter(p => p.cellId).length / activeCells) : 0;
 
-    // Frequência REALIZADA naquele mês/ano específico
-    const attInPeriod = store.attendance.filter(a => {
+    // Frequência REALIZADA naquele mês/ano específico 
+    // IMPORTANTE: Ignorar registros que são apenas métricas (sem records de presença)
+    const attWithRecords = store.attendance.filter(a => a.records && a.records.length > 0);
+    const attInPeriod = attWithRecords.filter(a => {
       const d = new Date(a.date);
       return d >= startDate && d <= endDate;
     });
     const totalAttRec = attInPeriod.reduce((s, a) => s + (a.records?.length || 0), 0);
     const presentRec = attInPeriod.reduce((s, a) => s + (a.records?.filter(r => r.status === 'present').length || 0), 0);
     const freqPct = totalAttRec ? Math.round(presentRec / totalAttRec * 100) : 0;
+
+    // Calcular Totais das Métricas Customizadas (Custom Fields)
+    const customFieldTotals = {};
+    const cfConfig = (store.systemSettings?.cellCustomFields || '').split(',').map(s => s.trim()).filter(Boolean);
+    cfConfig.forEach(cf => { customFieldTotals[cf] = 0; });
+
+    store.attendance.filter(a => {
+      const d = new Date(a.date);
+      return d >= startDate && d <= endDate;
+    }).forEach(a => {
+      if (a.customFields) {
+        try {
+          const parsed = JSON.parse(a.customFields);
+          Object.entries(parsed).forEach(([key, val]) => {
+            if (cfConfig.includes(key)) {
+              customFieldTotals[key] = (customFieldTotals[key] || 0) + (parseInt(val) || 0);
+            }
+          });
+        } catch (e) { }
+      }
+    });
 
     const periodLabel = getPeriodLabel();
 
@@ -89,7 +112,7 @@ export function reportsView() {
     return {
       people, total, inPeriod, novosConvertidos, reconciliacoes, visitantes,
       visitsInPeriod, consolidacoes, acompanhamentos, noVisit, zeroVisits, activeCells, avgMembers, freqPct, presentRec,
-      totalAttRec, periodLabel, startDate, endDate, allVisits, trackCounts
+      totalAttRec, periodLabel, startDate, endDate, allVisits, trackCounts, customFieldTotals
     };
   }
 
@@ -158,6 +181,12 @@ export function reportsView() {
           ${kpi('follow_the_signs', 'Acompanham.', d.acompanhamentos, 'cyan')}
         </div>
 
+        <!-- Custom Metrics KPI Grid (Optional row if metrics exist) -->
+        ${Object.keys(d.customFieldTotals).length > 0 ? `
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5">
+          ${Object.entries(d.customFieldTotals).map(([label, val]) => kpi('monitoring', label, val, 'slate')).join('')}
+        </div>` : ''}
+
         <!-- Charts Row -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
@@ -202,7 +231,7 @@ export function reportsView() {
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
             <h3 class="text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-primary text-lg">table_chart</span>Relatório Detalhado</h3>
             <div class="flex flex-wrap gap-1.5 w-full sm:w-auto">
-              ${[['members', 'person', 'Membros'], ['cells', 'diversity_3', 'Células'], ['visits', 'home_health', 'Visitas'], ['attendance', 'event_available', 'Freq. Células'], ['person_attendance', 'account_circle', 'Freq. Membros'], ['consolidation', 'route', 'Consolidação']].map(([v, ic, l]) =>
+              ${[['members', 'person', 'Membros'], ['cells', 'diversity_3', 'Células'], ['visits', 'home_health', 'Visitas'], ['attendance', 'event_available', 'Chamadas'], ['metrics', 'leaderboard', 'Métricas'], ['person_attendance', 'account_circle', 'Freq. Membros'], ['consolidation', 'route', 'Consolidação']].map(([v, ic, l]) =>
       `<button class="report-tab flex-1 sm:flex-none justify-center flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-semibold transition ${v === 'members' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" data-tab="${v}"><span class="material-symbols-outlined text-sm hidden sm:block">${ic}</span>${l}</button>`
     ).join('')}
             </div>
@@ -273,7 +302,8 @@ export function reportsView() {
         if (csc) { csc.innerHTML = ''; csc.classList.add('hidden'); }
         if (tab === 'cells') rt.innerHTML = cellsTable();
         else if (tab === 'visits') rt.innerHTML = visitsTable(d.visitsInPeriod);
-        else if (tab === 'attendance') rt.innerHTML = attendanceTable(d.startDate, d.endDate);
+        else if (tab === 'attendance') rt.innerHTML = attendanceTable(d.startDate, d.endDate, false); // false = hide metrics
+        else if (tab === 'metrics') rt.innerHTML = attendanceTable(d.startDate, d.endDate, true); // true = show only metrics
         else if (tab === 'person_attendance') rt.innerHTML = personAttendanceTable(d.people, d.startDate, d.endDate);
         else if (tab === 'consolidation') rt.innerHTML = consolidationTable(d.people);
       }
@@ -326,7 +356,8 @@ function cellsTable() {
     <tbody>${store.getVisibleCells().length ? store.getVisibleCells().map(c => {
     const members = store.getCellMembers(c.id);
     const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
-    const attCount = store.getAttendanceForCell(c.id).length;
+    // IMPORTANTE: Contar apenas atendimentos que tiveram registros de presença (records)
+    const attCount = store.getAttendanceForCell(c.id).filter(a => a.records && a.records.length > 0).length;
     const justifications = store.getCellJustifications(c.id).length;
     const cancellations = store.cellCancellations ? store.cellCancellations.filter(can => can.cellId === c.id).length : 0;
     return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
@@ -362,29 +393,63 @@ function visitsTable(visits) {
   </table>`;
 }
 
-function attendanceTable(startDate, endDate) {
-  const records = store.attendance.filter(a => {
+function attendanceTable(startDate, endDate, showOnlyMetrics = false) {
+  let records = store.attendance.filter(a => {
     const d = new Date(a.date);
     return d >= startDate && d <= endDate;
   }).sort((a, b) => b.date.localeCompare(a.date));
+
+  if (showOnlyMetrics) {
+    // Apenas registros que TEM customFields
+    records = records.filter(a => a.customFields && a.customFields !== '{}');
+  } else {
+    // Apenas registros que TEM presença (records)
+    records = records.filter(a => a.records && a.records.length > 0);
+  }
+
+  const customFieldsConfig = (store.systemSettings?.cellCustomFields || '').split(',').map(s => s.trim()).filter(Boolean);
+  let customFieldsHeaders = '';
+  if (showOnlyMetrics && customFieldsConfig.length > 0) {
+    customFieldsHeaders = customFieldsConfig.map(cf => `<th class="px-3 py-2.5 text-center">${cf}</th>`).join('');
+  }
+
   return `<table class="w-full text-left text-xs">
     <thead><tr class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider">
-      <th class="px-3 py-2.5 rounded-l-lg">Data</th><th class="px-3 py-2.5">Célula</th><th class="px-3 py-2.5 text-center">Presentes</th>
-      <th class="px-3 py-2.5 text-center">Ausentes</th><th class="px-3 py-2.5 text-center rounded-r-lg">% Presença</th>
+      <th class="px-3 py-2.5 rounded-l-lg">Data</th><th class="px-3 py-2.5">Célula</th>
+      ${!showOnlyMetrics ? `
+      <th class="px-3 py-2.5 text-center">Presentes</th>
+      <th class="px-3 py-2.5 text-center">Ausentes</th>
+      <th class="px-3 py-2.5 text-center">% Presença</th>` : ''}
+      ${customFieldsHeaders}
+      <th class="rounded-r-lg"></th>
     </tr></thead>
     <tbody>${records.length ? records.map(a => {
     const cell = store.getCell(a.cellId);
     const present = a.records?.filter(r => r.status === 'present').length || 0;
     const absent = (a.records?.length || 0) - present;
     const pct = a.records?.length ? Math.round(present / a.records.length * 100) : 0;
+
+    let parsedCustomFields = {};
+    if (a.customFields) {
+      try { parsedCustomFields = JSON.parse(a.customFields); } catch (e) { }
+    }
+
+    let customFieldsCells = '';
+    if (showOnlyMetrics && customFieldsConfig.length > 0) {
+      customFieldsCells = customFieldsConfig.map(cf => `<td class="px-3 py-2.5 text-center font-medium">${parsedCustomFields[cf] || '-'}</td>`).join('');
+    }
+
     return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
         <td class="px-3 py-2.5 text-slate-500 whitespace-nowrap">${a.date}</td>
         <td class="px-3 py-2.5 font-semibold">${cell?.name || '—'}</td>
+        ${!showOnlyMetrics ? `
         <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">${present}</td>
         <td class="px-3 py-2.5 text-center text-red-500 font-bold">${absent}</td>
-        <td class="px-3 py-2.5 text-center"><span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${pct >= 70 ? 'bg-emerald-50 text-emerald-700' : pct >= 40 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}">${pct}%</span></td>
+        <td class="px-3 py-2.5 text-center"><span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${pct >= 70 ? 'bg-emerald-50 text-emerald-700' : pct >= 40 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}">${pct}%</span></td>` : ''}
+        ${customFieldsCells}
+        <td></td>
       </tr>`;
-  }).join('') : '<tr><td colspan="5" class="text-center text-slate-400 py-8">Nenhum registro de frequência</td></tr>'}</tbody>
+  }).join('') : `<tr><td colspan="${5 + customFieldsConfig.length}" class="text-center text-slate-400 py-8">Nenhum registro encontrado</td></tr>`}</tbody>
   </table>`;
 }
 
@@ -613,8 +678,10 @@ function exportPDF(d, currentTab = 'members', visibleCols = {}) {
     const attInPeriod = store.attendance.filter(a => {
       const ddate = new Date(a.date);
       return ddate >= d.startDate && ddate <= d.endDate;
-    }).sort((a, b) => b.date.localeCompare(a.date));
-    tabHtml = !attInPeriod.length ? '<p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:20px;">Nenhum registro de frequência no período.</p>' : `<div class="section-title">Registros de Frequência</div>
+    }).filter(a => a.records && a.records.length > 0).sort((a, b) => b.date.localeCompare(a.date));
+
+    tabHtml = !attInPeriod.length ? '<p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:20px;">Nenhum registro de frequência no período.</p>' : `
+    <div class="section-title">Registros de Frequência</div>
     <table>
       <thead><tr><th>Data</th><th>Célula</th><th>Presentes</th><th>Ausentes</th><th>% Presença</th></tr></thead>
       <tbody>${attInPeriod.map(a => {
@@ -630,6 +697,46 @@ function exportPDF(d, currentTab = 'members', visibleCols = {}) {
           <td style="text-align:center"><span class="badge ${pct >= 70 ? 'badge-green' : pct >= 40 ? 'badge-purple' : 'badge-blue'}">${pct}%</span></td>
         </tr>`;
     }).join('')}</tbody>
+    </table>`;
+  } else if (currentTab === 'metrics') {
+    const attInPeriod = store.attendance.filter(a => {
+      const ddate = new Date(a.date);
+      return ddate >= d.startDate && ddate <= d.endDate;
+    }).filter(a => a.customFields && a.customFields !== '{}').sort((a, b) => b.date.localeCompare(a.date));
+
+    const customFieldsConfig = (store.systemSettings?.cellCustomFields || '').split(',').map(s => s.trim()).filter(Boolean);
+    const customFieldTotals = {};
+    customFieldsConfig.forEach(cf => { customFieldTotals[cf] = 0; });
+
+    const rowsHtml = attInPeriod.map(a => {
+      const cell = store.getCell(a.cellId);
+      let parsedCustomFields = {};
+      try { parsedCustomFields = JSON.parse(a.customFields); } catch (e) { }
+
+      return `<tr>
+          <td>${a.date}</td>
+          <td style="font-weight:600">${cell?.name || '—'}</td>
+          ${customFieldsConfig.map(cf => {
+        const val = parsedCustomFields[cf] || 0;
+        customFieldTotals[cf] += val;
+        return `<td style="text-align:center">${val || '-'}</td>`;
+      }).join('')}
+        </tr>`;
+    }).join('');
+
+    tabHtml = !attInPeriod.length ? '<p style="text-align:center;font-size:12px;color:#94a3b8;margin-top:20px;">Nenhuma métrica lançada no período.</p>' : `
+    <div class="kpi-grid" style="margin-top:20px;">
+      ${customFieldsConfig.map(cf => `
+        <div class="kpi">
+          <div class="val">${customFieldTotals[cf]}</div>
+          <div class="label">Total ${cf}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="section-title">Lançamentos de Métricas</div>
+    <table>
+      <thead><tr><th>Data</th><th>Célula</th>${customFieldsConfig.map(cf => `<th>${cf}</th>`).join('')}</tr></thead>
+      <tbody>${rowsHtml}</tbody>
     </table>`;
   } else if (currentTab === 'person_attendance') {
     const attInPeriod = store.attendance.filter(a => {

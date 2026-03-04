@@ -94,14 +94,15 @@ model Consolidation {
 }
 
 model Attendance {
-  id        String   @id @default(cuid())
-  cellId    String
-  date      String
-  notes     String?
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  cellId       String
+  date         String
+  notes        String?
+  customFields String?  // Stores JSON string of custom metrics (e.g., {"Cestas Básicas":"2","Batismos":"1"})
+  createdAt    DateTime @default(now())
 
-  cell      Cell     @relation(fields: [cellId], references: [id])
-  records   AttendanceRecord[]
+  cell         Cell     @relation(fields: [cellId], references: [id])
+  records      AttendanceRecord[]
 
   @@unique([cellId, date])
 }
@@ -152,6 +153,7 @@ model SystemSettings {
   congregationAddress String?
   pastorName          String?
   nucleus             String?
+  cellCustomFields    String?  // Commma-separated list of custom metrics (e.g. "Cestas Básicas, Batismos")
   updatedAt           DateTime @updatedAt
 }
 

@@ -296,19 +296,26 @@ app.post('/api/settings/reset', authenticateToken, async (req, res) => {
     try {
         if (req.user.role !== 'ADMIN') return res.status(403).json({ error: 'Só admins' });
 
-        // Deletar dependências filhas primeiro para evitar relacional
+        const fs = require('fs');
+        const fsPath = require('path');
+
+        // 1. Limpar arquivos físicos de upload
+        const uploadsDir = fsPath.join(__dirname, 'uploads');
+        if (fs.existsSync(uploadsDir)) {
+            const files = fs.readdirSync(uploadsDir);
+            for (const file of files) {
+                if (file !== '.gitkeep') {
+                    fs.unlinkSync(fsPath.join(uploadsDir, file));
+                }
+            }
+        }
+
+        // 2. Deletar tudo no banco em ordem de dependência
         await prisma.triageQueue.deleteMany();
         await prisma.form.deleteMany();
         await prisma.notification.deleteMany();
-        await prisma.personTrack.deleteMany(); // Reseta status de todos os membros nas trilhas
-
-        // Deleta todas as trilhas EXCETO as padrões
-        await prisma.track.deleteMany({
-            where: {
-                id: { notIn: ['t-waterBaptism', 't-holySpiritBaptism', 't-leadersSchool', 't-encounter'] }
-            }
-        });
-
+        await prisma.personTrack.deleteMany();
+        await prisma.track.deleteMany();
         await prisma.cellJustification.deleteMany();
         await prisma.cellCancellation.deleteMany();
         await prisma.eventException.deleteMany();
@@ -320,15 +327,18 @@ app.post('/api/settings/reset', authenticateToken, async (req, res) => {
         await prisma.consolidation.deleteMany();
         await prisma.person.deleteMany();
         await prisma.cell.deleteMany();
+        await prisma.generation.deleteMany();
+        await prisma.systemSettings.deleteMany();
+        await prisma.systemConfig.deleteMany();
+        await prisma.user.deleteMany(); // Apaga inclusive o admin atual
 
-        await prisma.user.deleteMany({
-            where: { username: { not: 'admin' } }
-        });
+        // 3. Re-seed Admin e Configurações Padrão
+        await seedAdmin();
 
-        res.json({ success: true });
+        res.json({ success: true, message: 'Sistema reiniciado com sucesso.' });
     } catch (err) {
         console.error('Falha no Factory Reset', err);
-        res.status(500).json({ error: 'Erro crítico interno.' });
+        res.status(500).json({ error: 'Erro crítico interno no reset.' });
     }
 });
 

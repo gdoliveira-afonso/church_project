@@ -80,7 +80,7 @@ function cellForm(cellId) {
   });
 }
 
-export function cellDetailView(params) {
+export async function cellDetailView(params) {
   const app = document.getElementById('app');
   const c = store.getCell(params?.id);
   if (!c) { app.innerHTML = '<div class="flex-1 flex items-center justify-center text-slate-400">Célula não encontrada</div>'; return }
@@ -91,22 +91,132 @@ export function cellDetailView(params) {
 
   const mem = store.getCellMembers(c.id); const leader = store.users.find(u => u.id === c.leaderId);
   const att = store.getAttendanceForCell(c.id);
+
+  // Always fetch fresh fields from dedicated endpoint (bypasses Prisma client issue)
+  const rawFields = await store.getCellFields();
+  const customFieldsConfig = (rawFields || '').split(',').map(s => s.trim()).filter(Boolean);
+
+
+  let customFieldsHtml = '';
+  if (customFieldsConfig.length > 0) {
+    customFieldsHtml = `
+      <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm mb-5">
+        <h3 class="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary">analytics</span> Lançar Novas Métricas</h3>
+        
+        <div class="mb-4">
+          <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Data de Referência</label>
+          <input type="date" id="metrics-date" value="${new Date().toISOString().split('T')[0]}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-700"/>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="metrics-custom-fields-container">
+        ${customFieldsConfig.map((cf) => `
+          <div>
+            <label class="text-[11px] font-semibold text-slate-500 mb-1 block">${cf}</label>
+            <input type="number" min="0" data-cf-name="${cf}" placeholder="0" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium text-slate-700" />
+          </div>`).join('')}
+        </div>
+        
+        <button id="btn-save-metrics" class="w-full mt-6 bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition shadow-sm flex justify-center items-center gap-2"><span class="material-symbols-outlined text-lg">save</span> Salvar Lançamento</button>
+      </div>
+
+      <h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 px-1">Histórico de Lançamentos</h3>
+      <div id="recent-metrics-container">
+         ${att.filter(a => a.customFields).slice(0, 10).map(a => {
+      let parsed = {}; try { parsed = JSON.parse(a.customFields) } catch (e) { }
+      if (Object.keys(parsed).length === 0) return '';
+      return `<div class="bg-white border border-slate-100 p-4 rounded-xl mb-3 shadow-sm">
+             <div class="flex justify-between items-center mb-3"><span class="text-xs font-bold text-slate-500">Data: ${a.date.split('-').reverse().join('/')}</span></div>
+             <div class="grid grid-cols-2 gap-3">
+               ${Object.entries(parsed).map(([k, v]) => `<div class="bg-slate-50 rounded-lg py-2 px-3 text-[11px] flex justify-between items-center"><span class="text-slate-500">${k}</span><span class="font-bold text-slate-800 text-sm">${v}</span></div>`).join('')}
+             </div>
+           </div>`;
+    }).join('')}
+         ${!att.some(a => a.customFields) ? '<p class="text-[11px] text-slate-400 text-center py-4">Nenhum lançamento feito ainda.</p>' : ''}
+      </div>
+    `;
+  } else {
+    customFieldsHtml = `<div class="text-sm text-slate-400 text-center py-8">Nenhuma métrica customizada configurada. Peça ao administrador para configurar em Configurações > Métricas & Campos.</div>`
+  }
+
   app.innerHTML = `
   ${header(c.name, true, store.hasRole('ADMIN', 'SUPERVISOR') ? `<button id="btn-edit-cell" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-500"><span class="material-symbols-outlined text-lg">edit</span></button>` : '')}
-  <div class="flex-1 overflow-y-auto">
-    <div class="px-4 md:px-6 py-4 bg-white border-b border-slate-100 space-y-1.5">
-      ${c.address ? `<p class="flex items-center gap-2 text-sm text-slate-600"><span class="material-symbols-outlined text-[16px]">location_on</span>${c.address}</p>` : ''}
-      <p class="flex items-center gap-2 text-sm text-slate-600"><span class="material-symbols-outlined text-[16px]">calendar_today</span>${c.meetingDay || '-'} ${c.meetingTime ? 'às ' + c.meetingTime : ''}</p>
-      <div class="flex items-center gap-2 text-sm text-slate-600"><span class="material-symbols-outlined text-[16px]">person</span>Líder: ${leader?.name || 'N/A'}</div>
-      ${c.viceLeaderId ? `<div class="flex items-center gap-2 text-sm text-slate-600"><span class="material-symbols-outlined text-[16px]">person_outline</span>Vice: ${store.users.find(u => u.id === c.viceLeaderId)?.name || 'N/A'}</div>` : ''}
+  
+  <div class="bg-white border-b border-slate-200 sticky top-14 z-10 px-4 md:px-6 flex gap-6 overflow-x-auto no-scrollbar">
+    <button class="cell-tab active whitespace-nowrap py-3.5 text-sm font-bold text-primary border-b-2 border-primary transition-colors" data-target="tab-info">Informações da Célula</button>
+    <button class="cell-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-metrics">Métricas / Lançamentos</button>
+  </div>
+
+  <div class="flex-1 overflow-y-auto bg-slate-50/30">
+    <div id="tab-info" class="tab-content block">
+      <div class="px-4 md:px-6 py-4 bg-white border-b border-slate-100 space-y-1.5 shadow-sm">
+        ${c.address ? `<p class="flex items-center gap-2 text-sm text-slate-600"><span class="material-symbols-outlined text-[16px]">location_on</span>${c.address}</p>` : ''}
+        <p class="flex items-center gap-2 text-sm text-slate-600"><span class="material-symbols-outlined text-[16px]">calendar_today</span>${c.meetingDay || '-'} ${c.meetingTime ? 'às ' + c.meetingTime : ''}</p>
+        <div class="flex items-center gap-2 text-sm text-slate-600"><span class="material-symbols-outlined text-[16px]">person</span>Líder: ${leader?.name || 'N/A'}</div>
+        ${c.viceLeaderId ? `<div class="flex items-center gap-2 text-sm text-slate-600"><span class="material-symbols-outlined text-[16px]">person_outline</span>Vice: ${store.users.find(u => u.id === c.viceLeaderId)?.name || 'N/A'}</div>` : ''}
+      </div>
+      <div class="px-4 md:px-6 py-4"><h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 px-1">Membros Atuais (${mem.length})</h3>
+        <div class="md:grid md:grid-cols-2 md:gap-3 space-y-2 md:space-y-0 mb-6">${mem.map(m => `<a href="#/profile?id=${m.id}" class="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 hover:border-primary/30 transition shadow-sm cursor-pointer">${avatar(m.name, 'h-9 w-9')}<div class="flex-1 min-w-0"><p class="text-sm font-semibold truncate text-slate-800">${m.name}</p><p class="text-[11px] text-slate-500">${m.status}</p></div><span class="material-symbols-outlined text-slate-300 text-lg group-hover:text-primary">chevron_right</span></a>`).join('')}
+        ${!mem.length ? '<p class="text-[12px] text-slate-400 text-center py-6 bg-slate-50 border border-dashed rounded-xl">Nenhum membro nesta célula, vá em Pessoas e adicione membros à esta celula.</p>' : ''}
+        </div>
+        <div class="mb-6"><a href="#/attendance?cellId=${c.id}" class="flex items-center justify-center gap-2 w-full bg-primary text-white py-3.5 rounded-xl text-sm font-bold hover:bg-primary/90 transition shadow-sm hover:-translate-y-0.5"><span class="material-symbols-outlined text-lg">checklist</span>Registrar Presença do Encontro</a></div>
+        ${att.filter(a => a.records && a.records.length > 0).length ? `<div class="pb-10"><h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-3 px-1">Últimos Encontros</h3>${att.filter(a => a.records && a.records.length > 0).slice(0, 3).map(a => `<div class="p-4 bg-white rounded-xl border border-slate-100 mb-3 shadow-sm"><div class="flex justify-between items-center text-sm mb-2"><span class="font-bold text-slate-700">${a.date.split('-').reverse().join('/')}</span><span class="text-primary font-bold bg-primary/10 px-2.5 py-1 rounded-lg">${a.records.filter(r => r.status === 'present').length}/${a.records.length} presenças</span></div>${a.notes ? `<p class="text-[11px] text-slate-500 mt-2 bg-slate-50 p-2 rounded">${a.notes}</p>` : ''}</div>`).join('')}</div>` : ''}
+      </div>
     </div>
-    <div class="px-4 md:px-6 py-3"><h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Membros (${mem.length})</h3></div>
-    <div class="px-4 md:px-6 md:grid md:grid-cols-2 md:gap-3 space-y-2 md:space-y-0 mb-4">${mem.map(m => `<a href="#/profile?id=${m.id}" class="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 hover:border-primary/30 transition cursor-pointer">${avatar(m.name, 'h-9 w-9')}<div class="flex-1 min-w-0"><p class="text-sm font-semibold truncate">${m.name}</p><p class="text-[11px] text-slate-500">${m.status}</p></div><span class="material-symbols-outlined text-slate-300 text-lg">chevron_right</span></a>`).join('')}
-    ${!mem.length ? '<p class="text-sm text-slate-400 text-center py-4">Nenhum membro nesta célula</p>' : ''}
+
+    <div id="tab-metrics" class="tab-content hidden pb-10">
+      <div class="px-4 md:px-6 py-6 max-w-2xl mx-auto">
+        ${customFieldsHtml}
+      </div>
     </div>
-    <div class="px-4 md:px-6 mb-4"><a href="#/attendance?cellId=${c.id}" class="flex items-center justify-center gap-2 w-full bg-primary text-white py-3 rounded-xl text-sm font-bold hover:bg-primary/90 transition shadow-sm"><span class="material-symbols-outlined text-lg">checklist</span>Registrar Presença</a></div>
-    ${att.length ? `<div class="px-4 md:px-6 pb-4"><h3 class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Últimos Encontros</h3>${att.slice(0, 3).map(a => `<div class="p-3 bg-white rounded-lg border border-slate-100 mb-2"><div class="flex justify-between text-sm"><span class="font-medium">${a.date}</span><span class="text-primary font-semibold">${a.records.filter(r => r.status === 'present').length}/${a.records.length}</span></div>${a.notes ? `<p class="text-[11px] text-slate-500 mt-1">${a.notes}</p>` : ''}</div>`).join('')}</div>` : ''}
   </div>`;
+
+  // Tab functionality
+  document.querySelectorAll('.cell-tab').forEach(t => t.onclick = () => {
+    document.querySelectorAll('.cell-tab').forEach(x => { x.classList.remove('active', 'text-primary', 'border-primary', 'font-bold'); x.classList.add('text-slate-500', 'font-medium', 'border-transparent'); });
+    t.classList.remove('text-slate-500', 'font-medium', 'border-transparent'); t.classList.add('active', 'text-primary', 'border-primary', 'font-bold');
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden', 'opacity-0'));
+
+    const target = document.getElementById(t.dataset.target);
+    target.classList.remove('hidden');
+    setTimeout(() => target.classList.remove('opacity-0'), 10);
+  });
+
   const editBtn = document.getElementById('btn-edit-cell');
   if (editBtn) editBtn.onclick = () => cellForm(c.id);
+
+  const saveMetricsBtn = document.getElementById('btn-save-metrics');
+  if (saveMetricsBtn) {
+    saveMetricsBtn.onclick = async (e) => {
+      const btn = e.currentTarget;
+      const metricsDate = document.getElementById('metrics-date').value;
+      if (!metricsDate) return toast('Selecione a data de referência.', 'warning');
+
+      const orig = btn.innerHTML; btn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">sync</span> Salvando...'; btn.disabled = true;
+
+      const customFieldsPayload = {};
+      document.querySelectorAll('#metrics-custom-fields-container input[type="number"]').forEach(inp => {
+        const val = parseInt(inp.value, 10);
+        if (!isNaN(val) && val > 0) {
+          customFieldsPayload[inp.dataset.cfName] = val;
+        }
+      });
+
+      if (Object.keys(customFieldsPayload).length === 0) {
+        toast('Preencha ao menos uma métrica com valor maior que 0.', 'warning');
+        btn.innerHTML = orig; btn.disabled = false;
+        return;
+      }
+
+      try {
+        await store.addAttendance({
+          cellId: c.id, date: metricsDate,
+          customFields: JSON.stringify(customFieldsPayload)
+        });
+        toast('Métricas lançadas com sucesso!');
+
+        // Refresh local cache via API call instead of page hash reload if cache gets stale
+        location.reload();
+      } catch (err) { toast('Erro de conexão ao salvar métricas', 'error'); btn.innerHTML = orig; btn.disabled = false; }
+    };
+  }
 }

@@ -157,6 +157,32 @@ router.delete('/:id', async (req, res) => {
 // RELACIONADO À PRESENÇA DA CÉLULA (ATTENDANCE)
 // ---------------------------------------------------------
 
+// Buscar TODAS as presenças (usado para relatórios)
+router.get('/attendance/all', async (req, res) => {
+    try {
+        const whereClause = {};
+        if (req.user.role === 'LIDER_GERACAO' && req.user.generationId) {
+            whereClause.cell = { generationId: req.user.generationId };
+        } else if (req.user.role === 'LEADER' || req.user.role === 'VICE_LEADER') {
+            whereClause.cell = { OR: [{ leaderId: req.user.id }, { viceLeaderId: req.user.id }] };
+        }
+
+        const attendance = await prisma.attendance.findMany({
+            where: whereClause,
+            include: {
+                records: {
+                    include: { person: { select: { id: true, name: true } } }
+                }
+            },
+            orderBy: { date: 'desc' }
+        });
+        res.json(attendance);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Erro ao buscar todas as chamadas' });
+    }
+});
+
 // Buscar relatório de presenças (histórico de chamadas) da célula
 router.get('/:id/attendance', async (req, res) => {
     try {
@@ -177,8 +203,8 @@ router.get('/:id/attendance', async (req, res) => {
 
 // Lançar ou atualizar a chamada de um dia
 router.post('/:id/attendance', async (req, res) => {
-    // Corpo esperado: { date: "YYYY-MM-DD", notes: "", records: [{ personId: "id", status: "present/absent/excused" }] }
-    const { date, notes, records } = req.body;
+    // Corpo esperado: { date: "YYYY-MM-DD", notes: "", customFields: "{}", records: [{ personId: "id", status: "present/absent/excused" }] }
+    const { date, notes, customFields, records } = req.body;
     const cellId = req.params.id;
 
     try {
@@ -189,30 +215,59 @@ router.post('/:id/attendance', async (req, res) => {
             }
         }
 
-        // Usa uma transação para deletar anterior e recriar se já existir (jeito simples de override no SQLite)
+        // Inteligência de merge: Se já existe um registro, mantemos o que não foi enviado agora
         const result = await prisma.$transaction(async (tx) => {
-            // 1. Tenta deletar o Attendance existente naquele dia
-            await tx.attendance.deleteMany({
-                where: { cellId, date }
-            });
-
-            // 2. Cria o novo Attendance pai com seus Records
-            const newAttendance = await tx.attendance.create({
-                data: {
-                    cellId,
-                    date,
-                    notes,
-                    records: {
-                        create: records.map(r => ({
-                            personId: r.personId,
-                            status: r.status
-                        }))
-                    }
-                },
+            const existing = await tx.attendance.findUnique({
+                where: { cellId_date: { cellId, date } },
                 include: { records: true }
             });
 
-            return newAttendance;
+            if (existing) {
+                // Merge logic
+                const finalNotes = notes !== undefined ? notes : existing.notes;
+                const finalCustomFields = customFields !== undefined ? customFields : existing.customFields;
+
+                // Se records for enviado (mesmo que vazio []), usamos o novo. 
+                // Se for null/undefined (vindo do form de métricas puras), mantemos o antigo.
+                const finalRecords = records !== undefined ? records : existing.records;
+
+                // Deleta records antigos se houver novos registros de presença sendo enviados
+                if (records !== undefined) {
+                    await tx.attendanceRecord.deleteMany({ where: { attendanceId: existing.id } });
+                }
+
+                return await tx.attendance.update({
+                    where: { id: existing.id },
+                    data: {
+                        notes: finalNotes,
+                        customFields: finalCustomFields,
+                        records: records !== undefined ? {
+                            create: records.map(r => ({
+                                personId: r.personId,
+                                status: r.status
+                            }))
+                        } : undefined
+                    },
+                    include: { records: true }
+                });
+            } else {
+                // Cria novo se não existia
+                return await tx.attendance.create({
+                    data: {
+                        cellId,
+                        date,
+                        notes,
+                        customFields,
+                        records: {
+                            create: (records || []).map(r => ({
+                                personId: r.personId,
+                                status: r.status
+                            }))
+                        }
+                    },
+                    include: { records: true }
+                });
+            }
         });
 
         res.json(result);

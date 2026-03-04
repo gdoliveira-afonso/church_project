@@ -13,7 +13,8 @@ export function settingsView() {
       <button class="settings-tab active whitespace-nowrap py-3.5 text-sm font-bold text-primary border-b-2 border-primary transition-colors" data-target="tab-account">Conta & Perfil</button>
       <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-team">Equipe</button>
       <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-tools">Ferramentas & Acesso</button>
-      ${u.role === 'ADMIN' ? `<button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-system">Sistema & Alertas</button>` : ''}
+      ${u.role === 'ADMIN' ? `<button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-system">Sistema & Alertas</button>
+      <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-custom-fields">Métricas & Campos</button>` : ''}
     </div>
   </div>
 
@@ -269,7 +270,29 @@ export function settingsView() {
         </div>
       </section>
 
-    </div>` : ''}
+    </div>
+    
+    <!-- TAG CUSTOM FIELDS -->
+    <div id="tab-custom-fields" class="tab-content hidden space-y-6">
+      <section>
+        <div class="flex justify-between items-center mb-3 ml-1">
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2"><span class="material-symbols-outlined text-lg text-primary">analytics</span>Métricas da Célula</h3>
+        </div>
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-5 pb-6">
+          <p class="text-xs text-slate-500 mb-4 leading-relaxed">Estes campos aparecerão na aba de métricas de cada célula, onde o líder pode registrar a qualquer momento.</p>
+          
+          <div id="custom-fields-list" class="space-y-2 mb-4">
+             <!-- Fields will be dynamically added here -->
+          </div>
+
+          <div class="flex gap-2">
+            <input id="new-custom-field-input" type="text" class="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Ex: Cestas Básicas, Discipulados..."/>
+            <button id="btn-add-custom-field" class="px-4 py-2 rounded-lg bg-primary text-white font-bold text-sm hover:bg-primary/90 transition shrink-0 flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">add_circle</span>Adicionar</button>
+          </div>
+        </div>
+      </section>
+    </div>
+    ` : ''}
 
   </div>
   ${bottomNav('settings')}`;
@@ -497,6 +520,76 @@ export function settingsView() {
         setTimeout(() => store.resetSystem(), 600);
       };
     };
+
+    // --- Custom Fields Logic (Auto-Save via dedicated endpoint) ---
+    let editingFields = [];
+
+    // Fetch current fields from dedicated endpoint first
+    async function loadCellFields() {
+      // Always fetch fresh fields from dedicated endpoint
+      const rawFields = await store.getCellFields();
+      editingFields = (rawFields || '').split(',').map(s => s.trim()).filter(Boolean);
+      renderCustomFieldsList();
+    }
+
+    async function saveCustomFields() {
+      try {
+        await store.saveCellFields(editingFields.join(', '));
+        const statusEl = document.getElementById('cf-status');
+        if (statusEl) { statusEl.textContent = 'Salvo ✓'; setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000); }
+      } catch (e) {
+        toast('Erro ao salvar métrica', 'error');
+      }
+    }
+
+    function renderCustomFieldsList() {
+      const container = document.getElementById('custom-fields-list');
+      if (!container) return;
+      if (editingFields.length === 0) {
+        container.innerHTML = '<div class="text-xs text-slate-400 text-center py-4 bg-slate-50 rounded-lg border border-dashed border-slate-200">Nenhuma métrica cadastrada</div>';
+        return;
+      }
+      container.innerHTML = editingFields.map((f, i) => `
+        <div class="flex items-center justify-between bg-slate-50 border border-slate-100 p-3 rounded-lg group transition hover:border-slate-200 hover:bg-slate-100">
+          <div class="flex items-center gap-2"><span class="material-symbols-outlined text-slate-400 text-base">drag_indicator</span><span class="text-sm font-semibold text-slate-700">${f}</span></div>
+          <button type="button" class="btn-remove-cf w-7 h-7 flex items-center justify-center rounded-full text-slate-300 hover:text-red-500 hover:bg-red-50 transition" data-idx="${i}"><span class="material-symbols-outlined text-lg">delete</span></button>
+        </div>
+      `).join('<span id="cf-status" class="hidden"></span>');
+
+      // Add an inline status element after the list
+      const container2 = document.getElementById('custom-fields-list');
+      const statusEl = document.createElement('div');
+      statusEl.id = 'cf-status';
+      statusEl.className = 'text-xs text-green-600 font-semibold text-right px-1 h-4 transition-all';
+      container2.after(statusEl);
+
+      document.querySelectorAll('.btn-remove-cf').forEach(btn => {
+        btn.onclick = async () => {
+          editingFields.splice(parseInt(btn.dataset.idx, 10), 1);
+          renderCustomFieldsList();
+          await saveCustomFields();
+        };
+      });
+    }
+
+    loadCellFields(); // fetch from dedicated /api/settings/cell-fields
+
+    async function addField() {
+      const inp = document.getElementById('new-custom-field-input');
+      const val = inp.value.trim();
+      if (!val) return;
+      if (editingFields.includes(val)) { toast('Este campo já existe', 'warning'); return; }
+      editingFields.push(val);
+      inp.value = '';
+      inp.focus();
+      renderCustomFieldsList();
+      await saveCustomFields();
+    }
+
+    document.getElementById('btn-add-custom-field')?.addEventListener('click', addField);
+    document.getElementById('new-custom-field-input')?.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') addField();
+    });
   }
 }
 

@@ -68,6 +68,35 @@ class Store {
         return res;
     }
 
+    // Campos Customizados de Célula (usa endpoint dedicado via SystemConfig)
+    async getCellFields() {
+        try {
+            // Use the public endpoint to avoid 401 if settings load before auth is fully ready or in different context
+            const res = await fetch(`${API_URL}/public/settings/cell-fields`);
+            if (res.ok) {
+                const data = await res.json();
+                if (this.systemSettings) this.systemSettings.cellCustomFields = data.cellCustomFields;
+                else this.systemSettings = { cellCustomFields: data.cellCustomFields };
+                return data.cellCustomFields || '';
+            }
+        } catch (e) { /* silencia */ }
+        return '';
+    }
+
+    async saveCellFields(fields) {
+        if (!this.token) throw new Error('Not authenticated');
+        const res = await fetch(`${API_URL}/settings/cell-fields`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${this.token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cellCustomFields: fields })
+        });
+        if (!res.ok) throw new Error('Falha ao salvar campos');
+        const data = await res.json();
+        if (this.systemSettings) this.systemSettings.cellCustomFields = data.cellCustomFields;
+        else this.systemSettings = { cellCustomFields: data.cellCustomFields };
+        return data.cellCustomFields || '';
+    }
+
     async uploadSystemLogo(file) {
         const formData = new FormData();
         formData.append('logo', file);
@@ -133,6 +162,7 @@ class Store {
 
             this.pastoralNotes = await this.apiFetch('/dash/notes');
             this.visits = await this.apiFetch('/dash/visits');
+            this.attendance = await this.apiFetch('/cells/attendance/all');
 
             // The following lines are from the provided edit.
             // Note: 'uIdParam' was not defined in the original context.
@@ -317,8 +347,8 @@ class Store {
         } catch (e) { return []; }
     }
     // Simplification para frontend sem grandes mudanças
-    getAttendanceForCell(cid) { return []; /* O ideal agora é usar componente assíncrono pro histórico */ }
-    getAttendanceForPerson(pid) { return []; /* Será carregado assíncrono quando no profile dela */ }
+    getAttendanceForCell(cid) { return this.attendance.filter(a => a.cellId === cid); }
+    getAttendanceForPerson(pid) { return this.attendance.filter(a => a.records?.some(r => r.personId === pid)); }
     async addAttendance(a) {
         await this.apiFetch(`/cells/${a.cellId}/attendance`, { method: 'POST', body: JSON.stringify(a) });
     }

@@ -20,6 +20,7 @@
     "multer": "^2.1.0"
   },
   "devDependencies": {
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "sqlite3": "^5.1.7"
   }
 }
