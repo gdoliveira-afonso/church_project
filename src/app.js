@@ -71,7 +71,7 @@ window.addEventListener('store-data-loaded', () => {
     } else {
         setTimeout(window.__removeSplashScreen, 300);
     }
-});
+}, { once: true });
 
 
 
