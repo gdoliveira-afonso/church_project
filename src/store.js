@@ -299,6 +299,9 @@ class Store {
     async addManualMilestone(personId, data) {
         return await this.apiFetch(`/people/${personId}/milestones`, { method: 'POST', body: JSON.stringify(data) });
     }
+    async deleteMilestone(personId, milestoneId) {
+        return await this.apiFetch(`/people/${personId}/milestones/${milestoneId}`, { method: 'DELETE' });
+    }
     async fetchActivityLogs(filters = {}) {
         const q = new URLSearchParams();
         if (filters.action) q.set('action', filters.action);

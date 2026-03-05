@@ -107,24 +107,26 @@ export function profileView(params) {
             <span class="material-symbols-outlined text-sm">add_circle</span>Adicionar Marco Manual
           </button>`;
         } else {
+          const isAdmin = store.hasRole('ADMIN', 'SUPERVISOR');
           const timelineItems = milestones.map((m, idx) => {
             const color = COLOR_MAP[m.color] || '#64748b';
-            const date = new Date(m.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+            const date = new Date(m.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
             const isLast = idx === milestones.length - 1;
-            return `<div class="flex gap-3 ${isLast ? '' : 'pb-5'}">
+            return `<div class="flex gap-3 ${isLast ? '' : 'pb-5'} relative group">
               <div class="flex flex-col items-center shrink-0">
                 <div class="w-9 h-9 rounded-full flex items-center justify-center shadow-sm" style="background:${color}18; border: 2px solid ${color}40">
                   <span class="material-symbols-outlined text-base" style="color:${color}">${m.icon || ICON_DEFAULT}</span>
                 </div>
                 ${isLast ? '' : `<div class="w-0.5 flex-1 mt-1.5" style="background:${color}25"></div>`}
               </div>
-              <div class="flex-1 pt-1 pb-1">
+              <div class="flex-1 pt-1 pb-1 pr-6 relative">
                 <div class="flex items-start justify-between gap-2">
                   <p class="text-sm font-bold text-slate-800">${m.label}</p>
                   <span class="text-[10px] text-slate-400 whitespace-nowrap shrink-0">${date}</span>
                 </div>
                 ${m.detail ? `<p class="text-xs text-slate-500 mt-0.5">${m.detail}</p>` : ''}
                 <span class="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded mt-1 inline-block" style="background:${color}15; color:${color}">${m.type === 'MANUAL' ? 'Marco Manual' : m.type === 'STATUS_CHANGE' ? 'Status' : m.type === 'CELL_CHANGE' ? 'Célula' : m.type === 'TRACK_COMPLETED' ? 'Espiritual' : m.type}</span>
+                ${isAdmin ? `<button data-id="${m.id}" class="btn-del-marco absolute top-0 -right-2 w-7 h-7 flex items-center justify-center text-red-500/50 hover:text-red-600 hover:bg-red-50 rounded-full transition opacity-0 group-hover:opacity-100" title="Excluir Marco"><span class="material-symbols-outlined text-[15px]">delete</span></button>` : ''}
               </div>
             </div>`;
           }).join('');
@@ -132,6 +134,19 @@ export function profileView(params) {
           <button id="btn-add-marco" class="w-full mt-2 bg-primary/10 text-primary py-2 rounded-lg text-sm font-semibold hover:bg-primary/20 transition flex items-center justify-center gap-1.5">
             <span class="material-symbols-outlined text-sm">add_circle</span>Adicionar Marco Manual
           </button>`;
+
+          document.querySelectorAll('.btn-del-marco').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+              if (confirm('Tem certeza que deseja excluir permanentemente este marco?')) {
+                const id = e.currentTarget.dataset.id;
+                try {
+                  await store.deleteMilestone(p.id, id);
+                  toast('Marco excluído com sucesso');
+                  show('marcos');
+                } catch (err) { toast('Erro ao excluir', 'error'); }
+              }
+            });
+          });
         }
         document.getElementById('btn-add-marco')?.addEventListener('click', openMarcoModal);
       });
@@ -168,7 +183,8 @@ export function profileView(params) {
       ['cyan', 'Ciano'], ['teal', 'Teal'], ['amber', 'Âmbar'], ['orange', 'Laranja'],
       ['gray', 'Cinza'], ['slate', 'Slate']
     ];
-    openModal(`<div class="p-5 md:p-6">
+    const today = new Date().toISOString().split('T')[0];
+    openModal(`<div class="p-5 md:p-6 pb-20 md:pb-6">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-base font-bold">Adicionar Marco Manual</h3>
         <button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="p-1 rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-slate-400">close</span></button>
@@ -177,6 +193,10 @@ export function profileView(params) {
         <div>
           <label class="text-xs font-semibold text-slate-600 mb-1 block">Título do Marco</label>
           <input id="mf-label" type="text" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Ex: Casamento, Batismo, Liderança..." required/>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-1 block">Data Opcional</label>
+          <input id="mf-date" type="date" value="${today}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
         </div>
         <div>
           <label class="text-xs font-semibold text-slate-600 mb-1 block">Detalhe (opcional)</label>
@@ -205,7 +225,7 @@ export function profileView(params) {
             </label>`).join('')}
           </div>
         </div>
-        <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg text-sm font-bold hover:bg-primary/90 active:scale-[.98] transition-all">Salvar Marco</button>
+        <button type="submit" class="w-full bg-primary text-white py-2.5 mt-2 rounded-lg text-sm font-bold hover:bg-primary/90 active:scale-[.98] transition-all">Salvar Marco</button>
       </form>
     </div>`);
 
@@ -228,14 +248,16 @@ export function profileView(params) {
       const btn = e.target.querySelector('button[type="submit"]');
       const orig = btn.innerHTML; btn.innerHTML = 'Salvando...'; btn.disabled = true;
       try {
-        await store.addManualMilestone(p.id, {
+        const payload = {
           label: document.getElementById('mf-label').value.trim(),
-          detail: document.getElementById('mf-detail').value.trim() || null,
-          icon: document.querySelector('input[name="mf-icon"]:checked')?.value || 'star',
-          color: document.querySelector('input[name="mf-color"]:checked')?.value || 'amber',
-        });
-        closeModal();
+          detail: document.getElementById('mf-detail').value.trim(),
+          icon: document.querySelector('input[name="mf-icon"]:checked').value,
+          color: document.querySelector('input[name="mf-color"]:checked').value,
+          date: document.getElementById('mf-date').value
+        };
+        await store.addManualMilestone(p.id, payload);
         toast('Marco adicionado!');
+        closeModal();
         show('marcos');
       } catch (err) { toast('Erro ao salvar', 'error'); btn.innerHTML = orig; btn.disabled = false; }
     };

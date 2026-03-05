@@ -331,10 +331,24 @@ router.post('/:id/milestones', async (req, res) => {
                 detail: req.body.detail || null,
                 icon: req.body.icon || 'star',
                 color: req.body.color || 'amber',
+                date: req.body.date ? new Date(req.body.date) : new Date()
             }
         });
         res.status(201).json(m);
     } catch (e) { res.status(500).json({ error: 'Erro ao criar marco' }); }
+});
+
+// Remove marco (Apenas ADMIN/SUPERVISOR)
+router.delete('/:id/milestones/:milestoneId', async (req, res) => {
+    try {
+        if (!['ADMIN', 'SUPERVISOR'].includes(req.user.role)) {
+            return res.status(403).json({ error: 'Acesso negado' });
+        }
+        await prisma.personMilestone.delete({
+            where: { id: req.params.milestoneId }
+        });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: 'Erro ao deletar marco' }); }
 });
 
 module.exports = router;
