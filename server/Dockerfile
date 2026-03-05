@@ -21,9 +21,6 @@ ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 # Copia o restante do projeto do backend
 COPY . .
 
-# Backup do schema para garantir que ele não seja sobrescrito pelo volume no runtime
-RUN cp prisma/schema.prisma /app/schema.prisma.backup
-
 # Gera o Prisma Client inicial
 RUN npx prisma generate
 
@@ -32,7 +29,5 @@ ENV PORT=3000
 
 EXPOSE 3000
 
-# Atualiza o banco com eventuais novos campos do schema.prisma ANTES de rodar a aplicação
-# Atualiza o banco e gera o client ANTES de rodar a aplicação
-# O 'cp' garante que o volume não sobrescreva o schema atualizado do código
-CMD ["sh", "-c", "cp /app/schema.prisma.backup /app/prisma/schema.prisma && npx prisma db push --accept-data-loss && npx prisma generate && node index.js"]
+# Inicializa o banco (cria tabelas se não existirem) e inicia o servidor
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node index.js"]
