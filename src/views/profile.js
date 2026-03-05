@@ -110,7 +110,14 @@ export function profileView(params) {
           const isAdmin = store.hasRole('ADMIN', 'SUPERVISOR');
           const timelineItems = milestones.map((m, idx) => {
             const color = COLOR_MAP[m.color] || '#64748b';
-            const date = new Date(m.date + 'T12:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+
+            // Handle both "2024-05-10" and "2024-05-10T14:30:00.000Z" gracefully without timezone shift logic breaking ISO standard
+            let rawDateStrStr = m.date;
+            if (rawDateStrStr.indexOf('T') === -1) {
+              rawDateStrStr = rawDateStrStr + 'T12:00:00Z';
+            }
+            const date = new Date(rawDateStrStr).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+
             const isLast = idx === milestones.length - 1;
             return `<div class="flex gap-3 ${isLast ? '' : 'pb-5'} relative group">
               <div class="flex flex-col items-center shrink-0">
