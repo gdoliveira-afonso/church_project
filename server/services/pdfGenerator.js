@@ -235,23 +235,55 @@ function renderExecutiveSummary(d) {
     if (d.novosConvertidos > 0) insights.push(`Tivemos ${d.novosConvertidos} conversões/decisões no período.`);
 
     if (d.zeroVisits > 0) {
-        let nameStr = '';
-        if (d.zeroVisitsNames && d.zeroVisitsNames.length > 0) {
-            const list = d.zeroVisitsNames;
-            const excerpt = list.slice(0, 10).join(', ') + (list.length > 10 ? ` e mais ${list.length - 10} pessoas` : '');
-            nameStr = `<br/><span style="color:#64748b; font-size:11px; margin-top:4px; display:inline-block;">↳ <b>Membros afetados:</b> ${excerpt}</span>`;
+        let tableStr = '';
+        if (d.zeroVisitsDetails && d.zeroVisitsDetails.length > 0) {
+            const list = d.zeroVisitsDetails.slice(0, 15);
+            tableStr = `
+                <br/>
+                <table style="margin-top: 8px; font-size: 10px; border-collapse: collapse; width: 100%;">
+                    <thead><tr>
+                        <th style="padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: left; width: 45%;">Nome</th>
+                        <th style="padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: left; width: 30%;">Telefone</th>
+                        <th style="padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: left; width: 25%;">Status</th>
+                    </tr></thead>
+                    <tbody>
+                        ${list.map(p => `<tr>
+                            <td style="padding: 4px; border-bottom: 1px solid #f1f5f9; color: #334155;"><b>${p.name}</b></td>
+                            <td style="padding: 4px; border-bottom: 1px solid #f1f5f9; color: #64748b;">${p.phone || '-'}</td>
+                            <td style="padding: 4px; border-bottom: 1px solid #f1f5f9; color: #64748b;">${p.status || '-'}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+                ${d.zeroVisitsDetails.length > 15 ? `<div style="font-size: 10px; color: #64748b; margin-top: 6px; font-style: italic;">...e mais ${d.zeroVisitsDetails.length - 15} pessoas ocultadas.</div>` : ''}
+            `;
         }
-        insights.push(`Existem ${d.zeroVisits} membros ativos que nunca receberam registro de visita pastoral.${nameStr}`);
+        insights.push(`Existem ${d.zeroVisits} membros ativos que nunca receberam registro de visita.${tableStr}`);
     }
 
     if (d.noVisit > 0) {
-        let nameStr = '';
-        if (d.noVisitNames && d.noVisitNames.length > 0) {
-            const list = d.noVisitNames;
-            const excerpt = list.slice(0, 10).join(', ') + (list.length > 10 ? ` e mais ${list.length - 10} pessoas` : '');
-            nameStr = `<br/><span style="color:#64748b; font-size:11px; margin-top:4px; display:inline-block;">↳ <b>Membros afetados:</b> ${excerpt}</span>`;
+        let tableStr = '';
+        if (d.noVisitDetails && d.noVisitDetails.length > 0) {
+            const list = d.noVisitDetails.slice(0, 15);
+            tableStr = `
+                <br/>
+                <table style="margin-top: 8px; font-size: 10px; border-collapse: collapse; width: 100%;">
+                    <thead><tr>
+                        <th style="padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: left; width: 45%;">Nome</th>
+                        <th style="padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: left; width: 30%;">Telefone</th>
+                        <th style="padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: left; width: 25%;">Status</th>
+                    </tr></thead>
+                    <tbody>
+                        ${list.map(p => `<tr>
+                            <td style="padding: 4px; border-bottom: 1px solid #f1f5f9; color: #334155;"><b>${p.name}</b></td>
+                            <td style="padding: 4px; border-bottom: 1px solid #f1f5f9; color: #64748b;">${p.phone || '-'}</td>
+                            <td style="padding: 4px; border-bottom: 1px solid #f1f5f9; color: #64748b;">${p.status || '-'}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+                ${d.noVisitDetails.length > 15 ? `<div style="font-size: 10px; color: #64748b; margin-top: 6px; font-style: italic;">...e mais ${d.noVisitDetails.length - 15} pessoas ocultadas.</div>` : ''}
+            `;
         }
-        insights.push(`${d.noVisit} pessoas estão há mais de 60 dias sem acompanhamento.${nameStr}`);
+        insights.push(`${d.noVisit} pessoas estão há mais de 60 dias sem acompanhamento.${tableStr}`);
     }
 
     if (d.activeCells === 0) insights.push(`Não há células ativas nos filtros de pesquisa atuais.`);

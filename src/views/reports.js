@@ -62,18 +62,20 @@ export function reportsView() {
     const acompanhamentos = visitsInPeriod.filter(v => v.type === 'Visita de Acompanhamento').length;
 
     const ago60 = new Date(); ago60.setDate(ago60.getDate() - 60);
-    const noVisitPeople = people.filter(p => {
-      const pv = store.getVisitsForPerson(p.id);
-      if (!pv.length) return false;
-      const lastV = Math.max(...pv.map(v => new Date(v.date).getTime()));
-      return lastV < ago60.getTime();
-    });
+    const noVisitPeople = people
+      .filter(p => p.status !== 'Líder' && p.status !== 'Vice-Líder')
+      .filter(p => {
+        const pv = store.getVisitsForPerson(p.id);
+        if (!pv.length) return false;
+        const lastV = Math.max(...pv.map(v => new Date(v.date).getTime()));
+        return lastV < ago60.getTime();
+      });
     const noVisit = noVisitPeople.length;
-    const noVisitNames = noVisitPeople.map(p => p.name);
+    const noVisitDetails = noVisitPeople.map(p => ({ name: p.name, phone: p.phone, status: p.status }));
 
-    const zeroVisitsPeople = people.filter(p => store.getVisitsForPerson(p.id).length === 0);
+    const zeroVisitsPeople = people.filter(p => p.status !== 'Líder' && p.status !== 'Vice-Líder' && store.getVisitsForPerson(p.id).length === 0);
     const zeroVisits = zeroVisitsPeople.length;
-    const zeroVisitsNames = zeroVisitsPeople.map(p => p.name);
+    const zeroVisitsDetails = zeroVisitsPeople.map(p => ({ name: p.name, phone: p.phone, status: p.status }));
 
     const activeCells = store.cells.length;
     const avgMembers = activeCells ? Math.round(people.filter(p => p.cellId).length / activeCells) : 0;
@@ -122,7 +124,7 @@ export function reportsView() {
     return {
       people, total, inPeriod, novosConvertidos, reconciliacoes, visitantes,
       inativos, afastados, mudouSe,
-      visitsInPeriod, consolidacoes, acompanhamentos, noVisit, noVisitNames, zeroVisits, zeroVisitsNames, activeCells, avgMembers, freqPct, presentRec,
+      visitsInPeriod, consolidacoes, acompanhamentos, noVisit, noVisitDetails, zeroVisits, zeroVisitsDetails, activeCells, avgMembers, freqPct, presentRec,
       totalAttRec, periodLabel, startDate, endDate, allVisits, trackCounts, customFieldTotals
     };
   }
@@ -874,9 +876,9 @@ function preparePdfPayload(d) {
     freqPct: d.freqPct,
     activeCells: d.activeCells,
     noVisit: d.noVisit,
-    noVisitNames: d.noVisitNames,
+    noVisitDetails: d.noVisitDetails,
     zeroVisits: d.zeroVisits,
-    zeroVisitsNames: d.zeroVisitsNames,
+    zeroVisitsDetails: d.zeroVisitsDetails,
     avgMembers: d.avgMembers,
     tracks: store.tracks,
     trackCounts: d.trackCounts,
