@@ -54,12 +54,6 @@ window.addEventListener('system-settings-loaded', () => {
     if (logoEl && s.logoUrl) {
         logoEl.innerHTML = `<img src="${s.logoUrl}" alt="${s.appName}" class="max-h-full max-w-full rounded-lg" />`;
     }
-
-    // Splash screen update (for soft reloads)
-    const splashLogoBox = document.getElementById('splash-logo-container');
-    if (splashLogoBox && s.logoUrl) {
-        splashLogoBox.innerHTML = `<img src="${s.logoUrl}" alt="${s.appName}" class="max-h-full max-w-full rounded-xl object-contain" />`;
-    }
 });
 
 startRouter();

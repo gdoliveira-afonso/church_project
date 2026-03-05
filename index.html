@@ -41,21 +41,7 @@
                 }
             })();
 
-        // Apply custom logo to splash screen before paint to prevent blink/overlap
-        window.addEventListener('DOMContentLoaded', () => {
-            try {
-                const ls = localStorage.getItem('system-settings');
-                if (ls) {
-                    const settings = JSON.parse(ls);
-                    if (settings.logoUrl) {
-                        const splashLogoBox = document.getElementById('splash-logo-container');
-                        if (splashLogoBox) {
-                            splashLogoBox.innerHTML = `<img src="${settings.logoUrl}" class="max-h-full max-w-full rounded-xl object-contain" />`;
-                        }
-                    }
-                }
-            } catch (e) { }
-        });
+
     </script>
     <style>
         /* ── Splash Screen & Preload ── */
@@ -342,16 +328,7 @@
 
     <!-- Splash Screen -->
     <div id="splash-screen">
-        <div class="flex items-center justify-center">
-            <div id="splash-logo-container"
-                class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" height="32px" viewBox="0 -960 960 960" width="32px"
-                    fill="currentColor">
-                    <path
-                        d="M480-120v-80h160v-240L480-692 320-440v240h160v80H240v-320L480-840l240 380v340H480ZM360-320h240v-60H360v60Zm0-140h240v-60H360v60ZM480-560q17 0 28.5-11.5T520-600q0-17-11.5-28.5T480-640q-17 0-28.5 11.5T440-600q0 17 11.5 28.5T480-560Z" />
-                </svg>
-            </div>
-        </div>
+
         <div class="spinner"></div>
     </div>
 
