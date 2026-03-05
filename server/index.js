@@ -107,6 +107,14 @@ async function seedAdmin() {
             VALUES (?, ?, CURRENT_TIMESTAMP)
         `, notifKey, notifDefault);
     } catch (e) { /* já existe */ }
+
+    // Migração de tokenVersion para usuários antigos
+    try {
+        await prisma.user.updateMany({
+            where: { tokenVersion: null },
+            data: { tokenVersion: 0 }
+        });
+    } catch (e) { /* se a coluna não existir ainda, silencia */ }
 }
 
 // Inicializa a seed
@@ -129,7 +137,10 @@ function authenticateToken(req, res, next) {
                 select: { role: true, generationId: true, tokenVersion: true }
             });
 
-            if (!dbUser || dbUser.tokenVersion !== user.version) {
+            const dbVersion = dbUser.tokenVersion || 0;
+            const tokenVersion = user.version || 0;
+
+            if (!dbUser || dbVersion !== tokenVersion) {
                 return res.sendStatus(403); // Token invalidado (senha trocada ou usuário removido)
             }
 
@@ -174,7 +185,7 @@ app.post('/api/login', async (req, res) => {
             username: user.username,
             role: user.role,
             generationId: user.generationId,
-            version: user.tokenVersion
+            version: user.tokenVersion || 0
         };
 
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '24h' });

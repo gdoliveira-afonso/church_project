@@ -76,10 +76,14 @@ router.put('/:id', async (req, res) => {
 
     if (password) {
         updateData.password = await bcrypt.hash(password, 10);
-        updateData.tokenVersion = { increment: 1 };
     }
 
     try {
+        const existingUser = await prisma.user.findUnique({ where: { id: req.params.id } });
+        if (password && existingUser) {
+            updateData.tokenVersion = (existingUser.tokenVersion || 0) + 1;
+        }
+
         const user = await prisma.user.update({
             where: { id: req.params.id },
             data: updateData,
@@ -114,7 +118,7 @@ router.put('/:id/change-password', async (req, res) => {
             where: { id: targetId },
             data: {
                 password: hashedPassword,
-                tokenVersion: { increment: 1 }
+                tokenVersion: (user.tokenVersion || 0) + 1
             }
         });
 
