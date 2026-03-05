@@ -124,13 +124,19 @@ function authenticateToken(req, res, next) {
     jwt.verify(token, JWT_SECRET, async (err, user) => {
         if (err) return res.sendStatus(403);
         try {
-            const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true, generationId: true } });
-            if (dbUser) {
-                user.role = dbUser.role;
-                user.generationId = dbUser.generationId;
+            const dbUser = await prisma.user.findUnique({
+                where: { id: user.id },
+                select: { role: true, generationId: true, tokenVersion: true }
+            });
+
+            if (!dbUser || dbUser.tokenVersion !== user.version) {
+                return res.sendStatus(403); // Token invalidado (senha trocada ou usuário removido)
             }
+
+            user.role = dbUser.role;
+            user.generationId = dbUser.generationId;
         } catch (error) {
-            // Ignora pra não travar login em caso isolado de db timeout
+            // Se falhar o DB, ainda deixamos passar se o token for válido e o payload estiver ok
         }
         req.user = user;
         next();
@@ -167,7 +173,8 @@ app.post('/api/login', async (req, res) => {
             id: user.id,
             username: user.username,
             role: user.role,
-            generationId: user.generationId
+            generationId: user.generationId,
+            version: user.tokenVersion
         };
 
         const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '24h' });

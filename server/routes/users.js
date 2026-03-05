@@ -76,6 +76,7 @@ router.put('/:id', async (req, res) => {
 
     if (password) {
         updateData.password = await bcrypt.hash(password, 10);
+        updateData.tokenVersion = { increment: 1 };
     }
 
     try {
@@ -111,7 +112,10 @@ router.put('/:id/change-password', async (req, res) => {
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         await prisma.user.update({
             where: { id: targetId },
-            data: { password: hashedPassword }
+            data: {
+                password: hashedPassword,
+                tokenVersion: { increment: 1 }
+            }
         });
 
         res.json({ success: true, message: 'Senha alterada com sucesso' });
