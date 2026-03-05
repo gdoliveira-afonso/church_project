@@ -137,10 +137,12 @@ function authenticateToken(req, res, next) {
                 select: { role: true, generationId: true, tokenVersion: true }
             });
 
+            if (!dbUser) return res.sendStatus(403);
+
             const dbVersion = dbUser.tokenVersion || 0;
             const tokenVersion = user.version || 0;
 
-            if (!dbUser || dbVersion !== tokenVersion) {
+            if (dbVersion !== tokenVersion) {
                 return res.sendStatus(403); // Token invalidado (senha trocada ou usuário removido)
             }
 

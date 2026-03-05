@@ -125,7 +125,8 @@ router.put('/:id/change-password', async (req, res) => {
         res.json({ success: true, message: 'Senha alterada com sucesso' });
         req.log?.('UPDATE', 'users', user.id, `Alterou senha de ${user.username}`);
     } catch (error) {
-        res.status(500).json({ error: 'Erro ao alterar senha' });
+        console.error('Erro detalhado ao alterar senha:', error);
+        res.status(500).json({ error: 'Erro ao alterar senha: ' + error.message });
     }
 });
 
