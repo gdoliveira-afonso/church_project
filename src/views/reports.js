@@ -62,13 +62,18 @@ export function reportsView() {
     const acompanhamentos = visitsInPeriod.filter(v => v.type === 'Visita de Acompanhamento').length;
 
     const ago60 = new Date(); ago60.setDate(ago60.getDate() - 60);
-    const noVisit = people.filter(p => {
+    const noVisitPeople = people.filter(p => {
       const pv = store.getVisitsForPerson(p.id);
       if (!pv.length) return false;
       const lastV = Math.max(...pv.map(v => new Date(v.date).getTime()));
       return lastV < ago60.getTime();
-    }).length;
-    const zeroVisits = people.filter(p => store.getVisitsForPerson(p.id).length === 0).length;
+    });
+    const noVisit = noVisitPeople.length;
+    const noVisitNames = noVisitPeople.map(p => p.name);
+
+    const zeroVisitsPeople = people.filter(p => store.getVisitsForPerson(p.id).length === 0);
+    const zeroVisits = zeroVisitsPeople.length;
+    const zeroVisitsNames = zeroVisitsPeople.map(p => p.name);
 
     const activeCells = store.cells.length;
     const avgMembers = activeCells ? Math.round(people.filter(p => p.cellId).length / activeCells) : 0;
@@ -117,7 +122,7 @@ export function reportsView() {
     return {
       people, total, inPeriod, novosConvertidos, reconciliacoes, visitantes,
       inativos, afastados, mudouSe,
-      visitsInPeriod, consolidacoes, acompanhamentos, noVisit, zeroVisits, activeCells, avgMembers, freqPct, presentRec,
+      visitsInPeriod, consolidacoes, acompanhamentos, noVisit, noVisitNames, zeroVisits, zeroVisitsNames, activeCells, avgMembers, freqPct, presentRec,
       totalAttRec, periodLabel, startDate, endDate, allVisits, trackCounts, customFieldTotals
     };
   }
@@ -869,7 +874,9 @@ function preparePdfPayload(d) {
     freqPct: d.freqPct,
     activeCells: d.activeCells,
     noVisit: d.noVisit,
+    noVisitNames: d.noVisitNames,
     zeroVisits: d.zeroVisits,
+    zeroVisitsNames: d.zeroVisitsNames,
     avgMembers: d.avgMembers,
     tracks: store.tracks,
     trackCounts: d.trackCounts,

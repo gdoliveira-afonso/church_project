@@ -234,8 +234,25 @@ function renderExecutiveSummary(d) {
     if (d.visitantes > 0) insights.push(`Foram cadastrados ${d.visitantes} novos visitantes na base.`);
     if (d.novosConvertidos > 0) insights.push(`Tivemos ${d.novosConvertidos} conversões/decisões no período.`);
 
-    if (d.zeroVisits > 0) insights.push(`Existem ${d.zeroVisits} membros ativos que nunca receberam registro de visita pastoral.`);
-    if (d.noVisit > 0) insights.push(`${d.noVisit} pessoas estão há mais de 60 dias sem acompanhamento.`);
+    if (d.zeroVisits > 0) {
+        let nameStr = '';
+        if (d.zeroVisitsNames && d.zeroVisitsNames.length > 0) {
+            const list = d.zeroVisitsNames;
+            const excerpt = list.slice(0, 10).join(', ') + (list.length > 10 ? ` e mais ${list.length - 10} pessoas` : '');
+            nameStr = `<br/><span style="color:#64748b; font-size:11px; margin-top:4px; display:inline-block;">↳ <b>Membros afetados:</b> ${excerpt}</span>`;
+        }
+        insights.push(`Existem ${d.zeroVisits} membros ativos que nunca receberam registro de visita pastoral.${nameStr}`);
+    }
+
+    if (d.noVisit > 0) {
+        let nameStr = '';
+        if (d.noVisitNames && d.noVisitNames.length > 0) {
+            const list = d.noVisitNames;
+            const excerpt = list.slice(0, 10).join(', ') + (list.length > 10 ? ` e mais ${list.length - 10} pessoas` : '');
+            nameStr = `<br/><span style="color:#64748b; font-size:11px; margin-top:4px; display:inline-block;">↳ <b>Membros afetados:</b> ${excerpt}</span>`;
+        }
+        insights.push(`${d.noVisit} pessoas estão há mais de 60 dias sem acompanhamento.${nameStr}`);
+    }
 
     if (d.activeCells === 0) insights.push(`Não há células ativas nos filtros de pesquisa atuais.`);
     else insights.push(`A média de membros por célula atualmente é de ${d.avgMembers} pessoas.`);
