@@ -265,11 +265,16 @@ router.put('/:id', async (req, res) => {
             if (newMarked.length) {
                 const tracks = await prisma.track.findMany({ where: { id: { in: newMarked } } });
                 for (const track of tracks) {
-                    await createMilestone(req.params.id, {
-                        type: 'TRACK_COMPLETED', label: track.name,
-                        icon: track.icon || 'star', color: track.color || 'emerald',
-                        date: today
+                    const existingMilestone = await prisma.personMilestone.findFirst({
+                        where: { personId: req.params.id, type: 'TRACK_COMPLETED', label: track.name }
                     });
+                    if (!existingMilestone) {
+                        await createMilestone(req.params.id, {
+                            type: 'TRACK_COMPLETED', label: track.name,
+                            icon: track.icon || 'star', color: track.color || 'emerald',
+                            date: today
+                        });
+                    }
                 }
             }
         }
