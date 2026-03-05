@@ -336,12 +336,14 @@ class Store {
     async addCell(c) {
         const res = await this.apiFetch('/cells', { method: 'POST', body: JSON.stringify(c) });
         this.cells.push(res);
+        this.people = await this.apiFetch('/people'); // Sync assignments
         return res;
     }
     async updateCell(id, d) {
         const res = await this.apiFetch(`/cells/${id}`, { method: 'PUT', body: JSON.stringify(d) });
         const idx = this.cells.findIndex(x => x.id === id);
         if (idx !== -1) this.cells[idx] = res;
+        this.people = await this.apiFetch('/people'); // Sync assignments
         return res;
     }
     async deleteCell(id) {
