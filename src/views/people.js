@@ -54,10 +54,10 @@ export function peopleView() {
           <div class="flex items-center justify-between gap-2"><p class="text-sm font-semibold truncate">${p.name}</p>${badge(p.status, statusColor(p.status))}</div>
           <p class="text-[11px] text-slate-500 truncate mt-0.5">${cell ? cell.name : 'Sem Célula'}</p>
           <div class="flex gap-1.5 mt-1">
-            <span class="material-symbols-outlined text-[14px] ${p.spiritual?.waterBaptism ? 'text-blue-500 filled' : 'text-slate-300'}">water_drop</span>
-            <span class="material-symbols-outlined text-[14px] ${p.spiritual?.holySpiritBaptism ? 'text-orange-500 filled' : 'text-slate-300'}">local_fire_department</span>
-            <span class="material-symbols-outlined text-[14px] ${p.spiritual?.leadersSchool ? 'text-purple-500 filled' : 'text-slate-300'}">school</span>
-            <span class="material-symbols-outlined text-[14px] ${p.retreats?.encounter?.done ? 'text-emerald-500 filled' : 'text-slate-300'}">volunteer_activism</span>
+            ${store.tracks.map(t => {
+        const done = p.tracksData && p.tracksData[t.id];
+        return `<span class="material-symbols-outlined text-[14px] ${done ? `text-${t.color}-500 filled` : 'text-slate-300'}" title="${t.name}">${t.icon}</span>`;
+      }).join('')}
           </div>
         </div>
         <span class="material-symbols-outlined text-slate-300 group-hover:text-primary text-lg">chevron_right</span>
