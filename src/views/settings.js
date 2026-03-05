@@ -752,9 +752,18 @@ function editNameModal() {
 function editPassModal() {
   openModal(`<div class="p-6"><div class="flex justify-between items-center mb-5"><h3 class="text-base font-bold">Alterar Senha</h3><button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="p-1 rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-slate-400">close</span></button></div>
   <div class="space-y-3">
-    <input id="inp-op" type="password" placeholder="Senha atual" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
-    <input id="inp-np" type="password" placeholder="Nova senha" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
-    <input id="inp-cp" type="password" placeholder="Confirmar nova senha" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+    <div class="relative">
+      <input id="inp-op" type="password" placeholder="Senha atual" class="w-full pl-3 pr-10 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+      <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors" onclick="const i = this.previousElementSibling; i.type = i.type === 'password' ? 'text' : 'password'; this.firstElementChild.textContent = i.type === 'password' ? 'visibility' : 'visibility_off'"><span class="material-symbols-outlined text-lg">visibility</span></button>
+    </div>
+    <div class="relative">
+      <input id="inp-np" type="password" placeholder="Nova senha" class="w-full pl-3 pr-10 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+      <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors" onclick="const i = this.previousElementSibling; i.type = i.type === 'password' ? 'text' : 'password'; this.firstElementChild.textContent = i.type === 'password' ? 'visibility' : 'visibility_off'"><span class="material-symbols-outlined text-lg">visibility</span></button>
+    </div>
+    <div class="relative">
+      <input id="inp-cp" type="password" placeholder="Confirmar nova senha" class="w-full pl-3 pr-10 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+      <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors" onclick="const i = this.previousElementSibling; i.type = i.type === 'password' ? 'text' : 'password'; this.firstElementChild.textContent = i.type === 'password' ? 'visibility' : 'visibility_off'"><span class="material-symbols-outlined text-lg">visibility</span></button>
+    </div>
     <button id="btn-sp" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition mt-1">Alterar Senha</button>
   </div></div>`);
   document.getElementById('btn-sp').onclick = async () => {
@@ -776,7 +785,10 @@ function userModal(id) {
   <form id="user-form" class="space-y-3">
     <input id="uf-name" placeholder="Nome completo" value="${e?.name || ''}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
     <input id="uf-username" type="text" placeholder="Nome de usuário (sem espaços)" value="${e?.username || ''}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
-    ${!e ? `<input id="uf-pass" type="password" placeholder="Senha inicial" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" required/>` : (store.currentUser.role === 'ADMIN' ? `<input id="uf-pass" type="password" placeholder="Nova senha (deixe vazio para manter)" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>` : '')}
+    <div class="relative">
+      ${!e ? `<input id="uf-pass" type="password" placeholder="Senha inicial" class="w-full pl-3 pr-10 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20" required/>` : (store.currentUser.role === 'ADMIN' ? `<input id="uf-pass" type="password" placeholder="Nova senha (deixe vazio para manter)" class="w-full pl-3 pr-10 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/>` : '')}
+      ${!e || store.currentUser.role === 'ADMIN' ? `<button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors" onclick="const i = this.previousElementSibling; i.type = i.type === 'password' ? 'text' : 'password'; this.firstElementChild.textContent = i.type === 'password' ? 'visibility' : 'visibility_off'"><span class="material-symbols-outlined text-lg">visibility</span></button>` : ''}
+    </div>
     <div><p class="text-xs font-semibold text-slate-600 mb-1.5">Função</p><div class="grid grid-cols-2 gap-1.5" id="role-grid">${allowedRoles.map(([k, v]) => `<button type="button" class="role-opt flex items-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-medium transition ${(e?.role || 'LEADER') === k ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary' : 'border-slate-200 text-slate-500 hover:border-slate-300'}" data-r="${k}"><span class="material-symbols-outlined text-[16px]">${k === 'ADMIN' ? 'shield_person' : k === 'SUPERVISOR' ? 'supervisor_account' : k === 'LIDER_GERACAO' ? 'groups' : 'person'}</span>${v}</button>`).join('')}</div><input type="hidden" id="uf-role" value="${e?.role || 'LEADER'}"/></div>
     <div id="gen-div" class="${(e?.role === 'LIDER_GERACAO') ? '' : 'hidden'} mt-3">
         <label class="text-xs font-semibold text-slate-600 mb-1 block">Geração (Obrigatório para Líder de Geração)</label>
