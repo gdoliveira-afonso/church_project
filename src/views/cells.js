@@ -7,7 +7,7 @@ export function cellsView() {
   ${header('Células', false, store.hasRole('ADMIN', 'SUPERVISOR') ? `<button id="btn-add-cell" class="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"><span class="material-symbols-outlined text-lg">add</span></button>` : '')}
   <div class="flex-1 overflow-y-auto px-4 md:px-6 py-4">
     ${(() => {
-      const visibleCells = store.hasRole('ADMIN', 'SUPERVISOR') ? store.cells : store.cells.filter(c => c.leaderId === store.currentUser?.id || c.viceLeaderId === store.currentUser?.id || (store.currentUser?.role === 'LIDER_GERACAO' && c.generationId === store.currentUser?.generationId));
+      const visibleCells = store.getVisibleCells();
       return visibleCells.length ? `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">${visibleCells.map(c => {
         const leader = store.users.find(u => u.id === c.leaderId); const vice = c.viceLeaderId ? store.users.find(u => u.id === c.viceLeaderId) : null; const mem = store.getCellMembers(c.id);
         return `<a href="#/cell?id=${c.id}" class="block bg-white rounded-xl p-4 border border-slate-100 hover:border-primary/30 hover:shadow-sm transition group">

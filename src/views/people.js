@@ -33,10 +33,10 @@ export function peopleView() {
     const q = document.getElementById('search')?.value.toLowerCase() || '';
     let pp = [...store.people];
 
-    // Restrict view for leaders/vice-leaders
+    // Restrict view based on role
     if (!store.hasRole('ADMIN', 'SUPERVISOR')) {
-      const myCells = store.cells.filter(c => c.leaderId === store.currentUser?.id || c.viceLeaderId === store.currentUser?.id).map(c => c.id);
-      pp = pp.filter(p => myCells.includes(p.cellId) || p.id === store.currentUser?.id); // leader included in grid
+      const myVisibleCellIds = store.getVisibleCells().map(c => c.id);
+      pp = pp.filter(p => myVisibleCellIds.includes(p.cellId) || p.id === store.currentUser?.id);
     }
 
     const findTrackId = (name) => store.tracks.find(t => t.name.toLowerCase().includes(name.toLowerCase()))?.id;
