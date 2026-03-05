@@ -272,8 +272,12 @@ class Store {
             },
             body: JSON.stringify({ oldPassword, newPassword })
         });
-        if (res.status === 401) throw new Error('Senha atual incorreta');
-        if (!res.ok) throw new Error('Erro ao alterar senha');
+
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || 'Erro ao alterar senha');
+        }
+
         return await res.json();
     }
 
