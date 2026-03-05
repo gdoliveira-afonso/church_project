@@ -13,8 +13,7 @@ export function cellsView() {
         return `<a href="#/cell?id=${c.id}" class="block bg-white rounded-xl p-4 border border-slate-100 hover:border-primary/30 hover:shadow-sm transition group">
         <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600"><span class="material-symbols-outlined">diversity_3</span></div><div class="flex-1"><h3 class="text-sm font-bold">${c.name}</h3><p class="text-[11px] text-slate-500">${c.meetingDay || ''} ${c.meetingTime ? 'às ' + c.meetingTime : ''}</p></div><span class="material-symbols-outlined text-slate-300 group-hover:text-primary text-lg">chevron_right</span></div>
         <div class="flex flex-col text-[11px] text-slate-500 mb-2 space-y-0.5"><span>Líder: ${leader?.name || 'N/A'}</span>${vice ? `<span>Vice: ${vice.name}</span>` : ''}</div>
-        <div class="flex justify-between text-[11px] text-slate-500"><span>Membros:</span><span>${mem.length}/${c.capacity || '∞'}</span></div>
-        ${c.capacity ? `<div class="mt-1 w-full bg-slate-100 rounded-full h-1"><div class="bg-primary rounded-full h-1 transition-all" style="width:${Math.min(mem.length / c.capacity * 100, 100)}%"></div></div>` : ''}
+        <div class="flex justify-between text-[11px] text-slate-500"><span>Membros:</span><span>${mem.length}</span></div>
       </a>`}).join('')}</div>` : `<div class="flex flex-col items-center justify-center py-16"><span class="material-symbols-outlined text-5xl text-slate-200 mb-3">group_off</span><p class="text-sm text-slate-400">Nenhuma célula encontrada</p>${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="document.getElementById('btn-add-cell').click()" class="mt-3 text-sm text-primary font-semibold">+ Criar primeira célula</button>` : ''}</div>`;
     })()}
   </div>
@@ -33,10 +32,7 @@ function cellForm(cellId) {
       <option value="">Selecionar dia...</option>
       ${['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'].map(d => `<option value="${d}" ${c?.meetingDay === d ? 'selected' : ''}>${d}</option>`).join('')}
     </select></div>
-    <div class="grid grid-cols-2 gap-3">
-      <div><label class="text-xs font-semibold text-slate-600 mb-1 block">Horário</label><input id="cf-time" type="time" value="${c?.meetingTime || ''}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/></div>
-      <div><label class="text-xs font-semibold text-slate-600 mb-1 block">Capacidade</label><input id="cf-cap" type="number" value="${c?.capacity || 12}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none"/></div>
-    </div>
+    <div><label class="text-xs font-semibold text-slate-600 mb-1 block">Horário</label><input id="cf-time" type="time" value="${c?.meetingTime || ''}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/></div>
     <div><label class="text-xs font-semibold text-slate-600 mb-1 block">Endereço</label><input id="cf-addr" value="${c?.address || ''}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none" placeholder="Rua..."/></div>
     <div class="grid grid-cols-2 gap-3">
       <div><label class="text-xs font-semibold text-slate-600 mb-1 block">Líder</label>
@@ -62,7 +58,7 @@ function cellForm(cellId) {
     const btn = e.target.querySelector('button[type="submit"]');
     const orig = btn.innerHTML; btn.innerHTML = 'Salvando...'; btn.disabled = true;
 
-    const data = { name: document.getElementById('cf-name').value.trim(), meetingDay: document.getElementById('cf-day').value, meetingTime: document.getElementById('cf-time').value, capacity: parseInt(document.getElementById('cf-cap').value) || 12, address: document.getElementById('cf-addr').value, leaderId: document.getElementById('cf-leader').value, viceLeaderId: document.getElementById('cf-vice-leader').value || null, generationId: document.getElementById('cf-generation').value || null, region: '' };
+    const data = { name: document.getElementById('cf-name').value.trim(), meetingDay: document.getElementById('cf-day').value, meetingTime: document.getElementById('cf-time').value, address: document.getElementById('cf-addr').value, leaderId: document.getElementById('cf-leader').value, viceLeaderId: document.getElementById('cf-vice-leader').value || null, generationId: document.getElementById('cf-generation').value || null, region: '' };
     if (!data.name) { toast('Nome obrigatório', 'error'); btn.innerHTML = orig; btn.disabled = false; return }
 
     try {
