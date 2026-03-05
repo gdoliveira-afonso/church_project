@@ -996,6 +996,8 @@ function openTriageDetail(id) {
     const parts = birthdate.split('/');
     if (parts.length === 3) birthdate = `${parts[2]}-${parts[1]}-${parts[0]}`;
   }
+  const addressKey = Object.keys(t.data).find(k => k.toLowerCase().includes('endereço') || k.toLowerCase().includes('endereco') || k.toLowerCase().includes('rua') || k.toLowerCase().includes('bairro'));
+  const address = addressKey ? t.data[addressKey] : '';
   const isDone = t.status === 'done' || t.status === 'rejected';
   const statusLabel = f?.personStatus || 'Sem status definido';
   const statusColor = f?.personStatus === 'Novo Convertido' ? 'emerald' : f?.personStatus === 'Reconciliação' ? 'purple' : 'slate';
@@ -1037,6 +1039,10 @@ function openTriageDetail(id) {
         <input id="tr-birth" type="date" value="${birthdate}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
       </div>
       <div>
+        <label class="text-xs font-semibold text-slate-600 mb-1 block">Endereço</label>
+        <input id="tr-address" value="${address}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Rua, Bairro, CEP"/>
+      </div>
+      <div>
         <label class="text-xs font-semibold text-slate-600 mb-1 block">Atribuir à Célula</label>
         <select id="tr-cell" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20">
           <option value="">— Sem célula (definir depois) —</option>
@@ -1066,6 +1072,7 @@ function openTriageDetail(id) {
       const trName = document.getElementById('tr-name').value.trim() || name || 'Sem nome';
       const trPhone = document.getElementById('tr-phone').value.trim();
       const trBirth = document.getElementById('tr-birth').value;
+      const trAddress = document.getElementById('tr-address').value.trim();
       const trCell = document.getElementById('tr-cell').value;
       const trGenSelect = document.getElementById('tr-generation');
       const trGeneration = trGenSelect ? trGenSelect.value : '';
@@ -1080,7 +1087,7 @@ function openTriageDetail(id) {
       }
 
       const personData = {
-        name: trName, phone: trPhone, birthdate: trBirth,
+        name: trName, phone: trPhone, birthdate: trBirth, address: trAddress,
         status: f?.personStatus || 'Novo Convertido',
         cellId: trCell || undefined,
         createdAt: new Date().toISOString(),
