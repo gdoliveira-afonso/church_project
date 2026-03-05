@@ -216,10 +216,10 @@ export async function calendarView() {
         cellActionsModal(cellId, dateStr);
     };
 
-    window.toggleCalendarCell = (e, cellId, dateStr) => {
+    window.toggleCalendarCell = async (e, cellId, dateStr) => {
         e.stopPropagation();
         if (store.hasRole('ADMIN', 'SUPERVISOR')) {
-            store.toggleCellCancellation(cellId, dateStr, store.currentUser.id);
+            await store.toggleCellCancellation(cellId, dateStr, store.currentUser.id);
             calendarView();
         }
     };
@@ -506,16 +506,16 @@ function cellActionsModal(cellId, dateStr) {
 
         const btnUndo = document.getElementById('btn-undo-cancel');
         if (btnUndo) {
-            btnUndo.onclick = () => {
-                store.toggleCellCancellation(c.id, dateStr, store.currentUser.id);
+            btnUndo.onclick = async () => {
+                await store.toggleCellCancellation(c.id, dateStr, store.currentUser.id);
                 closeModal(); toast('Cancelamento desfeito com sucesso!'); calendarView();
             };
         }
 
         const btnCancel = document.getElementById('btn-cancel-cell-day');
         if (btnCancel) {
-            btnCancel.onclick = () => {
-                store.toggleCellCancellation(c.id, dateStr, store.currentUser.id);
+            btnCancel.onclick = async () => {
+                await store.toggleCellCancellation(c.id, dateStr, store.currentUser.id);
                 closeModal(); toast('Célula cancelada com sucesso!'); calendarView();
             };
         }
@@ -531,10 +531,10 @@ function cellActionsModal(cellId, dateStr) {
                 </form>
                 </div>`);
 
-                document.getElementById('just-form').onsubmit = (e) => {
+                document.getElementById('just-form').onsubmit = async (e) => {
                     e.preventDefault();
                     const reason = document.getElementById('jf-reason').value.trim();
-                    store.justifyCellAbsence(cellId, dateStr, reason, store.currentUser.id);
+                    await store.justifyCellAbsence(cellId, dateStr, reason, store.currentUser.id);
                     closeModal(); toast('Justificativa enviada!');
                     calendarView();
                 };
