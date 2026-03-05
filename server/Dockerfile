@@ -18,13 +18,14 @@ RUN apt-get update && apt-get install -y \
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
-# Copia o restante do projeto do backend (inclui a pasta prisma/ contendo o SQLite local)
+# Copia o restante do projeto do backend
 COPY . .
 
-# Gera o Prisma Client DENTRO do sistema operacional do container (Debian Músculo)
-RUN npx prisma generate
+# Backup do schema para garantir que ele não seja sobrescrito pelo volume no runtime
+RUN cp prisma/schema.prisma /app/schema.prisma.backup
 
-# Mantém o Prisma CLI instalado para rodar migrations (db push) na inicialização do container
+# Gera o Prisma Client inicial
+RUN npx prisma generate
 
 ENV NODE_ENV=production
 ENV PORT=3000
@@ -32,4 +33,6 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Atualiza o banco com eventuais novos campos do schema.prisma ANTES de rodar a aplicação
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node index.js"]
+# Atualiza o banco e gera o client ANTES de rodar a aplicação
+# O 'cp' garante que o volume não sobrescreva o schema atualizado do código
+CMD ["sh", "-c", "cp /app/schema.prisma.backup /app/prisma/schema.prisma && npx prisma db push --accept-data-loss && npx prisma generate && node index.js"]
