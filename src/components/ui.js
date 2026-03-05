@@ -40,12 +40,13 @@ export function updateSidebar(active) {
   if (!sb) return;
 
   // Centralized visibility logic
-  if (!store.currentUser) {
+  const currentHash = (location.hash || '').replace('#', '').split('?')[0];
+  const isPublicRoute = currentHash === '/login' || currentHash === '' || currentHash.startsWith('/f');
+
+  if (!store.currentUser || isPublicRoute) {
     sb.classList.add('sidebar-hidden');
     return;
   } else {
-    // Only show if not a public route (checked by presence of loginView or similar if needed, 
-    // but usually currentUser presence is enough for private routes)
     sb.classList.remove('sidebar-hidden');
   }
 
