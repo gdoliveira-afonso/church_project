@@ -304,7 +304,7 @@ function renderMembersTable(d) {
             ${vc.phone !== false ? `<td>${p.phone || '—'}</td>` : ''}
             ${tracks.filter(t => vc[t.id] !== false).map(t => {
             const checked = p.tracksData && p.tracksData[t.id];
-            return `<td class="text-center" style="color: ${checked ? '#16a34a' : '#94a3b8'}">${checked ? '✓' : '-'}</td>`;
+            return `<td class="text-center" style="color: ${checked ? '#16a34a' : '#94a3b8'}">${checked ? '<b>Sim</b>' : '-'}</td>`;
         }).join('')}
             ${vc.visits !== false ? `<td class="text-center font-bold">${p.visitsCount || 0}</td>` : ''}
         </tr>`;
