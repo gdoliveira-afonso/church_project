@@ -263,6 +263,10 @@ class Store {
     async updateEmail(email) {
         return this.updateUser(this.currentUser.id, { email });
     }
+    async deleteUser(id) {
+        await this.apiFetch(`/users/${id}`, { method: 'DELETE' });
+        this.users = this.users.filter(u => u.id !== id);
+    }
     async changePassword(userId, oldPassword, newPassword) {
         const res = await fetch(`${API_URL}/users/${userId}/change-password`, {
             method: 'PUT',
