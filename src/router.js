@@ -13,8 +13,8 @@ export function startRouter() {
             // Show custom splash screen for the transition
             document.body.classList.remove('app-ready');
 
-            setTimeout(() => {
-                if (h) h(params);
+            setTimeout(async () => {
+                if (h) await h(params);
                 updateSidebar();
 
                 // Trigger reflow then hide splash screen
