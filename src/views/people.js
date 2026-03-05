@@ -48,7 +48,7 @@ export function peopleView() {
     if (filter === 'not-baptized') pp = pp.filter(p => !p.tracksData?.[tBatismo]);
     if (filter === 'no-school') pp = pp.filter(p => !p.tracksData?.[tEscola]);
     if (filter === 'no-encounter') pp = pp.filter(p => !p.tracksData?.[tEncontro]);
-    if (filter === 'no-visit') pp = pp.filter(p => !store.getVisitsForPerson(p.id).length);
+    if (filter === 'no-visit') pp = pp.filter(p => p.status !== 'Líder' && !store.getVisitsForPerson(p.id).length);
     if (filter === 'no-cell') pp = pp.filter(p => !p.cellId);
     document.getElementById('count').textContent = `${pp.length} membros`;
     document.getElementById('list').innerHTML = pp.length ? `<div class="md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-3 md:p-4">${pp.map(p => {

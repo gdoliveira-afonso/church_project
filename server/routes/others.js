@@ -218,13 +218,15 @@ router.get('/metrics', async (req, res) => {
 
             const createdDaysAgo = Math.floor((now - new Date(p.createdAt)) / (1000 * 60 * 60 * 24));
 
-            if (p.visits && p.visits.length > 0) {
-                const lastVis = new Date(p.visits.sort((a, b) => b.date.localeCompare(a.date))[0].date);
-                const daysDiff = Math.floor((now - lastVis) / (1000 * 60 * 60 * 24));
-                if (daysDiff > noVisitDays && createdDaysAgo > noVisitDays) noVisit.push(p);
-            } else {
-                // Membro nunca foi visitado, vamos olhar se ele já é membro há mais de X dias pra poder alertar
-                if (createdDaysAgo > noVisitDays) noVisit.push(p);
+            if (p.status !== 'Líder') {
+                if (p.visits && p.visits.length > 0) {
+                    const lastVis = new Date(p.visits.sort((a, b) => b.date.localeCompare(a.date))[0].date);
+                    const daysDiff = Math.floor((now - lastVis) / (1000 * 60 * 60 * 24));
+                    if (daysDiff > noVisitDays && createdDaysAgo > noVisitDays) noVisit.push(p);
+                } else {
+                    // Membro nunca foi visitado, vamos olhar se ele já é membro há mais de X dias pra poder alertar
+                    if (createdDaysAgo > noVisitDays) noVisit.push(p);
+                }
             }
 
             if (p.status === 'Novo Convertido') {
