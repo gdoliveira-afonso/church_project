@@ -160,7 +160,7 @@ router.put('/:id', async (req, res) => {
         // Busca status anterior para ver se virou novo convertido agora
         const existing = await prisma.person.findUnique({
             where: { id: req.params.id },
-            include: { consolidation: true }
+            include: { consolidation: true, personTracks: true }
         });
 
         if (!existing) return res.status(404).json({ error: 'Pessoa não encontrada' });
