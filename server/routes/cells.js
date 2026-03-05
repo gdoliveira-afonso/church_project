@@ -140,6 +140,9 @@ router.delete('/:id', async (req, res) => {
         // O Prisma pode estar configurado para Restrict ou Set Null.
         // Como está `references: [id]` padrão, é preferível atualizar as pessoas se o banco reclamar.
 
+        const cell = await prisma.cell.findUnique({ where: { id: req.params.id }, select: { name: true } });
+        if (!cell) return res.status(404).json({ error: 'Célula não encontrada' });
+
         await prisma.person.updateMany({
             where: { cellId: req.params.id },
             data: { cellId: null }
@@ -150,7 +153,7 @@ router.delete('/:id', async (req, res) => {
         });
 
         res.json({ success: true });
-        req.log?.('DELETE', 'cells', req.params.id);
+        req.log?.('DELETE', 'cells', req.params.id, cell.name);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao deletar célula' });
     }

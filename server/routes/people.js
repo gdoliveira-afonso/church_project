@@ -286,11 +286,14 @@ router.put('/:id', async (req, res) => {
 // Deleta pessoa
 router.delete('/:id', async (req, res) => {
     try {
+        const person = await prisma.person.findUnique({ where: { id: req.params.id }, select: { name: true } });
+        if (!person) return res.status(404).json({ error: 'Pessoa não encontrada' });
+
         await prisma.person.delete({
             where: { id: req.params.id }
         });
         res.json({ success: true });
-        req.log?.('DELETE', 'people', req.params.id);
+        req.log?.('DELETE', 'people', req.params.id, person.name);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao deletar pessoa' });
     }

@@ -138,11 +138,14 @@ router.delete('/:id', async (req, res) => {
             return res.status(400).json({ error: 'Você não pode deletar a si mesmo' });
         }
 
+        const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+        if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+
         await prisma.user.delete({
             where: { id: req.params.id }
         });
         res.json({ success: true });
-        req.log?.('DELETE', 'users', req.params.id);
+        req.log?.('DELETE', 'users', req.params.id, `${user.name} (${user.username})`);
     } catch (error) {
         res.status(500).json({ error: 'Erro ao deletar usuário' });
     }
