@@ -39,10 +39,15 @@ export function peopleView() {
       pp = pp.filter(p => myCells.includes(p.cellId) || p.id === store.currentUser?.id); // leader included in grid
     }
 
+    const findTrackId = (name) => store.tracks.find(t => t.name.toLowerCase().includes(name.toLowerCase()))?.id;
+    const tBatismo = findTrackId('Batismo nas Águas');
+    const tEscola = findTrackId('Escola de Líderes');
+    const tEncontro = findTrackId('Encontro com Deus');
+
     if (q) pp = pp.filter(p => p.name.toLowerCase().includes(q));
-    if (filter === 'not-baptized') pp = pp.filter(p => !p.spiritual?.waterBaptism);
-    if (filter === 'no-school') pp = pp.filter(p => !p.spiritual?.leadersSchool);
-    if (filter === 'no-encounter') pp = pp.filter(p => !p.retreats?.encounter?.done);
+    if (filter === 'not-baptized') pp = pp.filter(p => !p.tracksData?.[tBatismo]);
+    if (filter === 'no-school') pp = pp.filter(p => !p.tracksData?.[tEscola]);
+    if (filter === 'no-encounter') pp = pp.filter(p => !p.tracksData?.[tEncontro]);
     if (filter === 'no-visit') pp = pp.filter(p => !store.getVisitsForPerson(p.id).length);
     if (filter === 'no-cell') pp = pp.filter(p => !p.cellId);
     document.getElementById('count').textContent = `${pp.length} membros`;

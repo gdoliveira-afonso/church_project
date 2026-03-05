@@ -46,10 +46,16 @@ export function reportsView() {
     const inativos = people.filter(p => p.status === 'Inativo').length;
     const afastados = people.filter(p => p.status === 'Afastado').length;
     const mudouSe = people.filter(p => p.status === 'Mudou-se').length;
-    const batismoAguas = people.filter(p => p.spiritual?.waterBaptism).length;
-    const batismoES = people.filter(p => p.spiritual?.holySpiritBaptism).length;
-    const escola = people.filter(p => p.spiritual?.leadersSchool).length;
-    const encontro = people.filter(p => p.retreats?.encounter?.done).length;
+    const findTrackId = (name) => store.tracks.find(t => t.name.toLowerCase().includes(name.toLowerCase()))?.id;
+    const tBatismo = findTrackId('Batismo nas Águas');
+    const tBatismoES = findTrackId('Batismo com o Espírito Santo');
+    const tEscola = findTrackId('Escola de Líderes');
+    const tEncontro = findTrackId('Encontro com Deus');
+
+    const batismoAguas = people.filter(p => p.tracksData?.[tBatismo]).length;
+    const batismoES = people.filter(p => p.tracksData?.[tBatismoES]).length;
+    const escola = people.filter(p => p.tracksData?.[tEscola]).length;
+    const encontro = people.filter(p => p.tracksData?.[tEncontro]).length;
 
     const pids = new Set(people.map(p => p.id));
     const allVisits = store.visits.filter(v => pids.has(v.personId));
@@ -642,12 +648,19 @@ function dot(val) {
 function exportMembersExcel(people) {
   const data = people.map(p => {
     const c = p.cellId ? store.getCell(p.cellId) : null;
+    const findTrackId = (name) => store.tracks.find(t => t.name.toLowerCase().includes(name.toLowerCase()))?.id;
+    const tBatismo = findTrackId('Batismo nas Águas');
+    const tBatismoES = findTrackId('Batismo com o Espírito Santo');
+    const tEscola = findTrackId('Escola de Líderes');
+    const tEncontro = findTrackId('Encontro com Deus');
+
     return {
       'Nome': p.name, 'Status': p.status || '', 'Telefone': p.phone || '', 'Email': p.email || '',
-      'Célula': c?.name || '', 'Batismo Águas': p.spiritual?.waterBaptism ? 'Sim' : 'Não',
-      'Esp. Santo': p.spiritual?.holySpiritBaptism ? 'Sim' : 'Não',
-      'Escola de Líderes': p.spiritual?.leadersSchool ? 'Sim' : 'Não',
-      'Encontro com Deus': p.retreats?.encounter?.done ? 'Sim' : 'Não',
+      'Célula': c?.name || '',
+      'Batismo Águas': p.tracksData?.[tBatismo] ? 'Sim' : 'Não',
+      'Esp. Santo': p.tracksData?.[tBatismoES] ? 'Sim' : 'Não',
+      'Escola de Líderes': p.tracksData?.[tEscola] ? 'Sim' : 'Não',
+      'Encontro com Deus': p.tracksData?.[tEncontro] ? 'Sim' : 'Não',
       'Visitas': store.getVisitsForPerson(p.id).length
     };
   });
