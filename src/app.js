@@ -79,14 +79,5 @@ window.addEventListener('store-data-loaded', () => {
     }
 });
 
-if (!store.isLoggedIn()) {
-    const isPublicRoute = window.location.hash.startsWith('#/f');
-    if (!isPublicRoute) {
-        if (document.fonts && document.fonts.ready) {
-            document.fonts.ready.then(window.__removeSplashScreen);
-        } else {
-            window.addEventListener('load', window.__removeSplashScreen);
-        }
-    }
-}
+
 

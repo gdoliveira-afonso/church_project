@@ -123,4 +123,9 @@ export async function loginView() {
   window.addEventListener('system-settings-loaded', () => {
     if (window.location.hash === '#/login' || !window.location.hash) render();
   }, { once: true });
+
+  // Hide splash screen smoothly after the actual content is available on screen
+  if (window.__removeSplashScreen) {
+    setTimeout(window.__removeSplashScreen, 50);
+  }
 }
