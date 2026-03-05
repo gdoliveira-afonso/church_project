@@ -91,6 +91,36 @@ router.put('/:id', async (req, res) => {
     }
 });
 
+// Alterar senha (com validação da senha atual)
+router.put('/:id/change-password', async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const targetId = req.params.id;
+
+    // Apenas o próprio usuário ou um ADMIN pode trocar a senha
+    if (req.user.id !== targetId && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ error: 'Sem permissão' });
+    }
+
+    try {
+        const user = await prisma.user.findUnique({ where: { id: targetId } });
+        if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+        const valid = await bcrypt.compare(oldPassword, user.password);
+        if (!valid) return res.status(401).json({ error: 'Senha atual incorreta' });
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await prisma.user.update({
+            where: { id: targetId },
+            data: { password: hashedPassword }
+        });
+
+        res.json({ success: true, message: 'Senha alterada com sucesso' });
+        req.log?.('UPDATE', 'users', user.id, `Alterou senha de ${user.username}`);
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao alterar senha' });
+    }
+});
+
 // Deleta usuário
 router.delete('/:id', async (req, res) => {
     try {

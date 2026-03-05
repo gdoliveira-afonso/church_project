@@ -260,10 +260,21 @@ class Store {
         if (this.currentUser?.id === id) { this.currentUser = res; localStorage.setItem('crm_user', JSON.stringify(res)); }
         return res;
     }
-    async deleteUser(id) {
-        await this.apiFetch(`/users/${id}`, { method: 'DELETE' });
-        this.users = this.users.filter(u => u.id !== id);
-        return true;
+    async updateEmail(email) {
+        return this.updateUser(this.currentUser.id, { email });
+    }
+    async changePassword(userId, oldPassword, newPassword) {
+        const res = await fetch(`${API_URL}/users/${userId}/change-password`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${this.token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ oldPassword, newPassword })
+        });
+        if (res.status === 401) throw new Error('Senha atual incorreta');
+        if (!res.ok) throw new Error('Erro ao alterar senha');
+        return await res.json();
     }
 
     // People

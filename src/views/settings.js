@@ -768,10 +768,20 @@ function editPassModal() {
   </div></div>`);
   document.getElementById('btn-sp').onclick = async () => {
     const o = document.getElementById('inp-op').value, n = document.getElementById('inp-np').value, c = document.getElementById('inp-cp').value;
-    if (o !== store.currentUser.password) { toast('Senha atual incorreta', 'error'); return }
+    if (!o) { toast('Digite a senha atual', 'error'); return }
     if (n.length < 4) { toast('Mínimo 4 caracteres', 'error'); return }
     if (n !== c) { toast('Senhas não coincidem', 'error'); return }
-    await store.updateUser(store.currentUser.id, { password: n }); closeModal(); toast('Senha alterada!');
+
+    const btn = document.getElementById('btn-sp');
+    const orig = btn.innerHTML; btn.innerHTML = 'Processando...'; btn.disabled = true;
+
+    try {
+      await store.changePassword(store.currentUser.id, o, n);
+      closeModal(); toast('Senha alterada!');
+    } catch (err) {
+      toast(err.message || 'Erro ao alterar senha', 'error');
+      btn.innerHTML = orig; btn.disabled = false;
+    }
   };
 }
 
