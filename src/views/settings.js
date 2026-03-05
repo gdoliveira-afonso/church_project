@@ -990,8 +990,6 @@ function openTriageDetail(id) {
   const name = nameKey ? t.data[nameKey] : '';
   const phoneKey = Object.keys(t.data).find(k => k.toLowerCase().includes('tele') || k.toLowerCase().includes('whats') || k.toLowerCase().includes('celular'));
   const phone = phoneKey ? t.data[phoneKey] : '';
-  const emailKey = Object.keys(t.data).find(k => k.toLowerCase().includes('email') || k.toLowerCase().includes('e-mail'));
-  const email = emailKey ? t.data[emailKey] : '';
   const birthKey = Object.keys(t.data).find(k => k.toLowerCase().includes('nascimento') || k.toLowerCase().includes('nasc'));
   let birthdate = birthKey ? t.data[birthKey] : '';
   if (birthdate && birthdate.includes('/')) {
@@ -1039,10 +1037,6 @@ function openTriageDetail(id) {
         <input id="tr-birth" type="date" value="${birthdate}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
       </div>
       <div>
-        <label class="text-xs font-semibold text-slate-600 mb-1 block">Email</label>
-        <input id="tr-email" value="${email}" type="email" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="email@exemplo.com"/>
-      </div>
-      <div>
         <label class="text-xs font-semibold text-slate-600 mb-1 block">Atribuir à Célula</label>
         <select id="tr-cell" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20">
           <option value="">— Sem célula (definir depois) —</option>
@@ -1072,7 +1066,6 @@ function openTriageDetail(id) {
       const trName = document.getElementById('tr-name').value.trim() || name || 'Sem nome';
       const trPhone = document.getElementById('tr-phone').value.trim();
       const trBirth = document.getElementById('tr-birth').value;
-      const trEmail = document.getElementById('tr-email').value.trim();
       const trCell = document.getElementById('tr-cell').value;
       const trGenSelect = document.getElementById('tr-generation');
       const trGeneration = trGenSelect ? trGenSelect.value : '';
@@ -1087,7 +1080,7 @@ function openTriageDetail(id) {
       }
 
       const personData = {
-        name: trName, phone: trPhone, email: trEmail, birthdate: trBirth,
+        name: trName, phone: trPhone, birthdate: trBirth,
         status: f?.personStatus || 'Novo Convertido',
         cellId: trCell || undefined,
         createdAt: new Date().toISOString(),
