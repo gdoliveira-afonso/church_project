@@ -16,7 +16,7 @@ import { apiKeysView } from './views/api-keys.js';
 import { webhooksView } from './views/webhooks.js';
 import { apiDocsView } from './views/api-docs.js';
 
-function restoreTheme() { const t = localStorage.getItem('theme'); if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) { document.documentElement.classList.add('dark'); } }
+function restoreTheme() { const t = localStorage.getItem('theme'); if (t === 'dark') { document.documentElement.classList.add('dark'); } }
 function guard(fn) { return (p) => { if (!store.isLoggedIn()) { navigate('/login'); return } restoreTheme(); fn(p) } }
 function roleGuard(roles, fn) { return (p) => { if (!store.isLoggedIn()) { navigate('/login'); return } if (!store.hasRole(...roles)) { navigate('/dashboard'); return } restoreTheme(); fn(p) } }
 
