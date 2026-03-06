@@ -94,7 +94,7 @@ export async function calendarView() {
                 bdays = bdays.filter(p => myCellIds.includes(p.cellId) || p.id === store.currentUser?.id);
             }
             bdays.forEach(p => {
-                dayEvents.push({ sortVal: -1, html: `<div class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] bg-pink-100 text-pink-700 font-medium px-1 rounded mt-0.5" title="Aniversário: ${p.name}">🎂 ${p.name.split(' ')[0]}</div>` });
+                dayEvents.push({ sortVal: -1, html: `<div class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] bg-pink-100 text-pink-700 font-medium px-1 rounded mt-0.5" title="Aniversário: ${p.name}"><span>🎂</span><span class="hidden md:inline ml-1">${p.name.split(' ')[0]}</span></div>` });
             });
 
             // 2. Cells (Usually evening, but kept generic. Treating as sortVal -2 to float them near top but below birthdays)
@@ -119,7 +119,7 @@ export async function calendarView() {
                         displayLabel = `🏠 ${c.meetingTime} ${c.name}`;
                     }
 
-                    dayEvents.push({ sortVal, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] ${bgClass} font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${isCanceled ? 'Cancelada: ' + isCanceled.reason : isJustified ? 'Justificada: ' + isJustified.reason : 'Célula: ' + c.name}">${displayLabel}</div>` });
+                    dayEvents.push({ sortVal, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] ${bgClass} font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${isCanceled ? 'Cancelada: ' + isCanceled.reason : isJustified ? 'Justificada: ' + isJustified.reason : 'Célula: ' + c.name}"><span>🏠</span><span class="hidden md:inline ml-1">${displayLabel.replace('🏠 ', '')}</span></div>` });
                 }
             });
 
@@ -139,17 +139,17 @@ export async function calendarView() {
                     }
 
                     if (isAllDay) {
-                        const scopeIcon = e.category === 'geral' ? '🌐 ' : '🏘️ ';
+                        const scopeIcon = e.category === 'geral' ? '🌐' : '🏘️';
                         const noteHtml = e.description ? `<span class="day-note hidden text-[11px] text-${cColor}-700 opacity-70 mt-0.5 leading-snug">${e.description.replace(/'/g, "&apos;")}</span>` : '';
                         const tooltipText = `${e.category === 'geral' ? '[Geral] ' : '[Local] '}${title}${e.description ? ' — ' + e.description : ''}`;
-                        dayEvents.push({ sortVal: 0, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] bg-${cColor}-100 text-${cColor}-800 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${tooltipText}"><span class="truncate">${scopeIcon}${title}</span>${noteHtml}</div>` });
+                        dayEvents.push({ sortVal: 0, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] bg-${cColor}-100 text-${cColor}-800 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${tooltipText}"><span class="truncate"><span>${scopeIcon}</span><span class="hidden md:inline ml-1">${title}</span></span>${noteHtml}</div>` });
                     } else {
                         const [h, m] = e.startTime.split(':').map(Number);
                         const sVal = h + (m / 60);
-                        const scopeIcon = e.category === 'geral' ? '🌐 ' : '';
+                        const scopeIcon = e.category === 'geral' ? '🌐' : '';
                         const noteHtml = e.description ? `<span class="day-note hidden text-[11px] text-${cColor}-600 opacity-70 mt-0.5 leading-snug col-span-2">${e.description.replace(/'/g, "&apos;")}</span>` : '';
                         const tooltipText = `${e.category === 'geral' ? '[Geral] ' : '[Local] '}${e.startTime} - ${title}${e.description ? ' — ' + e.description : ''}`;
-                        dayEvents.push({ sortVal: sVal, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] text-${cColor}-700 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${tooltipText}"><div class="flex items-center gap-1 w-full"><div class="w-1.5 h-1.5 rounded-full bg-${cColor}-500 flex-shrink-0"></div><span class="truncate">${scopeIcon}${e.startTime} ${title}</span></div>${noteHtml}</div>` });
+                        dayEvents.push({ sortVal: sVal, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] text-${cColor}-700 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${tooltipText}"><div class="flex items-center gap-1 w-full"><div class="w-1.5 h-1.5 rounded-full bg-${cColor}-500 flex-shrink-0"></div><span class="truncate">${scopeIcon ? `<span>${scopeIcon}</span>` : ''}<span class="${scopeIcon ? 'hidden md:inline ml-1' : ''}">${e.startTime}</span><span class="hidden md:inline ml-1">${title}</span></div>${noteHtml}</div>` });
                     }
                 }
             });
@@ -206,6 +206,7 @@ export async function calendarView() {
               .day-modal-events .gap-1 { gap: 12px !important; }
               .day-modal-events .day-note { display: block !important; font-size: 12px !important; }
               .day-modal-events .truncate { overflow: visible !important; text-overflow: unset !important; white-space: normal !important; }
+              .day-modal-events .hidden { display: inline !important; }
             </style>
         </div>`);
     };
