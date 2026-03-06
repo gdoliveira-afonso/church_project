@@ -17,12 +17,22 @@ export function peopleView() {
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
         <input id="search" class="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="Buscar por nome…"/>
       </div>
-      <div class="relative md:w-48">
-        <select id="cell-filter" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none">
-          <option value="">Todas as Células</option>
-          ${store.getVisibleCells().map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
-        </select>
-        <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-lg">expand_more</span>
+      <div class="flex gap-2">
+        <div class="relative flex-1 md:w-48">
+          <select id="cell-filter" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none">
+            <option value="">Todas as Células</option>
+            ${store.getVisibleCells().map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+          </select>
+          <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-lg">expand_more</span>
+        </div>
+        <div class="relative md:w-40">
+          <select id="sort" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none">
+            <option value="alpha">A-Z (Nome)</option>
+            <option value="alpha-desc">Z-A (Nome)</option>
+            <option value="recent">Mais Recentes</option>
+          </select>
+          <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-lg">sort_by_alpha</span>
+        </div>
       </div>
     </div>
     <div class="flex gap-2 px-4 md:px-6 pb-2 overflow-x-auto no-scrollbar">
@@ -62,6 +72,12 @@ export function peopleView() {
     if (filter === 'no-encounter') pp = pp.filter(p => !p.tracksData?.[tEncontro]);
     if (filter === 'no-visit') pp = pp.filter(p => p.status !== 'Líder' && !store.getVisitsForPerson(p.id).length);
     if (filter === 'no-cell') pp = pp.filter(p => !p.cellId);
+
+    const sort = document.getElementById('sort')?.value || 'alpha';
+    if (sort === 'alpha') pp.sort((a, b) => a.name.localeCompare(b.name));
+    else if (sort === 'alpha-desc') pp.sort((a, b) => b.name.localeCompare(a.name));
+    else if (sort === 'recent') pp.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
     document.getElementById('count').textContent = `${pp.length} membros`;
     document.getElementById('list').innerHTML = pp.length ? `<div class="md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-3 md:p-4">${pp.map(p => {
       const cell = p.cellId ? store.getCell(p.cellId) : null;
@@ -83,6 +99,7 @@ export function peopleView() {
   go();
   document.getElementById('search').oninput = go;
   document.getElementById('cell-filter').onchange = go;
+  document.getElementById('sort').onchange = go;
   document.querySelectorAll('.chip').forEach(b => b.onclick = () => {
     document.querySelectorAll('.chip').forEach(x => { x.classList.remove('bg-primary', 'text-white', 'border-primary'); x.classList.add('bg-white', 'text-slate-500', 'border-slate-200') });
     b.classList.add('bg-primary', 'text-white', 'border-primary'); b.classList.remove('bg-white', 'text-slate-500', 'border-slate-200');
