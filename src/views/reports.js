@@ -7,7 +7,8 @@ export function reportsView() {
   let filterY = currentY;
   let filterM = new Date().getMonth(); // 0 a 11, ou -1 para Ano Inteiro
   let filterCell = '';
-  let filterGeneration = '';
+  // Se for LIDER_GERACAO, pré-filtra pela própria geração e não permite mudar
+  let filterGeneration = store.hasRole('LIDER_GERACAO') ? store.user.generationId : '';
   let filterStatus = '';
   let search = '';
   let visibleCols = {};
@@ -29,6 +30,7 @@ export function reportsView() {
     }
 
     let people = [...store.people];
+    if (store.hasRole('LIDER_GERACAO')) filterGeneration = store.user.generationId;
     if (filterGeneration) people = people.filter(p => p.generationId === filterGeneration);
     if (filterCell) people = people.filter(p => p.cellId === filterCell);
     if (filterStatus) people = people.filter(p => p.status === filterStatus);
@@ -183,10 +185,11 @@ export function reportsView() {
               <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-lg">search</span>
               <input id="f-search" type="text" value="${search}" placeholder="Buscar por nome..." class="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"/>
             </div>
-            <select id="f-gen" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 min-w-[140px]">
+            <select id="f-gen" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 min-w-[140px] ${store.hasRole('LIDER_GERACAO') ? 'hidden' : ''}">
               <option value="">Todas as gerações</option>
               ${(store.generations || []).map(g => `<option value="${g.id}" ${filterGeneration === g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
             </select>
+            ${store.hasRole('LIDER_GERACAO') ? `<div class="px-3 py-2 rounded-lg border border-primary/20 bg-primary/5 text-primary text-sm font-bold flex items-center gap-2 min-w-[140px]"><span class="material-symbols-outlined text-sm">groups</span>${store.generations.find(g => g.id === store.user.generationId)?.name || 'Minha Geração'}</div>` : ''}
             <select id="f-cell" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 min-w-[140px]">
               <option value="">Todas as células</option>
               ${store.getVisibleCells().filter(c => !filterGeneration || c.generationId === filterGeneration).map(c => `<option value="${c.id}" ${filterCell === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
@@ -272,7 +275,7 @@ export function reportsView() {
             </div>
           </div>
           <div id="col-settings-container" class="mb-4 hidden"></div>
-          <div id="report-table" class="overflow-x-auto"></div>
+          <div id="report-table" class="overflow-x-auto max-h-[600px] overflow-y-auto pr-1"></div>
         </div>
 
         <!-- Export -->
@@ -364,7 +367,7 @@ export function reportsView() {
 function membersTable(people, visibleCols = {}) {
   const tracks = store.tracks || [];
   return `<table class="w-full text-left text-xs">
-    <thead><tr class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider">
+    <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Nome</th>
       ${visibleCols.status !== false ? '<th class="px-3 py-2.5">Status</th>' : ''}
       ${visibleCols.cell !== false ? '<th class="px-3 py-2.5">Célula</th>' : ''}
@@ -389,7 +392,7 @@ function membersTable(people, visibleCols = {}) {
 
 function cellsTable() {
   return `<table class="w-full text-left text-xs">
-    <thead><tr class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider">
+    <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Célula</th><th class="px-3 py-2.5">Líder</th><th class="px-3 py-2.5 text-center">Membros</th>
       <th class="px-3 py-2.5">Dia</th><th class="px-3 py-2.5 text-center text-emerald-600">Encont. Realizados</th>
       <th class="px-3 py-2.5 text-center text-amber-600">Justificados</th>
@@ -423,7 +426,7 @@ function visitsTable(visits) {
   });
   const sorted = [...filteredVisits].sort((a, b) => b.date.localeCompare(a.date));
   return `<table class="w-full text-left text-xs">
-    <thead><tr class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider">
+    <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Data</th><th class="px-3 py-2.5">Pessoa</th><th class="px-3 py-2.5">Tipo</th>
       <th class="px-3 py-2.5">Resultado</th><th class="px-3 py-2.5 rounded-r-lg">Observação</th>
     </tr></thead>
@@ -462,7 +465,7 @@ function attendanceTable(startDate, endDate, showOnlyMetrics = false) {
   }
 
   return `<table class="w-full text-left text-xs">
-    <thead><tr class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider">
+    <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Data</th><th class="px-3 py-2.5">Célula</th>
       ${!showOnlyMetrics ? `
       <th class="px-3 py-2.5 text-center">Presentes</th>
@@ -521,7 +524,7 @@ function personAttendanceTable(people, startDate, endDate) {
   }).sort((a, b) => b.total - a.total || b.present - a.present);
 
   return `<table class="w-full text-left text-xs">
-    <thead><tr class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider">
+    <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Membro</th><th class="px-3 py-2.5">Célula</th>
       <th class="px-3 py-2.5 text-center">Presenças</th><th class="px-3 py-2.5 text-center">Faltas</th>
       <th class="px-3 py-2.5 text-center rounded-r-lg">% Frequência</th>
@@ -543,7 +546,7 @@ function personAttendanceTable(people, startDate, endDate) {
 function consolidationTable(people) {
   const newConverts = people.filter(p => p.status === 'Novo Convertido');
   return `<table class="w-full text-left text-xs">
-    <thead><tr class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider">
+    <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Nome</th><th class="px-3 py-2.5">Célula</th>
       <th class="px-3 py-2.5 text-center">Status de Consolidação</th><th class="px-3 py-2.5 text-center">Dias Faltantes</th>
       <th class="px-3 py-2.5 text-center rounded-r-lg">Visitas Recebidas</th>
@@ -605,7 +608,7 @@ function inactiveMembersTable() {
   return `
   <div class="flex flex-wrap gap-2 mb-4">${summaryCards}</div>
   <table class="w-full text-left text-xs">
-    <thead><tr class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider">
+    <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Nome</th>
       <th class="px-3 py-2.5">Status</th>
       <th class="px-3 py-2.5">Célula</th>
