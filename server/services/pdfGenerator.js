@@ -377,25 +377,36 @@ function renderMembersTable(d) {
 }
 
 function renderCellsTable(d) {
+    const showGen = d.showGenerationCol;
+    let tableData = [...d.cellsTableData];
+
+    if (showGen) {
+        tableData.sort((a, b) => (a.generationName || '').localeCompare(b.generationName || '') || a.name.localeCompare(b.name));
+    }
+
     let th = `<tr>
-        <th>Célula</th><th>Líder</th><th class="text-center">Dia</th>
-        <th class="text-center">Membros</th><th class="text-center">Assiduidade</th>
-        <th class="text-center">Reuniões</th><th class="text-center">Justificadas</th>
+        <th style="width: 25%;">Célula</th>
+        ${showGen ? '<th>Geração</th>' : ''}
+        <th>Líder</th>
+        <th class="text-center">Dia</th>
+        <th class="text-center">Membros</th>
+        <th class="text-center">Assiduidade</th>
+        <th class="text-center">Reuniões</th>
     </tr>`;
 
-    let trs = d.cellsTableData.map(c => {
+    let trs = tableData.map(c => {
         return `<tr>
             <td class="font-bold">${c.name}</td>
+            ${showGen ? `<td><span class="badge badge-gray">${c.generationName || '—'}</span></td>` : ''}
             <td>${c.leader || '—'}</td>
             <td class="text-center">${c.day || '—'}</td>
             <td class="text-center font-bold">${c.memberCount}</td>
             <td class="text-center"><span class="badge ${c.freqPct >= 70 ? 'badge-green' : c.freqPct >= 40 ? 'badge-amber' : 'badge-red'}">${c.freqPct}%</span></td>
             <td class="text-center font-bold" style="color:#059669;">${c.realizadas}</td>
-            <td class="text-center font-bold" style="color:#d97706;">${c.justificadas}</td>
         </tr>`;
     }).join('');
 
-    if (!d.cellsTableData.length) trs = '<tr><td colspan="7" class="text-center">Nenhuma célula listada</td></tr>';
+    if (!tableData.length) trs = `<tr><td colspan="${showGen ? 8 : 7}" class="text-center">Nenhuma célula listada</td></tr>`;
     return `<table><thead>${th}</thead><tbody>${trs}</tbody></table>`;
 }
 

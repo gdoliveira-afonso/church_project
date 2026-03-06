@@ -894,9 +894,11 @@ export function reportsView() {
           present += p;
           total += a.records.length;
         });
+        const gen = c.generationId ? store.generations.find(g => g.id === c.generationId) : null;
         return {
           name: c.name,
           leader: leader?.name,
+          generationName: gen?.name || '—',
           day: c.meetingDay,
           memberCount: store.getCellMembers(c.id).length,
           freqPct: total ? Math.round(present / total * 100) : 0,
@@ -904,6 +906,11 @@ export function reportsView() {
           justificadas: store.getCellJustifications(c.id).length
         };
       });
+
+    const showGenCol = !filterGeneration && !filterCell;
+    if (showGenCol) {
+      cellsTableData.sort((a, b) => a.generationName.localeCompare(b.generationName) || a.name.localeCompare(b.name));
+    }
 
     const mappedPeople = d.people.map(p => {
       const c = p.cellId ? store.getCell(p.cellId) : null;
@@ -945,6 +952,7 @@ export function reportsView() {
       trackCounts: d.trackCounts,
       people: mappedPeople,
       cellsTableData: cellsTableData,
+      showGenerationCol: showGenCol,
       customFieldTotals: d.customFieldTotals || {},
       customFieldsConfig: (store.systemSettings?.cellCustomFields || '').split(',').map(s => s.trim()).filter(Boolean),
       metricsHistory: store.attendance.filter(a => {
