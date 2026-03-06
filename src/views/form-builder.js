@@ -103,7 +103,7 @@ export function formBuilderView(params) {
     app.innerHTML = `
     <header class="sticky top-0 z-20 bg-white border-b border-slate-100 shrink-0">
       <div class="flex items-center px-4 md:px-6 h-14 gap-3">
-        <button onclick="location.hash='/forms'" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-xl">arrow_back</span></button>
+        <button onclick="history.back()" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-xl">arrow_back</span></button>
         <div class="flex-1 min-w-0"><input id="form-name" value="${form.name}" class="text-base font-bold bg-transparent border-none outline-none w-full truncate focus:bg-slate-50 focus:px-2 rounded transition"/></div>
         <div class="flex items-center gap-2">
           <button id="btn-toggle-status" class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition ${form.status === 'ativo' ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" title="Apenas formulários Ativos podem receber novas respostas">${form.status === 'ativo' ? 'Status: Ativo' : 'Status: Inativo'}</button>
@@ -520,7 +520,7 @@ export function formBuilderView(params) {
       if (ph) field.placeholder = ph;
       if (isEdit) { form.fields[editIdx] = field; toast('Campo atualizado!'); }
       else { form.fields.push(field); toast('Campo adicionado!'); }
-      store.updateForm(form.id, form); closeModal(); render();
+      store.updateForm(form.id, form); closeModal(); render(); history.back();
     };
   }
 
