@@ -347,7 +347,7 @@ function eventForm(existingEventId = null, prefilledDateStr = null) {
             <div class="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto no-scrollbar p-1">
                 <label class="relative cursor-pointer">
                     <input type="radio" name="evt-icon" value="" class="peer sr-only" ${evIcon === '' ? 'checked' : ''}>
-                    <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center border-2 border-transparent peer-checked:border-primary peer-checked:bg-white transition-all text-xs text-slate-400">Nenhum</div>
+                    <div class="w-8 h-8 rounded-lg bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center peer-checked:border-primary peer-checked:bg-white transition-all text-slate-400"></div>
                 </label>
                 ${emojis.map(emoji => `
                     <label class="relative cursor-pointer">
