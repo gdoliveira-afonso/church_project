@@ -119,7 +119,8 @@ router.post('/', async (req, res) => {
                 category: data.category,
                 location: data.location,
                 recurrence: data.recurrence || 'none',
-                reminder: data.reminder
+                reminder: data.reminder,
+                icon: data.icon
             }
         });
 
@@ -162,7 +163,8 @@ router.put('/:id', async (req, res) => {
                 category: data.category,
                 location: data.location,
                 recurrence: data.recurrence,
-                reminder: data.reminder
+                reminder: data.reminder,
+                icon: data.icon
             }
         });
 
