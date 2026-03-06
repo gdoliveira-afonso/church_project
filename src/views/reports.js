@@ -361,12 +361,11 @@ export function reportsView() {
   }
 
   render();
-}
 
-// ── TABLE BUILDERS ──
-function membersTable(people, visibleCols = {}) {
-  const tracks = store.tracks || [];
-  return `<table class="w-full text-left text-xs">
+  // ── TABLE BUILDERS ──
+  function membersTable(people, visibleCols = {}) {
+    const tracks = store.tracks || [];
+    return `<table class="w-full text-left text-xs">
     <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Nome</th>
       ${visibleCols.status !== false ? '<th class="px-3 py-2.5">Status</th>' : ''}
@@ -376,9 +375,9 @@ function membersTable(people, visibleCols = {}) {
       ${visibleCols.visits !== false ? '<th class="px-3 py-2.5 text-center rounded-r-lg">Visitas</th>' : ''}
     </tr></thead>
     <tbody>${people.length ? people.map(p => {
-    const c = p.cellId ? store.getCell(p.cellId) : null;
-    const vc = store.getVisitsForPerson(p.id).length;
-    return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
+      const c = p.cellId ? store.getCell(p.cellId) : null;
+      const vc = store.getVisitsForPerson(p.id).length;
+      return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
         <td class="px-3 py-2.5 font-semibold">${p.name}</td>
         ${visibleCols.status !== false ? `<td class="px-3 py-2.5">${statusBadge(p.status)}</td>` : ''}
         ${visibleCols.cell !== false ? `<td class="px-3 py-2.5 text-slate-500">${c?.name || '—'}</td>` : ''}
@@ -386,12 +385,12 @@ function membersTable(people, visibleCols = {}) {
         ${tracks.filter(t => visibleCols[t.id] !== false).map(t => `<td class="px-3 py-2.5 text-center">${dot(p.tracksData && p.tracksData[t.id])}</td>`).join('')}
         ${visibleCols.visits !== false ? `<td class="px-3 py-2.5 text-center font-bold">${vc}</td>` : ''}
       </tr>`;
-  }).join('') : `<tr><td colspan="10" class="text-center text-slate-400 py-8">Nenhum membro encontrado</td></tr>`}</tbody>
+    }).join('') : `<tr><td colspan="10" class="text-center text-slate-400 py-8">Nenhum membro encontrado</td></tr>`}</tbody>
   </table>`;
-}
+  }
 
-function cellsTable() {
-  return `<table class="w-full text-left text-xs">
+  function cellsTable() {
+    return `<table class="w-full text-left text-xs">
     <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Célula</th><th class="px-3 py-2.5">Líder</th><th class="px-3 py-2.5 text-center">Membros</th>
       <th class="px-3 py-2.5">Dia</th><th class="px-3 py-2.5 text-center text-emerald-600">Encont. Realizados</th>
@@ -399,13 +398,13 @@ function cellsTable() {
       <th class="px-3 py-2.5 text-center text-slate-500 rounded-r-lg">Cancelados (Admin)</th>
     </tr></thead>
     <tbody>${store.getVisibleCells().filter(c => !filterGeneration || c.generationId === filterGeneration).length ? store.getVisibleCells().filter(c => !filterGeneration || c.generationId === filterGeneration).map(c => {
-    const members = store.getCellMembers(c.id);
-    const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
-    // IMPORTANTE: Contar apenas atendimentos que tiveram registros de presença (records)
-    const attCount = store.getAttendanceForCell(c.id).filter(a => a.records && a.records.length > 0).length;
-    const justifications = store.getCellJustifications(c.id).length;
-    const cancellations = store.cellCancellations ? store.cellCancellations.filter(can => can.cellId === c.id).length : 0;
-    return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
+      const members = store.getCellMembers(c.id);
+      const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
+      // IMPORTANTE: Contar apenas atendimentos que tiveram registros de presença (records)
+      const attCount = store.getAttendanceForCell(c.id).filter(a => a.records && a.records.length > 0).length;
+      const justifications = store.getCellJustifications(c.id).length;
+      const cancellations = store.cellCancellations ? store.cellCancellations.filter(can => can.cellId === c.id).length : 0;
+      return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
         <td class="px-3 py-2.5 font-semibold">${c.name}</td>
         <td class="px-3 py-2.5 text-slate-500">${leader?.name || '—'}</td>
         <td class="px-3 py-2.5 text-center font-bold">${members.length}</td>
@@ -414,57 +413,57 @@ function cellsTable() {
         <td class="px-3 py-2.5 text-center text-amber-600 font-bold">${justifications}</td>
         <td class="px-3 py-2.5 text-center text-slate-500 font-medium">${cancellations}</td>
       </tr>`;
-  }).join('') : '<tr><td colspan="8" class="text-center text-slate-400 py-8">Nenhuma célula</td></tr>'}</tbody>
+    }).join('') : '<tr><td colspan="8" class="text-center text-slate-400 py-8">Nenhuma célula</td></tr>'}</tbody>
   </table>`;
-}
+  }
 
-function visitsTable(visits) {
-  const visibleCellIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
-  const filteredVisits = visits.filter(v => {
-    const person = store.getPerson(v.personId);
-    return !filterGeneration || (person && person.generationId === filterGeneration);
-  });
-  const sorted = [...filteredVisits].sort((a, b) => b.date.localeCompare(a.date));
-  return `<table class="w-full text-left text-xs">
+  function visitsTable(visits) {
+    const visibleCellIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
+    const filteredVisits = visits.filter(v => {
+      const person = store.getPerson(v.personId);
+      return !filterGeneration || (person && person.generationId === filterGeneration);
+    });
+    const sorted = [...filteredVisits].sort((a, b) => b.date.localeCompare(a.date));
+    return `<table class="w-full text-left text-xs">
     <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Data</th><th class="px-3 py-2.5">Pessoa</th><th class="px-3 py-2.5">Tipo</th>
       <th class="px-3 py-2.5">Resultado</th><th class="px-3 py-2.5 rounded-r-lg">Observação</th>
     </tr></thead>
     <tbody>${sorted.length ? sorted.map(v => {
-    const person = store.getPerson(v.personId);
-    return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
+      const person = store.getPerson(v.personId);
+      return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
         <td class="px-3 py-2.5 text-slate-500 whitespace-nowrap">${v.date}</td>
         <td class="px-3 py-2.5 font-semibold">${person?.name || '—'}</td>
         <td class="px-3 py-2.5"><span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700">${v.type || 'Visita'}</span></td>
         <td class="px-3 py-2.5 text-slate-500">${v.result || '—'}</td>
         <td class="px-3 py-2.5 text-slate-500 max-w-[200px] truncate">${v.observation || '—'}</td>
       </tr>`;
-  }).join('') : '<tr><td colspan="5" class="text-center text-slate-400 py-8">Nenhuma visita neste período</td></tr>'}</tbody>
+    }).join('') : '<tr><td colspan="5" class="text-center text-slate-400 py-8">Nenhuma visita neste período</td></tr>'}</tbody>
   </table>`;
-}
-
-function attendanceTable(startDate, endDate, showOnlyMetrics = false) {
-  const visibleCellIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
-  let records = store.attendance.filter(a => {
-    const d = new Date(a.date);
-    return d >= startDate && d <= endDate && visibleCellIds.has(a.cellId);
-  }).sort((a, b) => b.date.localeCompare(a.date));
-
-  if (showOnlyMetrics) {
-    // Apenas registros que TEM customFields
-    records = records.filter(a => a.customFields && a.customFields !== '{}');
-  } else {
-    // Apenas registros que TEM presença (records)
-    records = records.filter(a => a.records && a.records.length > 0);
   }
 
-  const customFieldsConfig = (store.systemSettings?.cellCustomFields || '').split(',').map(s => s.trim()).filter(Boolean);
-  let customFieldsHeaders = '';
-  if (showOnlyMetrics && customFieldsConfig.length > 0) {
-    customFieldsHeaders = customFieldsConfig.map(cf => `<th class="px-3 py-2.5 text-center">${cf}</th>`).join('');
-  }
+  function attendanceTable(startDate, endDate, showOnlyMetrics = false) {
+    const visibleCellIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
+    let records = store.attendance.filter(a => {
+      const d = new Date(a.date);
+      return d >= startDate && d <= endDate && visibleCellIds.has(a.cellId);
+    }).sort((a, b) => b.date.localeCompare(a.date));
 
-  return `<table class="w-full text-left text-xs">
+    if (showOnlyMetrics) {
+      // Apenas registros que TEM customFields
+      records = records.filter(a => a.customFields && a.customFields !== '{}');
+    } else {
+      // Apenas registros que TEM presença (records)
+      records = records.filter(a => a.records && a.records.length > 0);
+    }
+
+    const customFieldsConfig = (store.systemSettings?.cellCustomFields || '').split(',').map(s => s.trim()).filter(Boolean);
+    let customFieldsHeaders = '';
+    if (showOnlyMetrics && customFieldsConfig.length > 0) {
+      customFieldsHeaders = customFieldsConfig.map(cf => `<th class="px-3 py-2.5 text-center">${cf}</th>`).join('');
+    }
+
+    return `<table class="w-full text-left text-xs">
     <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Data</th><th class="px-3 py-2.5">Célula</th>
       ${!showOnlyMetrics ? `
@@ -475,22 +474,22 @@ function attendanceTable(startDate, endDate, showOnlyMetrics = false) {
       <th class="rounded-r-lg"></th>
     </tr></thead>
     <tbody>${records.length ? records.map(a => {
-    const cell = store.getCell(a.cellId);
-    const present = a.records?.filter(r => r.status === 'present').length || 0;
-    const absent = (a.records?.length || 0) - present;
-    const pct = a.records?.length ? Math.round(present / a.records.length * 100) : 0;
+      const cell = store.getCell(a.cellId);
+      const present = a.records?.filter(r => r.status === 'present').length || 0;
+      const absent = (a.records?.length || 0) - present;
+      const pct = a.records?.length ? Math.round(present / a.records.length * 100) : 0;
 
-    let parsedCustomFields = {};
-    if (a.customFields) {
-      try { parsedCustomFields = JSON.parse(a.customFields); } catch (e) { }
-    }
+      let parsedCustomFields = {};
+      if (a.customFields) {
+        try { parsedCustomFields = JSON.parse(a.customFields); } catch (e) { }
+      }
 
-    let customFieldsCells = '';
-    if (showOnlyMetrics && customFieldsConfig.length > 0) {
-      customFieldsCells = customFieldsConfig.map(cf => `<td class="px-3 py-2.5 text-center font-medium">${parsedCustomFields[cf] || '-'}</td>`).join('');
-    }
+      let customFieldsCells = '';
+      if (showOnlyMetrics && customFieldsConfig.length > 0) {
+        customFieldsCells = customFieldsConfig.map(cf => `<td class="px-3 py-2.5 text-center font-medium">${parsedCustomFields[cf] || '-'}</td>`).join('');
+      }
 
-    return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
+      return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
         <td class="px-3 py-2.5 text-slate-500 whitespace-nowrap">${a.date}</td>
         <td class="px-3 py-2.5 font-semibold">${cell?.name || '—'}</td>
         ${!showOnlyMetrics ? `
@@ -500,112 +499,112 @@ function attendanceTable(startDate, endDate, showOnlyMetrics = false) {
         ${customFieldsCells}
         <td></td>
       </tr>`;
-  }).join('') : `<tr><td colspan="${5 + customFieldsConfig.length}" class="text-center text-slate-400 py-8">Nenhum registro encontrado</td></tr>`}</tbody>
+    }).join('') : `<tr><td colspan="${5 + customFieldsConfig.length}" class="text-center text-slate-400 py-8">Nenhum registro encontrado</td></tr>`}</tbody>
   </table>`;
-}
+  }
 
-function personAttendanceTable(people, startDate, endDate) {
-  const visibleCellIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
-  const attInPeriod = store.attendance.filter(a => {
-    const d = new Date(a.date);
-    return d >= startDate && d <= endDate && visibleCellIds.has(a.cellId);
-  });
-  const stats = people.map(p => {
-    let present = 0; let absent = 0; let total = 0;
-    attInPeriod.forEach(a => {
-      const rec = a.records?.find(r => r.personId === p.id);
-      if (rec) {
-        total++;
-        if (rec.status === 'present') present++;
-        else if (rec.status === 'absent') absent++;
-      }
+  function personAttendanceTable(people, startDate, endDate) {
+    const visibleCellIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
+    const attInPeriod = store.attendance.filter(a => {
+      const d = new Date(a.date);
+      return d >= startDate && d <= endDate && visibleCellIds.has(a.cellId);
     });
-    return { ...p, present, absent, total };
-  }).sort((a, b) => b.total - a.total || b.present - a.present);
+    const stats = people.map(p => {
+      let present = 0; let absent = 0; let total = 0;
+      attInPeriod.forEach(a => {
+        const rec = a.records?.find(r => r.personId === p.id);
+        if (rec) {
+          total++;
+          if (rec.status === 'present') present++;
+          else if (rec.status === 'absent') absent++;
+        }
+      });
+      return { ...p, present, absent, total };
+    }).sort((a, b) => b.total - a.total || b.present - a.present);
 
-  return `<table class="w-full text-left text-xs">
+    return `<table class="w-full text-left text-xs">
     <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Membro</th><th class="px-3 py-2.5">Célula</th>
       <th class="px-3 py-2.5 text-center">Presenças</th><th class="px-3 py-2.5 text-center">Faltas</th>
       <th class="px-3 py-2.5 text-center rounded-r-lg">% Frequência</th>
     </tr></thead>
     <tbody>${stats.length ? stats.map(s => {
-    const cell = store.getCell(s.cellId);
-    const pct = s.total ? Math.round(s.present / s.total * 100) : 0;
-    return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
+      const cell = store.getCell(s.cellId);
+      const pct = s.total ? Math.round(s.present / s.total * 100) : 0;
+      return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition">
         <td class="px-3 py-2.5 font-semibold whitespace-nowrap">${s.name}</td>
         <td class="px-3 py-2.5 text-slate-500">${cell?.name || '—'}</td>
         <td class="px-3 py-2.5 text-center text-emerald-600 font-bold">${s.present}</td>
         <td class="px-3 py-2.5 text-center text-red-500 font-bold">${s.absent}</td>
         <td class="px-3 py-2.5 text-center"><span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${s.total === 0 ? 'bg-slate-100 text-slate-500' : pct >= 70 ? 'bg-emerald-50 text-emerald-700' : pct >= 40 ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}">${s.total === 0 ? '-' : pct + '%'}</span></td>
       </tr>`;
-  }).join('') : '<tr><td colspan="5" class="text-center text-slate-400 py-8">Nenhum membro encontrado</td></tr>'}</tbody>
+    }).join('') : '<tr><td colspan="5" class="text-center text-slate-400 py-8">Nenhum membro encontrado</td></tr>'}</tbody>
   </table>`;
-}
+  }
 
-function consolidationTable(people) {
-  const newConverts = people.filter(p => p.status === 'Novo Convertido');
-  return `<table class="w-full text-left text-xs">
+  function consolidationTable(people) {
+    const newConverts = people.filter(p => p.status === 'Novo Convertido');
+    return `<table class="w-full text-left text-xs">
     <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
       <th class="px-3 py-2.5 rounded-l-lg">Nome</th><th class="px-3 py-2.5">Célula</th>
       <th class="px-3 py-2.5 text-center">Status de Consolidação</th><th class="px-3 py-2.5 text-center">Dias Faltantes</th>
       <th class="px-3 py-2.5 text-center rounded-r-lg">Visitas Recebidas</th>
     </tr></thead>
     <tbody>${newConverts.length ? newConverts.map(p => {
-    const c = p.cellId ? store.getCell(p.cellId) : null;
-    let sBadge = '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Pendente</span>';
-    let daysDiff = '-';
-    if (p.consolidation) {
-      if (p.consolidation.status === 'COMPLETED') {
-        sBadge = '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Finalizada</span>';
-        daysDiff = '0';
-      } else {
-        const d = Math.floor((new Date() - new Date(p.consolidation.startDate)) / 86400000);
-        daysDiff = d > 15 ? `<span class="text-red-600 font-bold">${d} dias</span>` : `<span class="text-amber-600 font-bold">${d} dias</span>`;
-        sBadge = p.consolidation.status === 'IN_PROGRESS'
-          ? '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">Em Andamento</span>'
-          : '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Pendente</span>';
+      const c = p.cellId ? store.getCell(p.cellId) : null;
+      let sBadge = '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Pendente</span>';
+      let daysDiff = '-';
+      if (p.consolidation) {
+        if (p.consolidation.status === 'COMPLETED') {
+          sBadge = '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Finalizada</span>';
+          daysDiff = '0';
+        } else {
+          const d = Math.floor((new Date() - new Date(p.consolidation.startDate)) / 86400000);
+          daysDiff = d > 15 ? `<span class="text-red-600 font-bold">${d} dias</span>` : `<span class="text-amber-600 font-bold">${d} dias</span>`;
+          sBadge = p.consolidation.status === 'IN_PROGRESS'
+            ? '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">Em Andamento</span>'
+            : '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Pendente</span>';
+        }
       }
-    }
-    const consVisits = store.getVisitsForPerson(p.id).filter(v => v.type === 'Visita de Consolidação').length;
-    return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition cursor-pointer" onclick="location.hash='/profile?id=${p.id}'">
+      const consVisits = store.getVisitsForPerson(p.id).filter(v => v.type === 'Visita de Consolidação').length;
+      return `<tr class="border-b border-slate-50 hover:bg-blue-50/30 transition cursor-pointer" onclick="location.hash='/profile?id=${p.id}'">
         <td class="px-3 py-2.5 font-semibold whitespace-nowrap text-primary hover:underline">${p.name}</td>
         <td class="px-3 py-2.5 text-slate-500">${c?.name || '—'}</td>
         <td class="px-3 py-2.5 text-center">${sBadge}</td>
         <td class="px-3 py-2.5 text-center">${daysDiff}</td>
         <td class="px-3 py-2.5 text-center font-bold">${consVisits}</td>
       </tr>`;
-  }).join('') : '<tr><td colspan="5" class="text-center text-slate-400 py-8">Nenhum novo convertido encontrado</td></tr>'}</tbody>
+    }).join('') : '<tr><td colspan="5" class="text-center text-slate-400 py-8">Nenhum novo convertido encontrado</td></tr>'}</tbody>
   </table>`;
-}
+  }
 
-function inactiveMembersTable() {
-  const INACTIVE_STATUSES = ['Inativo', 'Afastado', 'Mudou-se'];
-  const statusColors = { 'Inativo': ['gray', 'person_off'], 'Afastado': ['orange', 'person_remove'], 'Mudou-se': ['slate', 'moving'] };
+  function inactiveMembersTable() {
+    const INACTIVE_STATUSES = ['Inativo', 'Afastado', 'Mudou-se'];
+    const statusColors = { 'Inativo': ['gray', 'person_off'], 'Afastado': ['orange', 'person_remove'], 'Mudou-se': ['slate', 'moving'] };
 
-  const inactive = store.people
-    .filter(p => INACTIVE_STATUSES.includes(p.status))
-    .sort((a, b) => INACTIVE_STATUSES.indexOf(a.status) - INACTIVE_STATUSES.indexOf(b.status) || a.name.localeCompare(b.name));
+    const inactive = store.people
+      .filter(p => INACTIVE_STATUSES.includes(p.status))
+      .sort((a, b) => INACTIVE_STATUSES.indexOf(a.status) - INACTIVE_STATUSES.indexOf(b.status) || a.name.localeCompare(b.name));
 
-  const counts = INACTIVE_STATUSES.map(s => ({ s, n: inactive.filter(p => p.status === s).length }));
+    const counts = INACTIVE_STATUSES.map(s => ({ s, n: inactive.filter(p => p.status === s).length }));
 
-  if (!inactive.length) {
-    return `<div class="flex flex-col items-center py-12 text-slate-400">
+    if (!inactive.length) {
+      return `<div class="flex flex-col items-center py-12 text-slate-400">
       <span class="material-symbols-outlined text-4xl mb-2">how_to_reg</span>
       <p class="text-sm font-medium">Nenhum membro inativo, afastado ou que se mudou.</p>
     </div>`;
-  }
+    }
 
-  const summaryCards = counts.map(({ s, n }) => {
-    const [c, ic] = statusColors[s];
-    return `<div class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-${c}-50 border border-${c}-100">
+    const summaryCards = counts.map(({ s, n }) => {
+      const [c, ic] = statusColors[s];
+      return `<div class="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-${c}-50 border border-${c}-100">
       <span class="material-symbols-outlined text-${c}-500 text-base">${ic}</span>
       <span class="text-sm font-bold text-${c}-700">${n}</span>
       <span class="text-xs text-${c}-600">${s}</span>
     </div>`;
-  }).join('');
+    }).join('');
 
-  return `
+    return `
   <div class="flex flex-wrap gap-2 mb-4">${summaryCards}</div>
   <table class="w-full text-left text-xs">
     <thead><tr class="sticky top-0 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider z-10">
@@ -616,32 +615,32 @@ function inactiveMembersTable() {
       <th class="px-3 py-2.5 rounded-r-lg">Visitas</th>
     </tr></thead>
     <tbody>${inactive.map(p => {
-    const c = p.cellId ? store.getCell(p.cellId) : null;
-    const vc = store.getVisitsForPerson(p.id).length;
-    const [col] = statusColors[p.status] || ['slate', 'person'];
-    return `<tr class="border-b border-slate-50 hover:bg-slate-50/60 transition cursor-pointer" onclick="location.hash='/profile?id=${p.id}'">
+      const c = p.cellId ? store.getCell(p.cellId) : null;
+      const vc = store.getVisitsForPerson(p.id).length;
+      const [col] = statusColors[p.status] || ['slate', 'person'];
+      return `<tr class="border-b border-slate-50 hover:bg-slate-50/60 transition cursor-pointer" onclick="location.hash='/profile?id=${p.id}'">
         <td class="px-3 py-2.5 font-semibold text-primary hover:underline whitespace-nowrap">${p.name}</td>
         <td class="px-3 py-2.5"><span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-${col}-50 text-${col}-700">${p.status}</span></td>
         <td class="px-3 py-2.5 text-slate-500">${c?.name || '<span class="text-slate-300">Sem célula</span>'}</td>
         <td class="px-3 py-2.5 text-slate-500">${p.phone || '—'}</td>
         <td class="px-3 py-2.5 text-center font-bold text-slate-500">${vc}</td>
       </tr>`;
-  }).join('')}</tbody>
+    }).join('')}</tbody>
   </table>`;
-}
+  }
 
-// ── HELPERS ──
-function kpi(icon, label, value, color) {
-  return `<div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm hover:shadow-md hover:border-${color}-200 transition-all group min-w-0">
+  // ── HELPERS ──
+  function kpi(icon, label, value, color) {
+    return `<div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm hover:shadow-md hover:border-${color}-200 transition-all group min-w-0">
     <div class="w-7 h-7 rounded-lg bg-${color}-50 flex items-center justify-center mb-2 shrink-0"><span class="material-symbols-outlined text-${color}-500 text-base">${icon}</span></div>
     <p class="text-xl font-extrabold leading-none truncate">${value}</p>
     <p class="text-[9px] font-semibold text-slate-500 mt-1 truncate" title="${label}">${label}</p>
   </div>`;
-}
+  }
 
-function progressBar(label, count, total, color) {
-  const pct = total ? Math.round(count / total * 100) : 0;
-  return `<div>
+  function progressBar(label, count, total, color) {
+    const pct = total ? Math.round(count / total * 100) : 0;
+    return `<div>
     <div class="flex justify-between items-center mb-1">
       <span class="text-xs font-medium text-slate-700">${label}</span>
       <span class="text-xs font-bold" style="color:${color}">${pct}% <span class="text-slate-400 font-normal">(${count}/${total})</span></span>
@@ -650,92 +649,92 @@ function progressBar(label, count, total, color) {
       <div class="h-full rounded-full transition-all duration-700" style="width:${pct}%;background:${color}"></div>
     </div>
   </div>`;
-}
+  }
 
-function statusBadge(status) {
-  const colors = {
-    'Novo Convertido': 'emerald', 'Reconciliação': 'purple',
-    'Visitante': 'blue', 'Membro': 'primary',
-    'Inativo': 'gray', 'Afastado': 'orange', 'Mudou-se': 'slate'
-  };
-  const c = colors[status] || 'slate';
-  return `<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-${c}-50 text-${c}-700">${status || '—'}</span>`;
-}
-
-function dot(val) {
-  return val ? '<span class="inline-flex w-5 h-5 rounded-full bg-emerald-100 items-center justify-center"><span class="material-symbols-outlined text-emerald-600" style="font-size:12px">check</span></span>'
-    : '<span class="inline-flex w-5 h-5 rounded-full bg-red-50 items-center justify-center"><span class="material-symbols-outlined text-red-400" style="font-size:12px">close</span></span>';
-}
-
-// ── EXCEL EXPORT ──
-function exportMembersExcel(people) {
-  const data = people.map(p => {
-    const c = p.cellId ? store.getCell(p.cellId) : null;
-    const findTrackId = (name) => store.tracks.find(t => t.name.toLowerCase().includes(name.toLowerCase()))?.id;
-    const tBatismo = findTrackId('Batismo nas Águas');
-    const tBatismoES = findTrackId('Batismo com o Espírito Santo');
-    const tEscola = findTrackId('Escola de Líderes');
-    const tEncontro = findTrackId('Encontro com Deus');
-
-    return {
-      'Nome': p.name, 'Status': p.status || '', 'Telefone': p.phone || '', 'Email': p.email || '',
-      'Célula': c?.name || '',
-      'Batismo Águas': p.tracksData?.[tBatismo] ? 'Sim' : 'Não',
-      'Esp. Santo': p.tracksData?.[tBatismoES] ? 'Sim' : 'Não',
-      'Escola de Líderes': p.tracksData?.[tEscola] ? 'Sim' : 'Não',
-      'Encontro com Deus': p.tracksData?.[tEncontro] ? 'Sim' : 'Não',
-      'Visitas': store.getVisitsForPerson(p.id).length
+  function statusBadge(status) {
+    const colors = {
+      'Novo Convertido': 'emerald', 'Reconciliação': 'purple',
+      'Visitante': 'blue', 'Membro': 'primary',
+      'Inativo': 'gray', 'Afastado': 'orange', 'Mudou-se': 'slate'
     };
-  });
-  downloadExcel(data, 'Membros', 'membros');
-}
+    const c = colors[status] || 'slate';
+    return `<span class="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-${c}-50 text-${c}-700">${status || '—'}</span>`;
+  }
 
-function exportVisitsExcel(visits) {
-  const data = visits.sort((a, b) => b.date.localeCompare(a.date)).map(v => {
-    const person = store.getPerson(v.personId);
-    return { 'Data': v.date, 'Pessoa': person?.name || '', 'Tipo': v.type || '', 'Resultado': v.result || '', 'Observação': v.observation || '' };
-  });
-  downloadExcel(data, 'Visitas', 'visitas');
-}
+  function dot(val) {
+    return val ? '<span class="inline-flex w-5 h-5 rounded-full bg-emerald-100 items-center justify-center"><span class="material-symbols-outlined text-emerald-600" style="font-size:12px">check</span></span>'
+      : '<span class="inline-flex w-5 h-5 rounded-full bg-red-50 items-center justify-center"><span class="material-symbols-outlined text-red-400" style="font-size:12px">close</span></span>';
+  }
 
-function exportCellsExcel() {
-  const data = store.getVisibleCells().map(c => {
-    const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
-    const attCount = store.getAttendanceForCell(c.id).length;
-    const justifications = store.getCellJustifications(c.id).length;
-    const cancellations = store.cellCancellations ? store.cellCancellations.filter(can => can.cellId === c.id).length : 0;
-    return { 'Célula': c.name, 'Líder': leader?.name || '', 'Membros': store.getCellMembers(c.id).length, 'Dia': c.meetingDay || '', 'Realizadas': attCount, 'Justificadas': justifications, 'Canceladas': cancellations };
-  });
-  downloadExcel(data, 'Células', 'celulas');
-}
+  // ── EXCEL EXPORT ──
+  function exportMembersExcel(people) {
+    const data = people.map(p => {
+      const c = p.cellId ? store.getCell(p.cellId) : null;
+      const findTrackId = (name) => store.tracks.find(t => t.name.toLowerCase().includes(name.toLowerCase()))?.id;
+      const tBatismo = findTrackId('Batismo nas Águas');
+      const tBatismoES = findTrackId('Batismo com o Espírito Santo');
+      const tEscola = findTrackId('Escola de Líderes');
+      const tEncontro = findTrackId('Encontro com Deus');
 
-function downloadExcel(data, sheetName, fileName) {
-  if (typeof XLSX === 'undefined') { toast('Biblioteca Excel não carregada', 'warning'); return; }
-  const ws = XLSX.utils.json_to_sheet(data);
-  const colWidths = Object.keys(data[0] || {}).map(k => ({ wch: Math.max(k.length + 2, ...data.map(r => String(r[k] || '').length + 2)) }));
-  ws['!cols'] = colWidths;
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${fileName}_${new Date().toISOString().split('T')[0]}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-  toast('Arquivo Excel exportado!');
-}
+      return {
+        'Nome': p.name, 'Status': p.status || '', 'Telefone': p.phone || '', 'Email': p.email || '',
+        'Célula': c?.name || '',
+        'Batismo Águas': p.tracksData?.[tBatismo] ? 'Sim' : 'Não',
+        'Esp. Santo': p.tracksData?.[tBatismoES] ? 'Sim' : 'Não',
+        'Escola de Líderes': p.tracksData?.[tEscola] ? 'Sim' : 'Não',
+        'Encontro com Deus': p.tracksData?.[tEncontro] ? 'Sim' : 'Não',
+        'Visitas': store.getVisitsForPerson(p.id).length
+      };
+    });
+    downloadExcel(data, 'Membros', 'membros');
+  }
 
-// ── PDF EXPORT ──
-function exportPDF(d) {
-  if (!store.hasRole('ADMIN', 'SUPERVISOR', 'LIDER_GERACAO')) { toast('Sem permissão para exportar.', 'error'); return; }
+  function exportVisitsExcel(visits) {
+    const data = visits.sort((a, b) => b.date.localeCompare(a.date)).map(v => {
+      const person = store.getPerson(v.personId);
+      return { 'Data': v.date, 'Pessoa': person?.name || '', 'Tipo': v.type || '', 'Resultado': v.result || '', 'Observação': v.observation || '' };
+    });
+    downloadExcel(data, 'Visitas', 'visitas');
+  }
 
-  const modalOverlay = document.getElementById('modal-overlay');
-  const modalContent = document.getElementById('modal-content');
+  function exportCellsExcel() {
+    const data = store.getVisibleCells().map(c => {
+      const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
+      const attCount = store.getAttendanceForCell(c.id).length;
+      const justifications = store.getCellJustifications(c.id).length;
+      const cancellations = store.cellCancellations ? store.cellCancellations.filter(can => can.cellId === c.id).length : 0;
+      return { 'Célula': c.name, 'Líder': leader?.name || '', 'Membros': store.getCellMembers(c.id).length, 'Dia': c.meetingDay || '', 'Realizadas': attCount, 'Justificadas': justifications, 'Canceladas': cancellations };
+    });
+    downloadExcel(data, 'Células', 'celulas');
+  }
 
-  modalContent.innerHTML = `
+  function downloadExcel(data, sheetName, fileName) {
+    if (typeof XLSX === 'undefined') { toast('Biblioteca Excel não carregada', 'warning'); return; }
+    const ws = XLSX.utils.json_to_sheet(data);
+    const colWidths = Object.keys(data[0] || {}).map(k => ({ wch: Math.max(k.length + 2, ...data.map(r => String(r[k] || '').length + 2)) }));
+    ws['!cols'] = colWidths;
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+    toast('Arquivo Excel exportado!');
+  }
+
+  // ── PDF EXPORT ──
+  function exportPDF(d) {
+    if (!store.hasRole('ADMIN', 'SUPERVISOR', 'LIDER_GERACAO')) { toast('Sem permissão para exportar.', 'error'); return; }
+
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalContent = document.getElementById('modal-content');
+
+    modalContent.innerHTML = `
     <div class="p-6">
       <div class="flex justify-between items-center mb-6">
         <h3 class="text-xl font-extrabold text-slate-900 flex items-center gap-2"><span class="material-symbols-outlined text-primary">picture_as_pdf</span> Gerar Relatório PDF</h3>
@@ -810,153 +809,153 @@ function exportPDF(d) {
       </div>
     </div>
   `;
-  modalOverlay.classList.remove('hidden');
+    modalOverlay.classList.remove('hidden');
 
-  const close = () => modalOverlay.classList.add('hidden');
-  document.getElementById('close-pdf-modal').onclick = close;
-  document.getElementById('cancel-pdf').onclick = close;
+    const close = () => modalOverlay.classList.add('hidden');
+    document.getElementById('close-pdf-modal').onclick = close;
+    document.getElementById('cancel-pdf').onclick = close;
 
-  document.getElementById('confirm-pdf').onclick = async () => {
-    const selectedType = document.querySelector('input[name="reportType"]:checked').value;
-    const btn = document.getElementById('confirm-pdf');
-    btn.innerHTML = '<span class="spinner w-4 h-4 !m-0 border-2 border-white/20 border-t-white"></span> Processando...';
-    btn.disabled = true;
+    document.getElementById('confirm-pdf').onclick = async () => {
+      const selectedType = document.querySelector('input[name="reportType"]:checked').value;
+      const btn = document.getElementById('confirm-pdf');
+      btn.innerHTML = '<span class="spinner w-4 h-4 !m-0 border-2 border-white/20 border-t-white"></span> Processando...';
+      btn.disabled = true;
 
-    try {
-      const payload = preparePdfPayload(d);
-      const res = await fetch('/api/reports/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${store.token}`
-        },
-        body: JSON.stringify({ type: selectedType, payload })
-      });
+      try {
+        const payload = preparePdfPayload(d);
+        const res = await fetch('/api/reports/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${store.token}`
+          },
+          body: JSON.stringify({ type: selectedType, payload })
+        });
 
-      if (!res.ok) throw new Error('Falha na geração');
+        if (!res.ok) throw new Error('Falha na geração');
 
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `report_${selectedType}_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `report_${selectedType}_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
 
-      toast('Relatório baixado!');
-      close();
-    } catch (e) {
-      toast('Erro ao gerar relatório', 'error');
-      btn.innerHTML = 'Baixar Relatório';
-      btn.disabled = false;
-    }
-  };
-}
-
-function preparePdfPayload(d) {
-  const s = store.systemSettings || {};
-
-  const cellsTableData = store.getVisibleCells().map(c => {
-    const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
-    const atts = store.getAttendanceForCell(c.id).filter(a => {
-      const adate = new Date(a.date);
-      return adate >= d.startDate && adate <= d.endDate && a.records && a.records.length > 0;
-    });
-    let present = 0, total = 0;
-    atts.forEach(a => {
-      const p = a.records.filter(r => r.status === 'present').length;
-      present += p;
-      total += a.records.length;
-    });
-    return {
-      name: c.name,
-      leader: leader?.name,
-      day: c.meetingDay,
-      memberCount: store.getCellMembers(c.id).length,
-      freqPct: total ? Math.round(present / total * 100) : 0,
-      realizadas: atts.length,
-      justificadas: store.getCellJustifications(c.id).length
+        toast('Relatório baixado!');
+        close();
+      } catch (e) {
+        toast('Erro ao gerar relatório', 'error');
+        btn.innerHTML = 'Baixar Relatório';
+        btn.disabled = false;
+      }
     };
-  });
+  }
 
-  const mappedPeople = d.people.map(p => {
-    const c = p.cellId ? store.getCell(p.cellId) : null;
-    return {
-      name: p.name,
-      status: p.status,
-      cellName: c?.name,
-      phone: p.phone,
-      tracksData: p.tracksData,
-      visitsCount: store.getVisitsForPerson(p.id).length
-    }
-  });
+  function preparePdfPayload(d) {
+    const s = store.systemSettings || {};
 
-  return {
-    logoUrl: s.logoUrl,
-    appName: s.appName || s.congregationName || 'CRM Celular',
-    periodLabel: d.periodLabel,
-    total: d.total,
-    novosConvertidos: d.novosConvertidos,
-    reconciliacoes: d.reconciliacoes,
-    visitantes: d.visitantes,
-    visitsInPeriod: d.visitsInPeriod.map(v => ({
-      date: v.date,
-      personName: store.getPerson(v.personId)?.name,
-      type: v.type,
-      result: v.result,
-      observation: v.observation
-    })),
-    consolidacoes: d.consolidacoes,
-    acompanhamentos: d.acompanhamentos,
-    freqPct: d.freqPct,
-    activeCells: d.activeCells,
-    noVisit: d.noVisit,
-    noVisitDetails: d.noVisitDetails,
-    zeroVisits: d.zeroVisits,
-    zeroVisitsDetails: d.zeroVisitsDetails,
-    avgMembers: d.avgMembers,
-    tracks: store.tracks,
-    trackCounts: d.trackCounts,
-    people: mappedPeople,
-    cellsTableData: cellsTableData,
-    customFieldTotals: d.customFieldTotals || {},
-    customFieldsConfig: (store.systemSettings?.cellCustomFields || '').split(',').map(s => s.trim()).filter(Boolean),
-    metricsHistory: store.attendance.filter(a => {
-      const adate = new Date(a.date);
-      return adate >= d.startDate && adate <= d.endDate && a.customFields && a.customFields !== '{}';
-    }).sort((a, b) => b.date.localeCompare(a.date)).map(a => {
-      const cell = store.getCell(a.cellId);
-      const leader = cell?.leaderId ? (store.getUser(cell.leaderId) || store.getPerson(cell.leaderId)) : null;
-      let parsed = {};
-      try { parsed = JSON.parse(a.customFields); } catch (e) { }
+    const cellsTableData = store.getVisibleCells().map(c => {
+      const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
+      const atts = store.getAttendanceForCell(c.id).filter(a => {
+        const adate = new Date(a.date);
+        return adate >= d.startDate && adate <= d.endDate && a.records && a.records.length > 0;
+      });
+      let present = 0, total = 0;
+      atts.forEach(a => {
+        const p = a.records.filter(r => r.status === 'present').length;
+        present += p;
+        total += a.records.length;
+      });
       return {
-        date: a.date,
-        cellName: cell?.name || '—',
-        leaderName: leader?.name || '—',
-        metrics: parsed
+        name: c.name,
+        leader: leader?.name,
+        day: c.meetingDay,
+        memberCount: store.getCellMembers(c.id).length,
+        freqPct: total ? Math.round(present / total * 100) : 0,
+        realizadas: atts.length,
+        justificadas: store.getCellJustifications(c.id).length
       };
-    }),
-    inativoPeople: store.people
-      .filter(p => ['Inativo', 'Afastado', 'Mudou-se'].includes(p.status))
-      .sort((a, b) => a.status.localeCompare(b.status) || a.name.localeCompare(b.name))
-      .map(p => {
-        const c = p.cellId ? store.getCell(p.cellId) : null;
-        return { name: p.name, status: p.status, cellName: c?.name || null, phone: p.phone || null };
-      })
-  };
-}
+    });
 
-function renderColSettings(visibleCols) {
-  const tracks = store.tracks || [];
-  const cols = [
-    { id: 'status', label: 'Status' },
-    { id: 'cell', label: 'Célula' },
-    { id: 'phone', label: 'Telefone' },
-    ...tracks.map(t => ({ id: t.id, label: t.name })),
-    { id: 'visits', label: 'Visitas' }
-  ];
-  return `<div class="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center flex-wrap gap-2 sm:gap-4 transition-all">
+    const mappedPeople = d.people.map(p => {
+      const c = p.cellId ? store.getCell(p.cellId) : null;
+      return {
+        name: p.name,
+        status: p.status,
+        cellName: c?.name,
+        phone: p.phone,
+        tracksData: p.tracksData,
+        visitsCount: store.getVisitsForPerson(p.id).length
+      }
+    });
+
+    return {
+      logoUrl: s.logoUrl,
+      appName: s.appName || s.congregationName || 'CRM Celular',
+      periodLabel: d.periodLabel,
+      total: d.total,
+      novosConvertidos: d.novosConvertidos,
+      reconciliacoes: d.reconciliacoes,
+      visitantes: d.visitantes,
+      visitsInPeriod: d.visitsInPeriod.map(v => ({
+        date: v.date,
+        personName: store.getPerson(v.personId)?.name,
+        type: v.type,
+        result: v.result,
+        observation: v.observation
+      })),
+      consolidacoes: d.consolidacoes,
+      acompanhamentos: d.acompanhamentos,
+      freqPct: d.freqPct,
+      activeCells: d.activeCells,
+      noVisit: d.noVisit,
+      noVisitDetails: d.noVisitDetails,
+      zeroVisits: d.zeroVisits,
+      zeroVisitsDetails: d.zeroVisitsDetails,
+      avgMembers: d.avgMembers,
+      tracks: store.tracks,
+      trackCounts: d.trackCounts,
+      people: mappedPeople,
+      cellsTableData: cellsTableData,
+      customFieldTotals: d.customFieldTotals || {},
+      customFieldsConfig: (store.systemSettings?.cellCustomFields || '').split(',').map(s => s.trim()).filter(Boolean),
+      metricsHistory: store.attendance.filter(a => {
+        const adate = new Date(a.date);
+        return adate >= d.startDate && adate <= d.endDate && a.customFields && a.customFields !== '{}';
+      }).sort((a, b) => b.date.localeCompare(a.date)).map(a => {
+        const cell = store.getCell(a.cellId);
+        const leader = cell?.leaderId ? (store.getUser(cell.leaderId) || store.getPerson(cell.leaderId)) : null;
+        let parsed = {};
+        try { parsed = JSON.parse(a.customFields); } catch (e) { }
+        return {
+          date: a.date,
+          cellName: cell?.name || '—',
+          leaderName: leader?.name || '—',
+          metrics: parsed
+        };
+      }),
+      inativoPeople: store.people
+        .filter(p => ['Inativo', 'Afastado', 'Mudou-se'].includes(p.status))
+        .sort((a, b) => a.status.localeCompare(b.status) || a.name.localeCompare(b.name))
+        .map(p => {
+          const c = p.cellId ? store.getCell(p.cellId) : null;
+          return { name: p.name, status: p.status, cellName: c?.name || null, phone: p.phone || null };
+        })
+    };
+  }
+
+  function renderColSettings(visibleCols) {
+    const tracks = store.tracks || [];
+    const cols = [
+      { id: 'status', label: 'Status' },
+      { id: 'cell', label: 'Célula' },
+      { id: 'phone', label: 'Telefone' },
+      ...tracks.map(t => ({ id: t.id, label: t.name })),
+      { id: 'visits', label: 'Visitas' }
+    ];
+    return `<div class="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center flex-wrap gap-2 sm:gap-4 transition-all">
     <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1 shrink-0"><span class="material-symbols-outlined text-[14px]">checklist</span> Colunas Visíveis:</span>
     <div class="flex flex-wrap gap-2">
       ${cols.map(c => `<label class="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 cursor-pointer bg-white border border-slate-200 hover:border-primary/50 px-2 py-1 rounded-lg select-none transition">
@@ -965,4 +964,5 @@ function renderColSettings(visibleCols) {
       </label>`).join('')}
     </div>
   </div>`;
+  }
 }
