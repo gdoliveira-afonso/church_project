@@ -792,10 +792,10 @@ export function reportsView() {
             </div>
           </label>
 
-          <label class="flex items-start gap-3 p-4 border border-slate-200 rounded-xl cursor-pointer transition hover:bg-slate-50">
-            <input type="radio" name="reportType" value="cells" class="mt-1 w-4 h-4 text-primary accent-primary">
+          <label class="flex items-start gap-3 p-4 border border-slate-200 rounded-xl transition ${filterCell ? 'opacity-50 cursor-not-allowed bg-slate-50' : 'cursor-pointer hover:bg-slate-50'}">
+            <input type="radio" name="reportType" value="cells" class="mt-1 w-4 h-4 text-primary accent-primary" ${filterCell ? 'disabled' : ''}>
             <div>
-              <p class="text-sm font-bold text-slate-900">Desempenho das Células</p>
+              <p class="text-sm font-bold text-slate-900">Desempenho das Células ${filterCell ? '<span class="text-[9px] text-amber-600 ml-1">(Indisponível para célula individual)</span>' : ''}</p>
               <p class="text-[11px] text-slate-500 mt-1">Líderes, reuniões, assiduidade e números limpos.</p>
             </div>
           </label>
@@ -977,7 +977,8 @@ export function reportsView() {
         .map(p => {
           const c = p.cellId ? store.getCell(p.cellId) : null;
           return { name: p.name, status: p.status, cellName: c?.name || null, phone: p.phone || null };
-        })
+        }),
+      visibleCols: visibleCols
     };
   }
 

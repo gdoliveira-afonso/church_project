@@ -149,7 +149,7 @@ function buildHtml(type, data) {
         bodyHtml += renderMembersTable(data);
     }
 
-    if (type === 'cells' || type === 'analytical') {
+    if ((type === 'cells' || type === 'analytical') && data.activeCells > 1) {
         bodyHtml += `<div class="section-header"><div class="section-title">Desempenho das Células</div></div>`;
         bodyHtml += renderCellsTable(data);
     }
