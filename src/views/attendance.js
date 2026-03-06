@@ -25,8 +25,9 @@ export function attendanceView(params) {
   const cancellation = store.isCellCanceledOnDate(c.id, targetDate) || store.isCellCanceledOnDate('all', targetDate);
 
   let blockedMessage = null;
+  const canBypassDay = store.hasRole('ADMIN', 'SUPERVISOR') || (store.hasRole('LIDER_GERACAO') && c.generationId === store.currentUser.generationId);
   if (cancellation) blockedMessage = `Célula cancelada neste dia: ${cancellation.reason}`;
-  else if (!isRightDay && !store.hasRole('ADMIN')) blockedMessage = `A chamada só pode ser realizada de ${c.meetingDay || '(dia não definido)'}. Você está tentando fazer de ${targetDayName}.`;
+  else if (!isRightDay && !canBypassDay) blockedMessage = `A chamada só pode ser realizada de ${c.meetingDay || '(dia não definido)'}. Você está tentando fazer de ${targetDayName}.`;
 
   app.innerHTML = `
   <header class="sticky top-0 z-20 bg-white border-b border-slate-100 shrink-0">

@@ -423,8 +423,8 @@ function cellActionsModal(cellId, dateStr) {
     const c = store.getCell(cellId);
     if (!c) return;
 
-    // Check if the current user is the leader of this cell or an admin
-    const canManage = store.hasRole('ADMIN', 'SUPERVISOR') || c.leaderId === store.currentUser.id || c.viceLeaderId === store.currentUser.id;
+    // Check if the current user is the leader of this cell or an admin/supervisor or leader of this generation
+    const canManage = store.hasRole('ADMIN', 'SUPERVISOR') || c.leaderId === store.currentUser.id || c.viceLeaderId === store.currentUser.id || (store.hasRole('LIDER_GERACAO') && c.generationId === store.currentUser.generationId);
 
     let content = `<div class="p-6">
     <div class="flex justify-between items-center mb-5"><h3 class="text-base font-bold">${c.name}</h3><button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="p-1 rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-slate-400 text-xl">close</span></button></div>
