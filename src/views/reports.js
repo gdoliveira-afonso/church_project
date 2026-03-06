@@ -31,7 +31,10 @@ export function reportsView() {
 
     let people = [...store.people];
     if (store.hasRole('LIDER_GERACAO')) filterGeneration = store.currentUser?.generationId;
-    if (filterGeneration) people = people.filter(p => p.generationId === filterGeneration);
+    if (filterGeneration) {
+      const genCellIds = new Set(store.cells.filter(c => c.generationId === filterGeneration).map(c => c.id));
+      people = people.filter(p => p.cellId && genCellIds.has(p.cellId));
+    }
     if (filterCell) people = people.filter(p => p.cellId === filterCell);
     if (filterStatus) people = people.filter(p => p.status === filterStatus);
     if (search) { const s = search.toLowerCase(); people = people.filter(p => p.name?.toLowerCase().includes(s)); }
@@ -421,7 +424,7 @@ export function reportsView() {
     const visibleCellIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
     const filteredVisits = visits.filter(v => {
       const person = store.getPerson(v.personId);
-      return !filterGeneration || (person && person.generationId === filterGeneration);
+      return !filterGeneration || (person && visibleCellIds.has(person.cellId));
     });
     const sorted = [...filteredVisits].sort((a, b) => b.date.localeCompare(a.date));
     return `<table class="w-full text-left text-xs">
@@ -582,8 +585,10 @@ export function reportsView() {
     const INACTIVE_STATUSES = ['Inativo', 'Afastado', 'Mudou-se'];
     const statusColors = { 'Inativo': ['gray', 'person_off'], 'Afastado': ['orange', 'person_remove'], 'Mudou-se': ['slate', 'moving'] };
 
+    const activeCellsIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
     const inactive = store.people
       .filter(p => INACTIVE_STATUSES.includes(p.status))
+      .filter(p => !filterGeneration || (p.cellId && activeCellsIds.has(p.cellId)))
       .sort((a, b) => INACTIVE_STATUSES.indexOf(a.status) - INACTIVE_STATUSES.indexOf(b.status) || a.name.localeCompare(b.name));
 
     const counts = INACTIVE_STATUSES.map(s => ({ s, n: inactive.filter(p => p.status === s).length }));
