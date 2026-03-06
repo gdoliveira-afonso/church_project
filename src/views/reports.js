@@ -8,7 +8,7 @@ export function reportsView() {
   let filterM = new Date().getMonth(); // 0 a 11, ou -1 para Ano Inteiro
   let filterCell = '';
   // Se for LIDER_GERACAO, pré-filtra pela própria geração e não permite mudar
-  let filterGeneration = store.hasRole('LIDER_GERACAO') ? store.user.generationId : '';
+  let filterGeneration = store.hasRole('LIDER_GERACAO') ? store.currentUser?.generationId : '';
   let filterStatus = '';
   let search = '';
   let visibleCols = {};
@@ -30,7 +30,7 @@ export function reportsView() {
     }
 
     let people = [...store.people];
-    if (store.hasRole('LIDER_GERACAO')) filterGeneration = store.user.generationId;
+    if (store.hasRole('LIDER_GERACAO')) filterGeneration = store.currentUser?.generationId;
     if (filterGeneration) people = people.filter(p => p.generationId === filterGeneration);
     if (filterCell) people = people.filter(p => p.cellId === filterCell);
     if (filterStatus) people = people.filter(p => p.status === filterStatus);
@@ -189,7 +189,7 @@ export function reportsView() {
               <option value="">Todas as gerações</option>
               ${(store.generations || []).map(g => `<option value="${g.id}" ${filterGeneration === g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
             </select>
-            ${store.hasRole('LIDER_GERACAO') ? `<div class="px-3 py-2 rounded-lg border border-primary/20 bg-primary/5 text-primary text-sm font-bold flex items-center gap-2 min-w-[140px]"><span class="material-symbols-outlined text-sm">groups</span>${store.generations.find(g => g.id === store.user.generationId)?.name || 'Minha Geração'}</div>` : ''}
+            ${store.hasRole('LIDER_GERACAO') ? `<div class="px-3 py-2 rounded-lg border border-primary/20 bg-primary/5 text-primary text-sm font-bold flex items-center gap-2 min-w-[140px]"><span class="material-symbols-outlined text-sm">groups</span>${store.generations.find(g => g.id === store.currentUser?.generationId)?.name || 'Minha Geração'}</div>` : ''}
             <select id="f-cell" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 min-w-[140px]">
               <option value="">Todas as células</option>
               ${store.getVisibleCells().filter(c => !filterGeneration || c.generationId === filterGeneration).map(c => `<option value="${c.id}" ${filterCell === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
