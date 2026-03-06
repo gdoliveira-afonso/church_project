@@ -205,9 +205,9 @@ function renderExecutiveSummary(d) {
     `;
 
     const kpiGrid2 = `
-        <div class="kpi-grid">
+        <div class="kpi-grid" style="${d.activeCells <= 1 ? 'grid-template-columns: repeat(3, 1fr);' : ''}">
             <div class="kpi-card"><div class="kpi-val">${d.freqPct}%</div><div class="kpi-label">Média Frequência</div></div>
-            <div class="kpi-card"><div class="kpi-val">${d.activeCells}</div><div class="kpi-label">Células Ativas</div></div>
+            ${d.activeCells > 1 ? `<div class="kpi-card"><div class="kpi-val">${d.activeCells}</div><div class="kpi-label">Células Ativas</div></div>` : ''}
             <div class="kpi-card"><div class="kpi-val" style="color: #ea580c;">${d.noVisit}</div><div class="kpi-label">Sem Visita > 60d</div></div>
             <div class="kpi-card"><div class="kpi-val" style="color: #dc2626;">${d.zeroVisits}</div><div class="kpi-label">Nunca Visitados</div></div>
         </div>
@@ -295,7 +295,7 @@ function renderExecutiveSummary(d) {
         negativeInsights.push(`${d.noVisit} pessoas estão há mais de 60 dias sem acompanhamento.`);
     }
 
-    if (d.activeCells > 0) positiveInsights.push(`Média de ${d.avgMembers} membros por célula.`);
+    if (d.activeCells > 1) positiveInsights.push(`Média de ${d.avgMembers} membros por célula.`);
 
     const insightsGrid = `
         <div class="section-header"><div class="section-title">Análise & Insights Automáticos</div></div>
