@@ -7,6 +7,7 @@ export function reportsView() {
   let filterY = currentY;
   let filterM = new Date().getMonth(); // 0 a 11, ou -1 para Ano Inteiro
   let filterCell = '';
+  let filterGeneration = '';
   let filterStatus = '';
   let search = '';
   let visibleCols = {};
@@ -28,6 +29,7 @@ export function reportsView() {
     }
 
     let people = [...store.people];
+    if (filterGeneration) people = people.filter(p => p.generationId === filterGeneration);
     if (filterCell) people = people.filter(p => p.cellId === filterCell);
     if (filterStatus) people = people.filter(p => p.status === filterStatus);
     if (search) { const s = search.toLowerCase(); people = people.filter(p => p.name?.toLowerCase().includes(s)); }
@@ -83,12 +85,14 @@ export function reportsView() {
     const zeroVisits = zeroVisitsPeople.length;
     const zeroVisitsDetails = zeroVisitsPeople.map(p => ({ name: p.name, phone: p.phone, status: p.status }));
 
-    const activeCells = store.cells.length;
+    const activeCellsList = filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells;
+    const activeCells = activeCellsList.length;
     const avgMembers = activeCells ? Math.round(people.filter(p => p.cellId).length / activeCells) : 0;
 
     // Frequência REALIZADA naquele mês/ano específico 
     // IMPORTANTE: Ignorar registros que são apenas métricas (sem records de presença)
-    const attWithRecords = store.attendance.filter(a => a.records && a.records.length > 0);
+    const visibleCellIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
+    const attWithRecords = store.attendance.filter(a => a.records && a.records.length > 0 && visibleCellIds.has(a.cellId));
     const attInPeriod = attWithRecords.filter(a => {
       const d = new Date(a.date);
       return d >= startDate && d <= endDate;
@@ -104,7 +108,7 @@ export function reportsView() {
 
     store.attendance.filter(a => {
       const d = new Date(a.date);
-      return d >= startDate && d <= endDate;
+      return d >= startDate && d <= endDate && visibleCellIds.has(a.cellId);
     }).forEach(a => {
       if (a.customFields) {
         try {
@@ -179,9 +183,13 @@ export function reportsView() {
               <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-lg">search</span>
               <input id="f-search" type="text" value="${search}" placeholder="Buscar por nome..." class="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"/>
             </div>
+            <select id="f-gen" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 min-w-[140px]">
+              <option value="">Todas as gerações</option>
+              ${(store.generations || []).map(g => `<option value="${g.id}" ${filterGeneration === g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
+            </select>
             <select id="f-cell" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 min-w-[140px]">
               <option value="">Todas as células</option>
-              ${store.getVisibleCells().map(c => `<option value="${c.id}" ${filterCell === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+              ${store.getVisibleCells().filter(c => !filterGeneration || c.generationId === filterGeneration).map(c => `<option value="${c.id}" ${filterCell === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
             </select>
             <select id="f-status" class="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 min-w-[140px]">
               <option value="">Todos os status</option>
@@ -301,6 +309,11 @@ export function reportsView() {
       const inp = document.getElementById('f-search');
       if (inp) { inp.focus(); inp.setSelectionRange(pos, pos); }
     });
+    document.getElementById('f-gen')?.addEventListener('change', e => {
+      filterGeneration = e.target.value;
+      filterCell = ''; // Reset cell filter when generation changes
+      render();
+    });
     document.getElementById('f-cell')?.addEventListener('change', e => { filterCell = e.target.value; render(); });
     document.getElementById('f-status')?.addEventListener('change', e => { filterStatus = e.target.value; render(); });
 
@@ -382,7 +395,7 @@ function cellsTable() {
       <th class="px-3 py-2.5 text-center text-amber-600">Justificados</th>
       <th class="px-3 py-2.5 text-center text-slate-500 rounded-r-lg">Cancelados (Admin)</th>
     </tr></thead>
-    <tbody>${store.getVisibleCells().length ? store.getVisibleCells().map(c => {
+    <tbody>${store.getVisibleCells().filter(c => !filterGeneration || c.generationId === filterGeneration).length ? store.getVisibleCells().filter(c => !filterGeneration || c.generationId === filterGeneration).map(c => {
     const members = store.getCellMembers(c.id);
     const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
     // IMPORTANTE: Contar apenas atendimentos que tiveram registros de presença (records)
@@ -403,7 +416,12 @@ function cellsTable() {
 }
 
 function visitsTable(visits) {
-  const sorted = [...visits].sort((a, b) => b.date.localeCompare(a.date));
+  const visibleCellIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
+  const filteredVisits = visits.filter(v => {
+    const person = store.getPerson(v.personId);
+    return !filterGeneration || (person && person.generationId === filterGeneration);
+  });
+  const sorted = [...filteredVisits].sort((a, b) => b.date.localeCompare(a.date));
   return `<table class="w-full text-left text-xs">
     <thead><tr class="bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider">
       <th class="px-3 py-2.5 rounded-l-lg">Data</th><th class="px-3 py-2.5">Pessoa</th><th class="px-3 py-2.5">Tipo</th>
@@ -423,9 +441,10 @@ function visitsTable(visits) {
 }
 
 function attendanceTable(startDate, endDate, showOnlyMetrics = false) {
+  const visibleCellIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
   let records = store.attendance.filter(a => {
     const d = new Date(a.date);
-    return d >= startDate && d <= endDate;
+    return d >= startDate && d <= endDate && visibleCellIds.has(a.cellId);
   }).sort((a, b) => b.date.localeCompare(a.date));
 
   if (showOnlyMetrics) {
@@ -483,9 +502,10 @@ function attendanceTable(startDate, endDate, showOnlyMetrics = false) {
 }
 
 function personAttendanceTable(people, startDate, endDate) {
+  const visibleCellIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
   const attInPeriod = store.attendance.filter(a => {
     const d = new Date(a.date);
-    return d >= startDate && d <= endDate;
+    return d >= startDate && d <= endDate && visibleCellIds.has(a.cellId);
   });
   const stats = people.map(p => {
     let present = 0; let absent = 0; let total = 0;
