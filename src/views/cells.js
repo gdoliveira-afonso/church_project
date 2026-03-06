@@ -5,20 +5,48 @@ export function cellsView() {
   const app = document.getElementById('app');
   app.innerHTML = `
   ${header('Células', false, store.hasRole('ADMIN', 'SUPERVISOR') ? `<button id="btn-add-cell" class="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"><span class="material-symbols-outlined text-lg">add</span></button>` : '')}
-  <div class="flex-1 overflow-y-auto px-4 md:px-6 py-4">
-    ${(() => {
-      const visibleCells = store.getVisibleCells();
-      return visibleCells.length ? `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">${visibleCells.map(c => {
-        const leader = store.users.find(u => u.id === c.leaderId); const vice = c.viceLeaderId ? store.users.find(u => u.id === c.viceLeaderId) : null; const mem = store.getCellMembers(c.id);
-        return `<a href="#/cell?id=${c.id}" class="block bg-white rounded-xl p-4 border border-slate-100 hover:border-primary/30 hover:shadow-sm transition group">
-        <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600"><span class="material-symbols-outlined">diversity_3</span></div><div class="flex-1"><h3 class="text-sm font-bold">${c.name}</h3><p class="text-[11px] text-slate-500">${c.meetingDay || ''} ${c.meetingTime ? 'às ' + c.meetingTime : ''}</p></div><span class="material-symbols-outlined text-slate-300 group-hover:text-primary text-lg">chevron_right</span></div>
-        <div class="flex flex-col text-[11px] text-slate-500 mb-2 space-y-0.5"><span>Líder: ${leader?.name || 'N/A'}</span>${vice ? `<span>Vice: ${vice.name}</span>` : ''}</div>
-        <div class="flex justify-between text-[11px] text-slate-500"><span>Membros:</span><span>${mem.length}</span></div>
-      </a>`}).join('')}</div>` : `<div class="flex flex-col items-center justify-center py-16"><span class="material-symbols-outlined text-5xl text-slate-200 mb-3">group_off</span><p class="text-sm text-slate-400">Nenhuma célula encontrada</p>${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="document.getElementById('btn-add-cell').click()" class="mt-3 text-sm text-primary font-semibold">+ Criar primeira célula</button>` : ''}</div>`;
-    })()}
+  <div class="bg-white px-4 md:px-6 py-3 border-b border-slate-100 flex flex-col md:flex-row gap-2">
+    <div class="relative flex-1">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+      <input id="search-cells" class="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="Buscar célula por nome…"/>
+    </div>
+    ${store.hasRole('ADMIN', 'SUPERVISOR') ? `
+    <div class="relative md:w-56">
+      <select id="gen-filter" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none">
+        <option value="">Todas as Gerações</option>
+        ${(store.generations || []).map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
+      </select>
+      <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-lg">expand_more</span>
+    </div>` : ''}
   </div>
+  <div id="cells-list" class="flex-1 overflow-y-auto px-4 md:px-6 py-4 bg-slate-50/30"></div>
   ${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="document.getElementById('btn-add-cell').click()" class="fixed bottom-20 md:bottom-8 right-4 md:right-8 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition"><span class="material-symbols-outlined text-2xl">add</span></button>` : ''}
   ${bottomNav('cells')}`;
+
+  const go = () => {
+    const q = document.getElementById('search-cells')?.value.toLowerCase() || '';
+    const gf = document.getElementById('gen-filter')?.value || '';
+    let cc = store.getVisibleCells();
+
+    if (q) cc = cc.filter(c => c.name.toLowerCase().includes(q));
+    if (gf) cc = cc.filter(c => c.generationId === gf);
+
+    document.getElementById('cells-list').innerHTML = cc.length ? `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">${cc.map(c => {
+      const leader = store.users.find(u => u.id === c.leaderId); const vice = c.viceLeaderId ? store.users.find(u => u.id === c.viceLeaderId) : null; const mem = store.getCellMembers(c.id);
+      return `<a href="#/cell?id=${c.id}" class="block bg-white rounded-xl p-4 border border-slate-100 hover:border-primary/30 hover:shadow-sm transition group">
+      <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600"><span class="material-symbols-outlined">diversity_3</span></div><div class="flex-1"><h3 class="text-sm font-bold">${c.name}</h3><p class="text-[11px] text-slate-500">${c.meetingDay || ''} ${c.meetingTime ? 'às ' + c.meetingTime : ''}</p></div><span class="material-symbols-outlined text-slate-300 group-hover:text-primary text-lg">chevron_right</span></div>
+      <div class="flex flex-col text-[11px] text-slate-500 mb-2 space-y-0.5"><span>Líder: ${leader?.name || 'N/A'}</span>${vice ? `<span>Vice: ${vice.name}</span>` : ''}</div>
+      <div class="flex justify-between text-[11px] text-slate-500"><span>Membros:</span><span>${mem.length}</span></div>
+    </a>`}).join('')}</div>` : `<div class="flex flex-col items-center justify-center py-16"><span class="material-symbols-outlined text-5xl text-slate-200 mb-3">group_off</span><p class="text-sm text-slate-400">Nenhuma célula encontrada</p>${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button id="btn-empty-add" class="mt-3 text-sm text-primary font-semibold">+ Criar primeira célula</button>` : ''}</div>`;
+
+    document.getElementById('btn-empty-add')?.addEventListener('click', () => cellForm());
+  };
+
+  go();
+  document.getElementById('search-cells').oninput = go;
+  const genFilt = document.getElementById('gen-filter');
+  if (genFilt) genFilt.onchange = go;
+
   const addBtn = document.getElementById('btn-add-cell');
   if (addBtn) addBtn.onclick = () => cellForm();
 }
