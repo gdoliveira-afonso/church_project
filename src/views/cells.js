@@ -1,7 +1,7 @@
 import { store } from '../store.js';
 import { header, bottomNav, avatar, toast, openModal, closeModal } from '../components/ui.js';
 
-export function cellsView() {
+export function cellsView(params) {
   const app = document.getElementById('app');
   app.innerHTML = `
   ${header('Células', false, store.hasRole('ADMIN', 'SUPERVISOR') ? `<button id="btn-add-cell" class="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"><span class="material-symbols-outlined text-lg">add</span></button>` : '')}
@@ -14,7 +14,7 @@ export function cellsView() {
     <div class="relative md:w-56">
       <select id="gen-filter" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none">
         <option value="">Todas as Gerações</option>
-        ${(store.generations || []).map(g => `<option value="${g.id}">${g.name}</option>`).join('')}
+        ${(store.generations || []).map(g => `<option value="${g.id}" ${params?.generationId === g.id ? 'selected' : ''}>${g.name}</option>`).join('')}
       </select>
       <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-lg">expand_more</span>
     </div>` : ''}

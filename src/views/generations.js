@@ -10,22 +10,23 @@ export function generationsView() {
     const leaders = store.users.filter(u => u.generationId === g.id && u.role === 'LIDER_GERACAO');
     const cells = store.cells.filter(c => c.generationId === g.id);
 
-    return `<div class="relative bg-white rounded-xl p-4 border border-slate-100 hover:border-primary/30 hover:shadow-sm transition group">
-          <div class="flex gap-3 mb-3">
-            <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0"><span class="material-symbols-outlined text-xl">groups</span></div>
-            <div class="flex-1 min-w-0">
-              <h3 class="text-sm font-bold text-slate-800 truncate pr-16">${g.name}</h3>
-              <p class="text-[11px] text-slate-500 mt-0.5 line-clamp-2">${g.description || 'Sem descrição'}</p>
+    return `<div class="relative bg-white rounded-xl border border-slate-100 hover:border-primary/30 hover:shadow-sm transition group">
+          <a href="#/cells?generationId=${g.id}" class="block p-4">
+            <div class="flex gap-3 mb-3">
+              <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0"><span class="material-symbols-outlined text-xl">groups</span></div>
+              <div class="flex-1 min-w-0">
+                <h3 class="text-sm font-bold text-slate-800 truncate pr-16">${g.name}</h3>
+                <p class="text-[11px] text-slate-500 mt-0.5 line-clamp-2">${g.description || 'Sem descrição'}</p>
+              </div>
             </div>
-            
-            <div class="absolute top-3 right-3 flex items-center gap-1">
-               <button class="btn-edit-gen w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition" data-id="${g.id}"><span class="material-symbols-outlined text-[18px]">edit</span></button>
-               <button class="btn-del-gen w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition" data-id="${g.id}"><span class="material-symbols-outlined text-[18px]">delete</span></button>
+            <div class="flex justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-50 mt-1">
+              <span class="flex items-center gap-1 font-medium"><span class="material-symbols-outlined text-[14px]">person</span> ${leaders.length} líder(es)</span>
+              <span class="flex items-center gap-1 font-medium"><span class="material-symbols-outlined text-[14px]">diversity_3</span> ${cells.length} célula(s)</span>
             </div>
-          </div>
-          <div class="flex justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-50 mt-1">
-            <span class="flex items-center gap-1 font-medium"><span class="material-symbols-outlined text-[14px]">person</span> ${leaders.length} líder(es)</span>
-            <span class="flex items-center gap-1 font-medium"><span class="material-symbols-outlined text-[14px]">diversity_3</span> ${cells.length} célula(s)</span>
+          </a>
+          <div class="absolute top-3 right-3 flex items-center gap-1">
+             <button class="btn-edit-gen w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition" data-id="${g.id}"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+             <button class="btn-del-gen w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 transition" data-id="${g.id}"><span class="material-symbols-outlined text-[18px]">delete</span></button>
           </div>
         </div>`}).join('')}</div>` :
       `<div class="flex flex-col items-center justify-center py-16">
