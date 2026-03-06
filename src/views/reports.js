@@ -90,13 +90,16 @@ export function reportsView() {
     const zeroVisits = zeroVisitsPeople.length;
     const zeroVisitsDetails = zeroVisitsPeople.map(p => ({ name: p.name, phone: p.phone, status: p.status }));
 
-    const activeCellsList = filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells;
+    let activeCellsList = filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells;
+    if (filterCell) activeCellsList = activeCellsList.filter(c => c.id === filterCell);
     const activeCells = activeCellsList.length;
     const avgMembers = activeCells ? Math.round(people.filter(p => p.cellId).length / activeCells) : 0;
 
     // Frequência REALIZADA naquele mês/ano específico 
     // IMPORTANTE: Ignorar registros que são apenas métricas (sem records de presença)
-    const visibleCellIds = new Set((filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells).map(c => c.id));
+    let visibleCells = filterGeneration ? store.cells.filter(c => c.generationId === filterGeneration) : store.cells;
+    if (filterCell) visibleCells = visibleCells.filter(c => c.id === filterCell);
+    const visibleCellIds = new Set(visibleCells.map(c => c.id));
     const attWithRecords = store.attendance.filter(a => a.records && a.records.length > 0 && visibleCellIds.has(a.cellId));
     const attInPeriod = attWithRecords.filter(a => {
       const d = new Date(a.date);
@@ -861,28 +864,31 @@ export function reportsView() {
   function preparePdfPayload(d) {
     const s = store.systemSettings || {};
 
-    const cellsTableData = store.getVisibleCells().map(c => {
-      const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
-      const atts = store.getAttendanceForCell(c.id).filter(a => {
-        const adate = new Date(a.date);
-        return adate >= d.startDate && adate <= d.endDate && a.records && a.records.length > 0;
+    const cellsTableData = store.getVisibleCells()
+      .filter(c => !filterGeneration || c.generationId === filterGeneration)
+      .filter(c => !filterCell || c.id === filterCell)
+      .map(c => {
+        const leader = c.leaderId ? (store.getUser(c.leaderId) || store.getPerson(c.leaderId)) : null;
+        const atts = store.getAttendanceForCell(c.id).filter(a => {
+          const adate = new Date(a.date);
+          return adate >= d.startDate && adate <= d.endDate && a.records && a.records.length > 0;
+        });
+        let present = 0, total = 0;
+        atts.forEach(a => {
+          const p = a.records.filter(r => r.status === 'present').length;
+          present += p;
+          total += a.records.length;
+        });
+        return {
+          name: c.name,
+          leader: leader?.name,
+          day: c.meetingDay,
+          memberCount: store.getCellMembers(c.id).length,
+          freqPct: total ? Math.round(present / total * 100) : 0,
+          realizadas: atts.length,
+          justificadas: store.getCellJustifications(c.id).length
+        };
       });
-      let present = 0, total = 0;
-      atts.forEach(a => {
-        const p = a.records.filter(r => r.status === 'present').length;
-        present += p;
-        total += a.records.length;
-      });
-      return {
-        name: c.name,
-        leader: leader?.name,
-        day: c.meetingDay,
-        memberCount: store.getCellMembers(c.id).length,
-        freqPct: total ? Math.round(present / total * 100) : 0,
-        realizadas: atts.length,
-        justificadas: store.getCellJustifications(c.id).length
-      };
-    });
 
     const mappedPeople = d.people.map(p => {
       const c = p.cellId ? store.getCell(p.cellId) : null;
@@ -928,7 +934,10 @@ export function reportsView() {
       customFieldsConfig: (store.systemSettings?.cellCustomFields || '').split(',').map(s => s.trim()).filter(Boolean),
       metricsHistory: store.attendance.filter(a => {
         const adate = new Date(a.date);
-        return adate >= d.startDate && adate <= d.endDate && a.customFields && a.customFields !== '{}';
+        const cell = store.getCell(a.cellId);
+        const matchesGen = !filterGeneration || (cell && cell.generationId === filterGeneration);
+        const matchesCell = !filterCell || a.cellId === filterCell;
+        return adate >= d.startDate && adate <= d.endDate && a.customFields && a.customFields !== '{}' && matchesGen && matchesCell;
       }).sort((a, b) => b.date.localeCompare(a.date)).map(a => {
         const cell = store.getCell(a.cellId);
         const leader = cell?.leaderId ? (store.getUser(cell.leaderId) || store.getPerson(cell.leaderId)) : null;
@@ -943,6 +952,12 @@ export function reportsView() {
       }),
       inativoPeople: store.people
         .filter(p => ['Inativo', 'Afastado', 'Mudou-se'].includes(p.status))
+        .filter(p => {
+          const cell = p.cellId ? store.getCell(p.cellId) : null;
+          const matchesGen = !filterGeneration || (cell && cell.generationId === filterGeneration);
+          const matchesCell = !filterCell || p.cellId === filterCell;
+          return matchesGen && matchesCell;
+        })
         .sort((a, b) => a.status.localeCompare(b.status) || a.name.localeCompare(b.name))
         .map(p => {
           const c = p.cellId ? store.getCell(p.cellId) : null;
