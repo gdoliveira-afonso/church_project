@@ -69,12 +69,14 @@ function buildHtml(type, data) {
         .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px; page-break-inside: avoid; }
         .church-info { display: flex; align-items: center; gap: 12px; }
         .logo { width: 42px; height: 42px; border-radius: 10px; object-fit: contain; }
-        .church-name { font-size: 14px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
-        .church-sub { font-size: 9px; color: #64748b; margin: 0; font-weight: 500; }
+        .church-details { display: flex; flex-direction: column; gap: 1px; }
+        .church-name { font-size: 13px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
+        .church-sub { font-size: 8px; color: #64748b; margin: 0; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
+        .church-meta { font-size: 8px; color: #94a3b8; margin: 0; font-weight: 400; }
         
-        .report-meta { text-align: right; }
-        .report-title { font-size: 15px; font-weight: 800; color: #135bec; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
-        .meta-text { font-size: 9px; color: #64748b; margin: 1px 0 0 0; font-weight: 500; }
+        .report-meta { text-align: right; display: flex; flex-direction: column; justify-content: flex-end; }
+        .report-title { font-size: 14px; font-weight: 800; color: #135bec; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2; }
+        .meta-text { font-size: 8px; color: #64748b; margin: 1px 0 0 0; font-weight: 500; }
 
         .section-header { display: flex; align-items: center; gap: 8px; margin: 20px 0 10px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; page-break-inside: avoid; }
         .section-title { font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; }
@@ -125,9 +127,11 @@ function buildHtml(type, data) {
         <div class="header">
             <div class="church-info">
                 ${data.logoUrl ? `<img src="${data.logoUrl}" class="logo" />` : ''}
-                <div>
-                    <h1 class="church-name">${data.appName || 'CRM Celular'}</h1>
-                    <p class="church-sub">Relatório Gerencial Oficial</p>
+                <div class="church-details">
+                    <h1 class="church-name">${data.congregationName || data.appName || 'CRM Celular'}</h1>
+                    ${data.nucleus ? `<p class="church-sub">Núcleo/Região: ${data.nucleus}</p>` : `<p class="church-sub">Relatório Gerencial Oficial</p>`}
+                    ${data.pastorName ? `<p class="church-meta">Responsável: ${data.pastorName}</p>` : ''}
+                    ${data.congregationAddress ? `<p class="church-meta">${data.congregationAddress}</p>` : ''}
                 </div>
             </div>
             <div class="report-meta">

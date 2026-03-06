@@ -927,6 +927,10 @@ export function reportsView() {
     return {
       logoUrl: s.logoUrl,
       appName: s.appName || s.congregationName || 'CRM Celular',
+      congregationName: s.congregationName || '',
+      congregationAddress: s.congregationAddress || '',
+      pastorName: s.pastorName || '',
+      nucleus: s.nucleus || '',
       periodLabel: d.periodLabel,
       total: d.total,
       novosConvertidos: d.novosConvertidos,
