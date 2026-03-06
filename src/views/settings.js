@@ -44,9 +44,26 @@ export function settingsView() {
     <div id="tab-team" class="tab-content hidden space-y-6">
       <section>
         <div class="flex justify-between items-center mb-3">
-          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400">Gerenciar Usuários</h3>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Gerenciar Usuários</h3>
           <button id="btn-add-user" class="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary/90 transition shadow-sm"><span class="material-symbols-outlined text-[16px]">person_add</span>Adicionar</button>
         </div>
+        
+        <div class="bg-white rounded-xl border border-slate-100 p-3 mb-4 shadow-sm flex flex-col md:flex-row gap-2">
+          <div class="relative flex-1">
+            <span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+            <input id="team-search" class="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs outline-none focus:ring-2 focus:ring-primary/20" placeholder="Buscar por nome..."/>
+          </div>
+          <select id="team-role-filter" class="md:w-40 px-2 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs outline-none focus:ring-2 focus:ring-primary/20">
+            <option value="">Todos Perfis</option>
+            ${(store.currentUser.role === 'ADMIN' ? Object.entries(RL) : Object.entries(RL).filter(([k]) => !['ADMIN', 'SUPERVISOR'].includes(k)))
+      .map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
+          </select>
+          <select id="team-sort" class="md:w-44 px-2 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs outline-none focus:ring-2 focus:ring-primary/20">
+            <option value="alpha">Ordem Alfabética</option>
+            <option value="role">Por Cargo</option>
+          </select>
+        </div>
+
         <div id="team-list"></div>
       </section>
     </div>
@@ -416,6 +433,15 @@ export function settingsView() {
   document.getElementById('btn-name').onclick = () => editNameModal();
   document.getElementById('btn-pass').onclick = () => editPassModal();
   document.getElementById('btn-add-user').onclick = () => userModal();
+
+  const tSearch = document.getElementById('team-search');
+  const tRole = document.getElementById('team-role-filter');
+  const tSort = document.getElementById('team-sort');
+
+  if (tSearch) tSearch.oninput = renderTeam;
+  if (tRole) tRole.onchange = renderTeam;
+  if (tSort) tSort.onchange = renderTeam;
+
   document.getElementById('btn-logout').onclick = () => { store.logout(); document.getElementById('sidebar').classList.add('sidebar-hidden'); location.hash = '/login'; toast('Deslogado') };
 
   if (u.role === 'ADMIN') {
@@ -721,8 +747,29 @@ export function settingsView() {
 }
 
 function renderTeam() {
-  const others = store.users.filter(u => u.id !== store.currentUser.id);
-  document.getElementById('team-list').innerHTML = others.length ? `
+  const q = document.getElementById('team-search')?.value.toLowerCase() || '';
+  const rf = document.getElementById('team-role-filter')?.value || '';
+  const sort = document.getElementById('team-sort')?.value || 'alpha';
+
+  let others = store.users.filter(u => u.id !== store.currentUser.id);
+
+  if (q) others = others.filter(u => u.name.toLowerCase().includes(q) || u.username.toLowerCase().includes(q));
+  if (rf) others = others.filter(u => u.role === rf);
+
+  const roleWeight = { ADMIN: 1, SUPERVISOR: 2, LIDER_GERACAO: 3, LEADER: 4, VICE_LEADER: 5 };
+
+  others.sort((a, b) => {
+    if (sort === 'role') {
+      const wa = roleWeight[a.role] || 99, wb = roleWeight[b.role] || 99;
+      if (wa !== wb) return wa - wb;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  const list = document.getElementById('team-list');
+  if (!list) return;
+
+  list.innerHTML = others.length ? `
   <div class="bg-white rounded-xl border border-slate-100 divide-y divide-slate-100">${others.map(u => `
     <div class="flex items-center gap-3 p-3.5 group">
       <div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">${u.name.charAt(0)}</div>
@@ -730,7 +777,8 @@ function renderTeam() {
       ${badge(RL[u.role] || u.role, RC[u.role] || 'slate')}
       <button class="btn-eu w-7 h-7 rounded-full flex items-center justify-center text-slate-300 hover:text-primary hover:bg-primary/10 transition" data-id="${u.id}"><span class="material-symbols-outlined text-[16px]">edit</span></button>
       <button class="btn-du w-7 h-7 rounded-full flex items-center justify-center text-slate-300 hover:text-red-600 hover:bg-red-50 transition" data-id="${u.id}"><span class="material-symbols-outlined text-[16px]">delete</span></button>
-    </div>`).join('')}</div>` : `<div class="bg-slate-50 rounded-xl border border-dashed border-slate-200 p-8 text-center"><span class="material-symbols-outlined text-3xl text-slate-200 mb-1">group_add</span><p class="text-sm text-slate-400">Nenhum outro usuário</p></div>`;
+    </div>`).join('')}</div>` : `<div class="bg-slate-50 rounded-xl border border-dashed border-slate-200 p-8 text-center"><span class="material-symbols-outlined text-3xl text-slate-200 mb-1">group_add</span><p class="text-sm text-slate-400">Nenhum usuário encontrado</p></div>`;
+
   document.querySelectorAll('.btn-eu').forEach(b => b.onclick = () => userModal(b.dataset.id));
   document.querySelectorAll('.btn-du').forEach(b => b.onclick = () => {
     const usr = store.getUser(b.dataset.id); if (!usr) return;
