@@ -17,8 +17,8 @@ export function peopleView() {
       <input id="search" class="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="Buscar por nome…"/></div>
     </div>
     <div class="flex gap-2 px-4 md:px-6 pb-2 overflow-x-auto no-scrollbar">
-      ${['all', 'not-baptized', 'no-school', 'no-encounter', 'no-visit', 'no-cell'].map((f, i) => {
-    const labels = { all: 'Todos', 'not-baptized': 'Não Batizados', 'no-school': 'Sem Escola', 'no-encounter': 'Sem Encontro', 'no-visit': 'Sem Visita', 'no-cell': 'Sem Célula' };
+      ${['all', 'leaders-vices', 'not-baptized', 'no-school', 'no-encounter', 'no-visit', 'no-cell'].map((f, i) => {
+    const labels = { all: 'Todos', 'leaders-vices': 'Líderes/Vices', 'not-baptized': 'Não Batizados', 'no-school': 'Sem Escola', 'no-encounter': 'Sem Encontro', 'no-visit': 'Sem Visita', 'no-cell': 'Sem Célula' };
     return `<button class="chip whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium border transition ${i === 0 ? 'bg-primary text-white border-primary' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}" data-f="${f}">${labels[f]}</button>`;
   }).join('')}
     </div>
@@ -45,6 +45,7 @@ export function peopleView() {
     const tEncontro = findTrackId('Encontro com Deus');
 
     if (q) pp = pp.filter(p => p.name.toLowerCase().includes(q));
+    if (filter === 'leaders-vices') pp = pp.filter(p => p.status === 'Líder' || p.status === 'Vice-Líder');
     if (filter === 'not-baptized') pp = pp.filter(p => !p.tracksData?.[tBatismo]);
     if (filter === 'no-school') pp = pp.filter(p => !p.tracksData?.[tEscola]);
     if (filter === 'no-encounter') pp = pp.filter(p => !p.tracksData?.[tEncontro]);
