@@ -638,7 +638,21 @@ export function reportsView() {
   }
 
   // ── HELPERS ──
+  function resolveColor(c) {
+    const map = {
+      'emerald': '#10b981',
+      'indigo': '#6366f1',
+      'violet': '#8b5cf6',
+      'rose': '#f43f5e',
+      'amber': '#f59e0b',
+      'sky': '#0ea5e9',
+      'primary': '#135bec'
+    };
+    return map[c] || c;
+  }
+
   function kpi(icon, label, value, color) {
+    const c = resolveColor(color);
     return `<div class="bg-white rounded-xl p-3 border border-slate-100 shadow-sm hover:shadow-md hover:border-${color}-200 transition-all group min-w-0">
     <div class="w-7 h-7 rounded-lg bg-${color}-50 flex items-center justify-center mb-2 shrink-0"><span class="material-symbols-outlined text-${color}-500 text-base">${icon}</span></div>
     <p class="text-xl font-extrabold leading-none truncate">${value}</p>
@@ -648,13 +662,14 @@ export function reportsView() {
 
   function progressBar(label, count, total, color) {
     const pct = total ? Math.round(count / total * 100) : 0;
+    const c = resolveColor(color);
     return `<div>
     <div class="flex justify-between items-center mb-1">
       <span class="text-xs font-medium text-slate-700">${label}</span>
-      <span class="text-xs font-bold" style="color:${color}">${pct}% <span class="text-slate-400 font-normal">(${count}/${total})</span></span>
+      <span class="text-xs font-bold" style="color:${c}">${pct}% <span class="text-slate-400 font-normal">(${count}/${total})</span></span>
     </div>
     <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-      <div class="h-full rounded-full transition-all duration-700" style="width:${pct}%;background:${color}"></div>
+      <div class="h-full rounded-full transition-all duration-700" style="width:${pct}%;background:${c}"></div>
     </div>
   </div>`;
   }
