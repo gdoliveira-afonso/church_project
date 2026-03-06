@@ -139,14 +139,14 @@ export async function calendarView() {
                     }
 
                     if (isAllDay) {
-                        const scopeIcon = e.category === 'geral' ? '🌐' : '🏘️';
+                        const scopeIcon = e.icon || (e.category === 'geral' ? '🌐' : '🏘️');
                         const noteHtml = e.description ? `<span class="day-note hidden text-[11px] text-${cColor}-700 opacity-70 mt-0.5 leading-snug">${e.description.replace(/'/g, "&apos;")}</span>` : '';
                         const tooltipText = `${e.category === 'geral' ? '[Geral] ' : '[Local] '}${title}${e.description ? ' — ' + e.description : ''}`;
                         dayEvents.push({ sortVal: 0, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] bg-${cColor}-100 text-${cColor}-800 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${tooltipText}"><span class="truncate"><span>${scopeIcon}</span><span class="hidden md:inline ml-1">${title}</span></span>${noteHtml}</div>` });
                     } else {
                         const [h, m] = e.startTime.split(':').map(Number);
                         const sVal = h + (m / 60);
-                        const scopeIcon = e.category === 'geral' ? '🌐' : '';
+                        const scopeIcon = e.icon || (e.category === 'geral' ? '🌐' : '');
                         const noteHtml = e.description ? `<span class="day-note hidden text-[11px] text-${cColor}-600 opacity-70 mt-0.5 leading-snug col-span-2">${e.description.replace(/'/g, "&apos;")}</span>` : '';
                         const tooltipText = `${e.category === 'geral' ? '[Geral] ' : '[Local] '}${e.startTime} - ${title}${e.description ? ' — ' + e.description : ''}`;
                         dayEvents.push({ sortVal: sVal, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] text-${cColor}-700 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${tooltipText}"><div class="flex items-center gap-1 w-full"><div class="w-1.5 h-1.5 rounded-full bg-${cColor}-500 flex-shrink-0"></div><span class="truncate">${scopeIcon ? `<span>${scopeIcon}</span>` : ''}<span class="${scopeIcon ? 'hidden md:inline ml-1' : ''}">${e.startTime}</span><span class="hidden md:inline ml-1">${title}</span></div>${noteHtml}</div>` });
@@ -297,6 +297,9 @@ function eventForm(existingEventId = null, prefilledDateStr = null) {
     const evColor = ev && ev.color ? ev.color : 'blue';
     const evScope = ev && ev.category ? ev.category : 'local';
     const evNote = ev && ev.description ? ev.description : '';
+    const evIcon = ev && ev.icon ? ev.icon : '';
+
+    const emojis = ['⛪', '📅', '👥', '📍', '📖', '🙏', '💡', '📢', '⚽', '🍕', '☕', '🎁', '✨', '🛠️', '🎓', '🔥', '❤️', '✅', '❌', '🚀'];
 
     const colors = [
         { id: 'blue', code: 'bg-blue-500' },
@@ -334,6 +337,22 @@ function eventForm(existingEventId = null, prefilledDateStr = null) {
                         <div class="w-8 h-8 rounded-full ${c.code} flex items-center justify-center ring-2 ring-offset-2 ring-transparent peer-checked:ring-${c.id}-500 transition-all">
                             <span class="material-symbols-outlined text-white text-sm opacity-0 peer-checked:opacity-100 transition-opacity">check</span>
                         </div>
+                    </label>
+                `).join('')}
+            </div>
+        </div>
+
+        <div>
+            <label class="text-xs font-semibold text-slate-600 mb-2 block">Ícone <span class="text-slate-400 font-normal">(Opcional)</span></label>
+            <div class="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto no-scrollbar p-1">
+                <label class="relative cursor-pointer">
+                    <input type="radio" name="evt-icon" value="" class="peer sr-only" ${evIcon === '' ? 'checked' : ''}>
+                    <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center border-2 border-transparent peer-checked:border-primary peer-checked:bg-white transition-all text-xs text-slate-400">Nenhum</div>
+                </label>
+                ${emojis.map(emoji => `
+                    <label class="relative cursor-pointer">
+                        <input type="radio" name="evt-icon" value="${emoji}" class="peer sr-only" ${evIcon === emoji ? 'checked' : ''}>
+                        <div class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center border-2 border-transparent peer-checked:border-primary peer-checked:bg-white transition-all text-lg">${emoji}</div>
                     </label>
                 `).join('')}
             </div>
@@ -403,15 +422,16 @@ function eventForm(existingEventId = null, prefilledDateStr = null) {
         const endTime = document.getElementById('ef-end').value;
         const color = document.querySelector('input[name="evt-color"]:checked').value;
         const scope = document.querySelector('input[name="evt-scope"]:checked')?.value || 'local';
+        const icon = document.querySelector('input[name="evt-icon"]:checked')?.value || null;
 
         if (!title || !date) { toast('Preencha os campos', 'error'); btn.innerHTML = orig; btn.disabled = false; return; }
 
         try {
             if (ev) {
-                await store.updateEvent(ev.id, { title, description: note, date, recurrence, startTime, endTime, color, category: scope });
+                await store.updateEvent(ev.id, { title, description: note, date, recurrence, startTime, endTime, color, category: scope, icon });
                 toast('Evento atualizado!');
             } else {
-                await store.addEvent({ title, description: note, date, recurrence, startTime, endTime, color, category: scope, authorId: store.currentUser.id });
+                await store.addEvent({ title, description: note, date, recurrence, startTime, endTime, color, category: scope, icon, authorId: store.currentUser.id });
                 toast('Evento criado!');
             }
             closeModal();

@@ -196,6 +196,7 @@ model Event {
   type        String?  @default("event") // event, meeting, worship, etc
   category    String?
   location    String?
+  icon        String?
   recurrence  String?  // none, weekly, monthly-date, monthly-weekday, yearly
   reminder    String?
   createdAt   DateTime @default(now())

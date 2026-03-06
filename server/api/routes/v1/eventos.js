@@ -28,16 +28,42 @@ router.get('/', requirePermission('read_eventos'), async (req, res) => {
 // POST /api/v1/eventos
 router.post('/', requirePermission('write_eventos'), async (req, res) => {
     try {
-        const { title, date, startTime, endTime, description, color, type, location, recurrence } = req.body;
+        const { title, date, startTime, endTime, description, color, type, location, recurrence, icon } = req.body;
         if (!title || !date) return res.status(400).json({ success: false, error: 'Campos "title" e "date" são obrigatórios.' });
 
         const event = await prisma.event.create({
-            data: { title, date, startTime, endTime, description, color: color || 'blue', type: type || 'event', location, recurrence: recurrence || 'none' }
+            data: { title, date, startTime, endTime, description, color: color || 'blue', type: type || 'event', location, recurrence: recurrence || 'none', icon }
         });
         dispatchWebhook('evento.created', event).catch(() => { });
         res.status(201).json({ success: true, data: event });
     } catch (err) {
         res.status(500).json({ success: false, error: 'Erro ao criar evento.' });
+    }
+});
+
+// PUT /api/v1/eventos/:id
+router.put('/:id', requirePermission('write_eventos'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, date, startTime, endTime, description, color, type, location, recurrence, icon } = req.body;
+        const event = await prisma.event.update({
+            where: { id },
+            data: { title, date, startTime, endTime, description, color, type, location, recurrence, icon }
+        });
+        res.json({ success: true, data: event });
+    } catch (err) {
+        res.status(500).json({ success: false, error: 'Erro ao atualizar evento.' });
+    }
+});
+
+// DELETE /api/v1/eventos/:id
+router.delete('/:id', requirePermission('write_eventos'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        await prisma.event.delete({ where: { id } });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false, error: 'Erro ao excluir evento.' });
     }
 });
 

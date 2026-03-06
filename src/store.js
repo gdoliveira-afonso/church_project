@@ -405,19 +405,20 @@ class Store {
 
     // Calendar Events & Exceptions
     getEvents() { return this.events || []; }
+    // Events
     async addEvent(e) {
-        const res = await this.apiFetch('/events', { method: 'POST', body: JSON.stringify(e) });
+        const res = await this.apiFetch('/v1/eventos', { method: 'POST', body: JSON.stringify(e) });
         this.events.push(res);
         return res;
     }
     async updateEvent(id, updates) {
-        const res = await this.apiFetch(`/events/${id}`, { method: 'PUT', body: JSON.stringify(updates) });
+        const res = await this.apiFetch(`/v1/eventos/${id}`, { method: 'PUT', body: JSON.stringify(updates) });
         const idx = this.events.findIndex(x => x.id === id);
         if (idx !== -1) this.events[idx] = res;
         return res;
     }
     async deleteEvent(id) {
-        await this.apiFetch(`/events/${id}`, { method: 'DELETE' });
+        await this.apiFetch(`/v1/eventos/${id}`, { method: 'DELETE' });
         this.events = this.events.filter(e => e.id !== id);
     }
     getEventException(eventId, date) {
