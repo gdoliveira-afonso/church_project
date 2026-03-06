@@ -64,51 +64,61 @@ function buildHtml(type, data) {
     const css = `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         * { box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; color: #1e293b; margin: 0; padding: 0; background: #fff; line-height: 1.5; font-size: 11px; }
+        body { font-family: 'Inter', sans-serif; color: #334155; margin: 0; padding: 0; background: #fff; line-height: 1.4; font-size: 11px; }
         
-        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 20px; page-break-inside: avoid; }
-        .church-info { display: flex; align-items: center; gap: 15px; }
-        .logo { width: 50px; height: 50px; border-radius: 8px; object-fit: contain; }
-        .church-name { font-size: 16px; font-weight: 800; color: #0f172a; margin: 0; }
-        .church-sub { font-size: 10px; color: #64748b; margin: 0; }
+        .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px; page-break-inside: avoid; }
+        .church-info { display: flex; align-items: center; gap: 12px; }
+        .logo { width: 42px; height: 42px; border-radius: 10px; object-fit: contain; }
+        .church-name { font-size: 14px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
+        .church-sub { font-size: 9px; color: #64748b; margin: 0; font-weight: 500; }
         
         .report-meta { text-align: right; }
-        .report-title { font-size: 18px; font-weight: 800; color: #2563eb; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
-        .meta-text { font-size: 10px; color: #64748b; margin: 2px 0 0 0; }
+        .report-title { font-size: 15px; font-weight: 800; color: #135bec; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .meta-text { font-size: 9px; color: #64748b; margin: 1px 0 0 0; font-weight: 500; }
 
-        .section-title { font-size: 14px; font-weight: 700; color: #0f172a; margin: 25px 0 10px 0; padding-bottom: 5px; border-bottom: 1px solid #e2e8f0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .section-header { display: flex; align-items: center; gap: 8px; margin: 20px 0 10px 0; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; page-break-inside: avoid; }
+        .section-title { font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px; margin: 0; }
         
-        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; page-break-inside: avoid; }
-        .kpi-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
-        .kpi-val { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
-        .kpi-label { font-size: 9px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px; page-break-inside: avoid; }
+        .kpi-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .kpi-val { font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 1px; }
+        .kpi-label { font-size: 8px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.3px; }
         
-        .bars-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; page-break-inside: avoid; }
-        .bar-container { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        .bar-header { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 10px; font-weight: 600; }
-        .bar-bg { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
-        .bar-fill { height: 100%; border-radius: 4px; }
+        .bars-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; page-break-inside: avoid; }
+        .bar-container { background: #fff; padding: 10px; border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+        .bar-header { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 9px; font-weight: 700; color: #475569; }
+        .bar-bg { height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 10px; }
         
-        .insights-list { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px 20px; page-break-inside: avoid; margin-bottom: 20px; }
-        .insights-title { font-size: 11px; font-weight: 700; color: #1d4ed8; margin: 0 0 10px 0; text-transform: uppercase; }
-        .insights-list ul { margin: 0; padding-left: 20px; color: #1e3a8a; }
-        .insights-list li { margin-bottom: 5px; font-weight: 500; font-size: 10px; }
+        .insights-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 15px; }
+        .insight-box { border-radius: 12px; padding: 12px 15px; page-break-inside: avoid; border: 1px solid transparent; }
+        .insight-box.blue { background: #eff6ff; border-color: #dbeafe; }
+        .insight-box.amber { background: #fffbeb; border-color: #fef3c7; }
+        .insight-box.red { background: #fef2f2; border-color: #fee2e2; }
+        .insight-box .title { font-size: 10px; font-weight: 800; margin-bottom: 6px; text-transform: uppercase; display: flex; align-items: center; gap: 5px; }
+        .insight-box ul { margin: 0; padding-left: 15px; }
+        .insight-box li { margin-bottom: 4px; font-weight: 500; font-size: 9px; list-style-type: disc; }
 
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; page-break-inside: auto; }
-        tr { page-break-inside: avoid; page-break-after: auto; }
-        th { background: #f1f5f9; color: #475569; font-weight: 700; text-transform: uppercase; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1; font-size: 9px; }
-        td { padding: 8px; border-bottom: 1px solid #e2e8f0; color: #334155; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9px; page-break-inside: auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+        tr { page-break-inside: avoid; }
+        thead th { background: #f8fafc; color: #475569; font-weight: 800; text-transform: uppercase; padding: 8px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 8px; letter-spacing: 0.3px; }
+        tbody td { padding: 8px; border-bottom: 1px solid #f1f5f9; color: #475569; vertical-align: middle; }
+        tbody tr:last-child td { border-bottom: none; }
         .text-center { text-align: center; }
         .font-bold { font-weight: 700; color: #0f172a; }
         
-        .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 700; text-transform: uppercase; }
+        .badge { display: inline-block; padding: 2px 6px; border-radius: 6px; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.2px; }
         .badge-gray { background: #f1f5f9; color: #475569; }
-        .badge-green { background: #dcfce7; color: #166534; }
-        .badge-blue { background: #dbeafe; color: #1e40af; }
-        .badge-purple { background: #f3e8ff; color: #6b21a8; }
-        .badge-red { background: #fee2e2; color: #991b1b; }
-        .badge-amber { background: #fef3c7; color: #92400e; }
-        .badge-orange { background: #ffedd5; color: #9a3412; }
+        .badge-green { background: #dcfce7; color: #15803d; }
+        .badge-blue { background: #dbeafe; color: #1d4ed8; }
+        .badge-purple { background: #f3e8ff; color: #7e22ce; }
+        .badge-red { background: #fee2e2; color: #b91c1c; }
+        .badge-amber { background: #fef3c7; color: #b45309; }
+        .badge-orange { background: #ffedd5; color: #c2410c; }
+
+        .mini-table { font-size: 8px; width: 100%; border: none; margin: 5px 0 0 0; }
+        .mini-table th { background: none; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 2px 4px; color: inherit; font-weight: 800; }
+        .mini-table td { border-bottom: 1px solid rgba(0,0,0,0.03); padding: 2px 4px; color: inherit; }
     `;
 
     const commonHeader = `
@@ -123,7 +133,7 @@ function buildHtml(type, data) {
             <div class="report-meta">
                 <h2 class="report-title">${getReportTitle(type)}</h2>
                 <p class="meta-text">Período: ${data.periodLabel}</p>
-                <p class="meta-text">${data.total} membros ativos filtrados</p>
+                <p class="meta-text">${data.total} membros ativos registrados</p>
             </div>
         </div>
     `;
@@ -135,27 +145,27 @@ function buildHtml(type, data) {
     }
 
     if (type === 'members' || type === 'analytical') {
-        bodyHtml += `<div class="section-title">Lista de Membros</div>`;
+        bodyHtml += `<div class="section-header"><div class="section-title">Lista de Membros</div></div>`;
         bodyHtml += renderMembersTable(data);
     }
 
     if (type === 'cells' || type === 'analytical') {
-        bodyHtml += `<div class="section-title">Desempenho das Células</div>`;
+        bodyHtml += `<div class="section-header"><div class="section-title">Desempenho das Células</div></div>`;
         bodyHtml += renderCellsTable(data);
     }
 
     if (type === 'visits' || type === 'analytical') {
-        bodyHtml += `<div class="section-title">Histórico de Visitas</div>`;
+        bodyHtml += `<div class="section-header"><div class="section-title">Histórico de Visitas</div></div>`;
         bodyHtml += renderVisitsTable(data);
     }
 
     if (type === 'metrics' || type === 'analytical') {
-        bodyHtml += `<div class="section-title">Visão Geral de Métricas Customizadas</div>`;
+        bodyHtml += `<div class="section-header"><div class="section-title">Visão Geral de Métricas</div></div>`;
         bodyHtml += renderMetricsReport(data);
     }
 
     if (type === 'inativos' || type === 'analytical') {
-        bodyHtml += `<div class="section-title">Membros Inativos / Afastados / Mudou-se</div>`;
+        bodyHtml += `<div class="section-header"><div class="section-title">Inativos / Afastados / Mudou-se</div></div>`;
         bodyHtml += renderInactiveMembersTable(data);
     }
 
@@ -206,19 +216,21 @@ function renderExecutiveSummary(d) {
     let tracksHtml = '';
     if (d.tracks && d.tracks.length > 0) {
         tracksHtml = `
-            <div class="section-title">Saúde Espiritual e Retiros</div>
+            <div class="section-header"><div class="section-title">Saúde Espiritual e Retiros</div></div>
             <div class="bars-grid">
                 ${d.tracks.map(t => {
             const count = d.trackCounts[t.id] || 0;
             const pct = d.total ? Math.round(count / d.total * 100) : 0;
             const c = t.color || '#3b82f6';
+            const hexMap = { 'primary': '#135bec', 'blue': '#2563eb', 'emerald': '#10b981', 'orange': '#f59e0b', 'purple': '#8b5cf6', 'rose': '#f43f5e', 'amber': '#f59e0b' };
+            const hex = hexMap[c] || c;
             return `
                         <div class="bar-container">
                             <div class="bar-header">
                                 <span>${t.name}</span>
-                                <span>${pct}% <span style="color:#94a3b8; font-weight:400;">(${count} de ${d.total})</span></span>
+                                <span>${pct}% <span style="color:#94a3b8; font-weight:400;">(${count}/${d.total})</span></span>
                             </div>
-                            <div class="bar-bg"><div class="bar-fill" style="width: ${pct}%; background: ${c}"></div></div>
+                            <div class="bar-bg"><div class="bar-fill" style="width: ${pct}%; background: ${hex}"></div></div>
                         </div>
                     `;
         }).join('')}
@@ -226,90 +238,16 @@ function renderExecutiveSummary(d) {
         `;
     }
 
-    // Insights Automáticos
-    const insights = [];
-    if (d.freqPct >= 70) insights.push(`Excelente média de frequência neste período (${d.freqPct}%).`);
-    else if (d.freqPct < 50) insights.push(`Atenção: A média de frequência das células está abaixo de 50% (${d.freqPct}%).`);
-
-    if (d.visitantes > 0) insights.push(`Foram cadastrados ${d.visitantes} novos visitantes na base.`);
-    if (d.novosConvertidos > 0) insights.push(`Tivemos ${d.novosConvertidos} conversões/decisões no período.`);
-
-    if (d.zeroVisits > 0) {
-        let tableStr = '';
-        if (d.zeroVisitsDetails && d.zeroVisitsDetails.length > 0) {
-            const list = d.zeroVisitsDetails.slice(0, 15);
-            tableStr = `
-                <br/>
-                <table style="margin-top: 8px; font-size: 10px; border-collapse: collapse; width: 100%;">
-                    <thead><tr>
-                        <th style="padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: left; width: 45%;">Nome</th>
-                        <th style="padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: left; width: 30%;">Telefone</th>
-                        <th style="padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: left; width: 25%;">Status</th>
-                    </tr></thead>
-                    <tbody>
-                        ${list.map(p => `<tr>
-                            <td style="padding: 4px; border-bottom: 1px solid #f1f5f9; color: #334155;"><b>${p.name}</b></td>
-                            <td style="padding: 4px; border-bottom: 1px solid #f1f5f9; color: #64748b;">${p.phone || '-'}</td>
-                            <td style="padding: 4px; border-bottom: 1px solid #f1f5f9; color: #64748b;">${p.status || '-'}</td>
-                        </tr>`).join('')}
-                    </tbody>
-                </table>
-                ${d.zeroVisitsDetails.length > 15 ? `<div style="font-size: 10px; color: #64748b; margin-top: 6px; font-style: italic;">...e mais ${d.zeroVisitsDetails.length - 15} pessoas ocultadas.</div>` : ''}
-            `;
-        }
-        insights.push(`Existem ${d.zeroVisits} membros ativos que nunca receberam registro de visita.${tableStr}`);
-    }
-
-    if (d.noVisit > 0) {
-        let tableStr = '';
-        if (d.noVisitDetails && d.noVisitDetails.length > 0) {
-            const list = d.noVisitDetails.slice(0, 15);
-            tableStr = `
-                <br/>
-                <table style="margin-top: 8px; font-size: 10px; border-collapse: collapse; width: 100%;">
-                    <thead><tr>
-                        <th style="padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: left; width: 45%;">Nome</th>
-                        <th style="padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: left; width: 30%;">Telefone</th>
-                        <th style="padding: 4px; border-bottom: 1px solid #e2e8f0; text-align: left; width: 25%;">Status</th>
-                    </tr></thead>
-                    <tbody>
-                        ${list.map(p => `<tr>
-                            <td style="padding: 4px; border-bottom: 1px solid #f1f5f9; color: #334155;"><b>${p.name}</b></td>
-                            <td style="padding: 4px; border-bottom: 1px solid #f1f5f9; color: #64748b;">${p.phone || '-'}</td>
-                            <td style="padding: 4px; border-bottom: 1px solid #f1f5f9; color: #64748b;">${p.status || '-'}</td>
-                        </tr>`).join('')}
-                    </tbody>
-                </table>
-                ${d.noVisitDetails.length > 15 ? `<div style="font-size: 10px; color: #64748b; margin-top: 6px; font-style: italic;">...e mais ${d.noVisitDetails.length - 15} pessoas ocultadas.</div>` : ''}
-            `;
-        }
-        insights.push(`${d.noVisit} pessoas estão há mais de 60 dias sem acompanhamento.${tableStr}`);
-    }
-
-    if (d.activeCells === 0) insights.push(`Não há células ativas nos filtros de pesquisa atuais.`);
-    else insights.push(`A média de membros por célula atualmente é de ${d.avgMembers} pessoas.`);
-
-    const insightsHtml = `
-        <div class="section-title">Análise de Dados & Insights Automáticos</div>
-        <div class="insights-list">
-            <div class="insights-title">Pontos de Atenção e Destaques</div>
-            <ul>
-                ${insights.map(i => `<li>${i}</li>`).join('')}
-            </ul>
-        </div>
-    `;
-
     // Top Metrics
     let metricsHtml = '';
     if (d.customFieldsConfig && d.customFieldsConfig.length > 0 && d.customFieldTotals) {
-        // Obter os chaves, ordernar por maior valor pra mostrar apenas 4 principais
         const topMetrics = Object.entries(d.customFieldTotals)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 4);
 
         if (topMetrics.length > 0) {
             metricsHtml = `
-                <div class="section-title">Principais Indicadores das Células</div>
+                <div class="section-header"><div class="section-title">Indicadores das Células</div></div>
                 <div class="kpi-grid">
                     ${topMetrics.map(([k, v]) => `<div class="kpi-card"><div class="kpi-val">${v}</div><div class="kpi-label">${k}</div></div>`).join('')}
                 </div>
@@ -317,13 +255,88 @@ function renderExecutiveSummary(d) {
         }
     }
 
+    // Insights Automáticos
+    const positiveInsights = [];
+    const negativeInsights = [];
+
+    if (d.freqPct >= 70) positiveInsights.push(`Excelente média de frequência neste período (${d.freqPct}%).`);
+    else if (d.freqPct < 50) negativeInsights.push(`Atenção: A média de frequência das células está abaixo de 50% (${d.freqPct}%).`);
+
+    if (d.visitantes > 0) positiveInsights.push(`Foram cadastrados ${d.visitantes} novos visitantes.`);
+    if (d.novosConvertidos > 0) positiveInsights.push(`Tivemos ${d.novosConvertidos} conversões no período.`);
+
+    let zeroVisitsTable = '';
+    if (d.zeroVisits > 0 && d.zeroVisitsDetails && d.zeroVisitsDetails.length > 0) {
+        const list = d.zeroVisitsDetails.slice(0, 8);
+        zeroVisitsTable = `
+            <table class="mini-table">
+                <thead><tr><th>Nome</th><th>Telefone</th><th>Status</th></tr></thead>
+                <tbody>
+                    ${list.map(p => `<tr><td><b>${p.name}</b></td><td>${p.phone || '-'}</td><td>${p.status || '-'}</td></tr>`).join('')}
+                </tbody>
+            </table>
+            ${d.zeroVisitsDetails.length > 8 ? `<div style="font-size: 7px; color: #94a3b8; margin-top: 2px;">...e mais ${d.zeroVisitsDetails.length - 8} pessoas.</div>` : ''}
+        `;
+        negativeInsights.push(`Existem ${d.zeroVisits} membros que nunca foram visitados.`);
+    }
+
+    let noVisitsTable = '';
+    if (d.noVisit > 0 && d.noVisitDetails && d.noVisitDetails.length > 0) {
+        const list = d.noVisitDetails.slice(0, 8);
+        noVisitsTable = `
+            <table class="mini-table">
+                <thead><tr><th>Nome</th><th>Telefone</th><th>Status</th></tr></thead>
+                <tbody>
+                    ${list.map(p => `<tr><td><b>${p.name}</b></td><td>${p.phone || '-'}</td><td>${p.status || '-'}</td></tr>`).join('')}
+                </tbody>
+            </table>
+            ${d.noVisitDetails.length > 8 ? `<div style="font-size: 7px; color: #94a3b8; margin-top: 2px;">...e mais ${d.noVisitDetails.length - 8} pessoas.</div>` : ''}
+        `;
+        negativeInsights.push(`${d.noVisit} pessoas estão há mais de 60 dias sem acompanhamento.`);
+    }
+
+    if (d.activeCells > 0) positiveInsights.push(`Média de ${d.avgMembers} membros por célula.`);
+
+    const insightsGrid = `
+        <div class="section-header"><div class="section-title">Análise & Insights Automáticos</div></div>
+        <div class="insights-grid">
+            ${positiveInsights.length ? `
+                <div class="insight-box blue">
+                    <div class="title" style="color:#1d4ed8;">Destaques Positivos</div>
+                    <ul>${positiveInsights.map(i => `<li>${i}</li>`).join('')}</ul>
+                </div>
+            ` : ''}
+            
+            ${negativeInsights.length ? `
+                <div class="insight-box amber">
+                    <div class="title" style="color:#b45309;">Pontos de Atenção</div>
+                    <ul>${negativeInsights.map(i => `<li>${i}</li>`).join('')}</ul>
+                </div>
+            ` : ''}
+
+            ${zeroVisitsTable ? `
+                <div class="insight-box red">
+                    <div class="title" style="color:#b91c1c;">Membros Nunca Visitados (Critico)</div>
+                    ${zeroVisitsTable}
+                </div>
+            ` : ''}
+
+            ${noVisitsTable ? `
+                <div class="insight-box amber">
+                    <div class="title" style="color:#b45309;">Sem Acompanhamento > 60 Dias</div>
+                    ${noVisitsTable}
+                </div>
+            ` : ''}
+        </div>
+    `;
+
     return `
-        <div class="section-title">Indicadores Principais</div>
+        <div class="section-header"><div class="section-title">Indicadores Principais</div></div>
         ${kpiGrid1}
         ${kpiGrid2}
         ${tracksHtml}
         ${metricsHtml}
-        ${insightsHtml}
+        ${insightsGrid}
     `;
 }
 
