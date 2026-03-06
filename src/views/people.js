@@ -12,9 +12,18 @@ export function peopleView() {
         ${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="location.hash='/people/new'" class="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition"><span class="material-symbols-outlined text-lg">person_add</span></button>` : ''}
       </div>
     </div>
-    <div class="px-4 md:px-6 pb-3">
-      <div class="relative md:max-w-sm"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
-      <input id="search" class="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="Buscar por nome…"/></div>
+    <div class="px-4 md:px-6 pb-3 flex flex-col md:flex-row gap-2">
+      <div class="relative flex-1">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+        <input id="search" class="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="Buscar por nome…"/>
+      </div>
+      <div class="relative md:w-48">
+        <select id="cell-filter" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none">
+          <option value="">Todas as Células</option>
+          ${store.getVisibleCells().map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+        </select>
+        <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-lg">expand_more</span>
+      </div>
     </div>
     <div class="flex gap-2 px-4 md:px-6 pb-2 overflow-x-auto no-scrollbar">
       ${['all', 'leaders-vices', 'not-baptized', 'no-school', 'no-encounter', 'no-visit', 'no-cell'].map((f, i) => {
@@ -31,6 +40,7 @@ export function peopleView() {
   let filter = 'all';
   const go = () => {
     const q = document.getElementById('search')?.value.toLowerCase() || '';
+    const cf = document.getElementById('cell-filter')?.value || '';
     let pp = [...store.people];
 
     // Restrict view based on role
@@ -45,6 +55,7 @@ export function peopleView() {
     const tEncontro = findTrackId('Encontro com Deus');
 
     if (q) pp = pp.filter(p => p.name.toLowerCase().includes(q));
+    if (cf) pp = pp.filter(p => p.cellId === cf);
     if (filter === 'leaders-vices') pp = pp.filter(p => p.status === 'Líder' || p.status === 'Vice-Líder');
     if (filter === 'not-baptized') pp = pp.filter(p => !p.tracksData?.[tBatismo]);
     if (filter === 'no-school') pp = pp.filter(p => !p.tracksData?.[tEscola]);
@@ -71,6 +82,7 @@ export function peopleView() {
   };
   go();
   document.getElementById('search').oninput = go;
+  document.getElementById('cell-filter').onchange = go;
   document.querySelectorAll('.chip').forEach(b => b.onclick = () => {
     document.querySelectorAll('.chip').forEach(x => { x.classList.remove('bg-primary', 'text-white', 'border-primary'); x.classList.add('bg-white', 'text-slate-500', 'border-slate-200') });
     b.classList.add('bg-primary', 'text-white', 'border-primary'); b.classList.remove('bg-white', 'text-slate-500', 'border-slate-200');
