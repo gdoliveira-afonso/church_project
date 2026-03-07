@@ -157,14 +157,15 @@ class Store {
             this.cellCancellations = eventsData.cellCancellations || [];
             this.cellJustifications = eventsData.cellJustifications || [];
 
-            // Carrega exceptions para todos os eventos (cache local)
+            // Carrega exceptions para todos os eventos (cache local via bulk route)
             this._eventExceptions = {};
-            await Promise.all(this.events.map(async ev => {
-                try {
-                    const exs = await this.apiFetch(`/events/${ev.id}/exceptions`);
-                    if (exs && exs.length) this._eventExceptions[ev.id] = exs;
-                } catch (e) { /* silencia */ }
-            }));
+            try {
+                const allExs = await this.apiFetch('/events/exceptions/all');
+                allExs.forEach(ex => {
+                    if (!this._eventExceptions[ex.eventId]) this._eventExceptions[ex.eventId] = [];
+                    this._eventExceptions[ex.eventId].push(ex);
+                });
+            } catch (e) { console.error('Erro bulk exceptions:', e); }
 
             this.pastoralNotes = await this.apiFetch('/dash/notes');
             this.visits = await this.apiFetch('/dash/visits');

@@ -58,9 +58,17 @@ async function ensureExceptionTable() {
     `);
 }
 
+router.get('/exceptions/all', async (req, res) => {
+    try {
+        const rows = await prisma.$queryRawUnsafe(`SELECT * FROM "EventException"`);
+        res.json(rows.map(r => ({ ...r, canceled: r.canceled === 1 || r.canceled === true })));
+    } catch (e) {
+        res.status(500).json({ error: 'Erro ao buscar todas as exceptions' });
+    }
+});
+
 router.get('/:id/exceptions', async (req, res) => {
     try {
-        await ensureExceptionTable();
         const rows = await prisma.$queryRawUnsafe(
             `SELECT * FROM "EventException" WHERE eventId = ?`,
             req.params.id
@@ -76,7 +84,6 @@ router.post('/:id/exceptions', async (req, res) => {
     const { date, canceled, newTitle } = req.body;
     if (!date) return res.status(400).json({ error: 'date obrigatorio' });
     try {
-        await ensureExceptionTable();
         await prisma.$executeRawUnsafe(`
             INSERT INTO "EventException" ("eventId", "date", "canceled", "newTitle")
             VALUES (?, ?, ?, ?)

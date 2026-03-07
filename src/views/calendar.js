@@ -74,9 +74,16 @@ export async function calendarView() {
 
         let html = '';
 
-        // Empty prefix days
-        for (let i = 0; i < firstDay; i++) {
-            html += `<div class="aspect-square bg-slate-50 rounded-lg md:rounded-xl"></div>`;
+        // Render exactly 42 slots (6 weeks) for consistent box sizes
+        const totalSlots = 42;
+        const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
+
+        // Previous month days
+        for (let i = firstDay - 1; i >= 0; i--) {
+            const d = prevMonthLastDay - i;
+            html += `<div class="min-h-[100px] md:min-h-[140px] p-1 md:p-2 border border-slate-100 rounded-lg md:rounded-xl bg-slate-50/50 flex flex-col opacity-40 grayscale-[0.5]">
+                <span class="text-xs md:text-sm font-medium text-slate-400">${d}</span>
+            </div>`;
         }
 
         for (let i = 1; i <= daysInMonth; i++) {
@@ -173,6 +180,14 @@ export async function calendarView() {
           </div>
           <div class="flex-1 overflow-hidden w-full no-scrollbar flex flex-col gap-0.5 pointer-events-auto">${displayedEvents}${moreHtml}</div>
         </div>`;
+        }
+
+        // Trailing days to complete 42 slots
+        const remaining = totalSlots - (firstDay + daysInMonth);
+        for (let i = 1; i <= remaining; i++) {
+            html += `<div class="min-h-[100px] md:min-h-[140px] p-1 md:p-2 border border-slate-100 rounded-lg md:rounded-xl bg-slate-50/50 flex flex-col opacity-40 grayscale-[0.5]">
+                <span class="text-xs md:text-sm font-medium text-slate-400">${i}</span>
+            </div>`;
         }
         document.getElementById('calendar-grid').innerHTML = html;
     };

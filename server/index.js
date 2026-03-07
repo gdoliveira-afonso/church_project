@@ -93,6 +93,20 @@ async function seedAdmin() {
         `, cfgKey, cfgDefault);
     } catch (e) { /* já existe */ }
 
+    try {
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "EventException" (
+                "id"        TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+                "eventId"   TEXT NOT NULL,
+                "date"      TEXT NOT NULL,
+                "canceled"  INTEGER NOT NULL DEFAULT 0,
+                "newTitle"  TEXT,
+                "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE("eventId", "date")
+            )
+        `);
+    } catch (e) { /* já existe */ }
+
     // Seed da config padrão de notificações
     const notifKey = 'notificationConfig';
     const notifDefault = JSON.stringify({
