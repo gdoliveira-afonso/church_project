@@ -161,11 +161,17 @@ export async function calendarView() {
             if (!window.__calendarDayCache) window.__calendarDayCache = {};
             window.__calendarDayCache[dateStr] = dayEventsHtml;
 
-            html += `<div onclick="window.openDayModal('${dateStr}')" class="min-h-[60px] md:min-h-[80px] p-1 md:p-2 border border-slate-100 rounded-lg md:rounded-xl flex flex-col transition hover:border-slate-300 hover:shadow-sm cursor-pointer">
+            // Limit display in the grid but keep full list in modal cache
+            const limit = 4;
+            const displayedEvents = dayEvents.slice(0, limit).map(d => d.html).join('');
+            const moreCount = dayEvents.length - limit;
+            const moreHtml = moreCount > 0 ? `<div class="text-[9px] md:text-[10px] text-slate-400 font-bold px-1 mt-0.5">+ ${moreCount} mais...</div>` : '';
+
+            html += `<div onclick="window.openDayModal('${dateStr}')" class="min-h-[100px] md:min-h-[140px] p-1 md:p-2 border border-slate-100 rounded-lg md:rounded-xl flex flex-col transition hover:border-slate-300 hover:shadow-sm cursor-pointer overflow-hidden">
           <div class="flex justify-between items-start mb-1 h-5 md:h-6 shrink-0">
             <span class="text-xs md:text-sm font-semibold flex items-center justify-center ${isToday ? 'w-5 h-5 md:w-6 md:h-6 bg-primary text-white rounded-full' : 'text-slate-700 w-5 h-5 md:w-6 md:h-6'}">${i}</span>
           </div>
-          <div class="flex-1 overflow-y-auto w-full no-scrollbar flex flex-col gap-0.5 pointer-events-auto">${dayEventsHtml}</div>
+          <div class="flex-1 overflow-hidden w-full no-scrollbar flex flex-col gap-0.5 pointer-events-auto">${displayedEvents}${moreHtml}</div>
         </div>`;
         }
         document.getElementById('calendar-grid').innerHTML = html;
