@@ -301,6 +301,9 @@ class Store {
     async completeConsolidation(id) {
         return this.updatePerson(id, { consolidationStatus: 'COMPLETED' });
     }
+    async updatePersonExtraData(id, extraData) {
+        return this.updatePerson(id, { extraData: JSON.stringify(extraData) });
+    }
     async deletePerson(id) {
         await this.apiFetch(`/people/${id}`, { method: 'DELETE' });
         this.people = this.people.filter(x => x.id !== id);

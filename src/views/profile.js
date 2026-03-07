@@ -192,25 +192,102 @@ export function profileView(params) {
     }
     if (t === 'adicional') {
       let extra = {};
-      try { extra = p.extraData ? JSON.parse(p.extraData) : {}; } catch (e) { console.error('Erro ao processar extraData:', e); }
+      try { extra = p.extraData ? (typeof p.extraData === 'string' ? JSON.parse(p.extraData) : p.extraData) : {}; } catch (e) { console.error('Erro ao processar extraData:', e); }
       const entries = Object.entries(extra);
-      tc.innerHTML = card('📋 Informações Adicionais', entries.length ? `<div class="space-y-4 pt-1">${entries.map(([k, v]) => {
+      const isAdmin = store.hasRole('ADMIN', 'SUPERVISOR');
+
+      tc.innerHTML = `
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-primary text-lg">description</span> Informações Adicionais</h3>
+          ${isAdmin ? `<button id="btn-add-extra" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition"><span class="material-symbols-outlined text-lg">add_circle</span> Novo Campo</button>` : ''}
+        </div>
+        ${entries.length ? `<div class="space-y-4">${entries.map(([k, v]) => {
         let valHtml = `<p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100">${v || '<span class="text-slate-300 italic">vazio</span>'}</p>`;
         if (v && v.includes('|') && (v.startsWith('http') || v.includes('www.'))) {
           const [name, url] = v.split('|');
           valHtml = `<a href="${url.startsWith('http') ? url : 'https://' + url}" target="_blank" class="flex items-center justify-between gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 transition text-sm font-semibold text-primary group">
-            <span class="truncate">${name || 'Acessar Link'}</span>
-            <span class="material-symbols-outlined text-base group-hover:translate-x-1 transition-transform">open_in_new</span>
-          </a>`;
+              <span class="truncate">${name || 'Acessar Link'}</span>
+              <span class="material-symbols-outlined text-base group-hover:translate-x-1 transition-transform">open_in_new</span>
+            </a>`;
         } else if (v && (v.startsWith('http') || v.startsWith('www.'))) {
           valHtml = `<a href="${v.startsWith('http') ? v : 'https://' + v}" target="_blank" class="flex items-center justify-between gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 transition text-sm font-semibold text-primary group">
-            <span class="truncate">${v}</span>
-            <span class="material-symbols-outlined text-base group-hover:translate-x-1 transition-transform">open_in_new</span>
-          </a>`;
+              <span class="truncate">${v}</span>
+              <span class="material-symbols-outlined text-base group-hover:translate-x-1 transition-transform">open_in_new</span>
+            </a>`;
         }
-        return `<div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">${k}</p>${valHtml}</div>`;
-      }).join('')}</div>` : '<div class="flex flex-col items-center py-12 text-slate-300"><span class="material-symbols-outlined text-5xl mb-2">content_paste_off</span><p class="text-sm font-medium">Nenhuma informação adicional vinculada</p><p class="text-xs mt-1 text-center">Configure campos no formulário para salvar aqui.</p></div>');
+        return `<div class="relative group">
+            <div class="flex justify-between items-center mb-1 ml-1 pr-1">
+              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${k}</p>
+              ${isAdmin ? `
+                <div class="flex gap-2">
+                  <button class="btn-edit-extra text-slate-300 hover:text-primary transition" data-key="${k}" title="Editar"><span class="material-symbols-outlined text-base">edit</span></button>
+                  <button class="btn-del-extra text-slate-300 hover:text-red-500 transition" data-key="${k}" title="Remover"><span class="material-symbols-outlined text-base">delete</span></button>
+                </div>` : ''}
+            </div>
+            ${valHtml}
+          </div>`;
+      }).join('')}</div>` : '<div class="flex flex-col items-center py-12 text-slate-300"><span class="material-symbols-outlined text-5xl mb-2">content_paste_off</span><p class="text-sm font-medium">Nenhuma informação adicional vinculada</p><p class="text-xs mt-1 text-center">Configure campos no formulário para salvar aqui.</p></div>'}`;
+
+      if (isAdmin) {
+        document.getElementById('btn-add-extra')?.addEventListener('click', () => openExtraDataModal());
+        document.querySelectorAll('.btn-edit-extra').forEach(btn => {
+          btn.addEventListener('click', () => openExtraDataModal(btn.dataset.key, extra[btn.dataset.key]));
+        });
+        document.querySelectorAll('.btn-del-extra').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (confirm(`Excluir o campo "${btn.dataset.key}"?`)) {
+              delete extra[btn.dataset.key];
+              try {
+                await store.updatePersonExtraData(p.id, extra);
+                toast('Campo excluído!');
+                show('adicional');
+              } catch (e) { toast('Erro ao salvar', 'error'); }
+            }
+          });
+        });
+      }
     }
+  }
+
+  function openExtraDataModal(editKey = '', editVal = '') {
+    openModal(`<div class="p-5 md:p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-base font-bold">${editKey ? 'Editar' : 'Novo'} Campo Adicional</h3>
+        <button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="p-1 rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-slate-400">close</span></button>
+      </div>
+      <form id="extra-form" class="space-y-3">
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-1 block">Nome do Campo</label>
+          <input id="ef-key" type="text" value="${editKey}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Ex: Hobby, Profissão, Redes Sociais..." required ${editKey ? 'readonly bg-slate-50' : ''}/>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-1 block">Valor</label>
+          <textarea id="ef-val" rows="3" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20 resize-none" placeholder="Digite a informação..." required>${editVal}</textarea>
+          <p class="text-[10px] text-slate-400 mt-1">Para links clicáveis, adicione "Nome|http://url" ou apenas a URL.</p>
+        </div>
+        <button type="submit" class="w-full bg-primary text-white py-2.5 mt-2 rounded-lg text-sm font-bold hover:bg-primary/90 active:scale-[.98] transition-all">Salvar Informação</button>
+      </form>
+    </div>`);
+
+    document.getElementById('extra-form').onsubmit = async e => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button[type="submit"]');
+      const key = document.getElementById('ef-key').value.trim();
+      const val = document.getElementById('ef-val').value.trim();
+
+      let extra = {};
+      try { extra = p.extraData ? (typeof p.extraData === 'string' ? JSON.parse(p.extraData) : p.extraData) : {}; } catch (e) { }
+
+      extra[key] = val;
+
+      const orig = btn.innerHTML; btn.innerHTML = 'Salvando...'; btn.disabled = true;
+      try {
+        await store.updatePersonExtraData(p.id, extra);
+        toast('Informação salva!');
+        closeModal();
+        show('adicional');
+      } catch (err) { toast('Erro ao salvar', 'error'); btn.innerHTML = orig; btn.disabled = false; }
+    };
   }
 
   function openMarcoModal() {
