@@ -66,7 +66,26 @@ export function profileView(params) {
           ${showBtn ? `<button id="btn-complete-consolidation" class="w-full bg-${sColor}-600 text-white py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-${sColor}-700 transition" onclick="window.completeCons()"> <span class="material-symbols-outlined text-lg">check_circle</span> Marcar como Consolidado </button>` : `<p class="text-xs text-center text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 py-2 rounded-lg">Consolidado em ${new Date(c.completedDate).toLocaleDateString('pt-BR')}</p>`}
         </div>`;
       }
-      tc.innerHTML = consolidationHtml + card('📌 Dados Gerais', `<dl class="space-y-3">${[['person', p.name], ['call', p.phone || '-'], ['cake', p.birthdate ? p.birthdate.split('-').reverse().join('/') : '-'], ['home', p.address || '-'], ['calendar_today', p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR') : '-']].map(([i, v]) => `<div class="flex items-center gap-3"><span class="material-symbols-outlined text-slate-400 text-lg">${i}</span><span class="text-sm">${v}</span></div>`).join('')}</dl>`);
+
+      const calculateAge = (dob) => {
+        if (!dob) return null;
+        const birth = new Date(dob);
+        const now = new Date();
+        let age = now.getFullYear() - birth.getFullYear();
+        const m = now.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--;
+        return age;
+      };
+      const age = calculateAge(p.birthdate);
+
+      tc.innerHTML = consolidationHtml + card('📌 Dados Gerais', `<dl class="space-y-3">${[
+        ['person', p.name],
+        ['call', p.phone || '-'],
+        ['cake', p.birthdate ? p.birthdate.split('-').reverse().join('/') : '-'],
+        age !== null ? ['database', `${age} anos`] : null,
+        ['home', p.address || '-'],
+        ['calendar_today', p.createdAt ? new Date(p.createdAt).toLocaleDateString('pt-BR') : '-']
+      ].filter(Boolean).map(([i, v]) => `<div class="flex items-center gap-3"><span class="material-symbols-outlined text-slate-400 text-lg">${i}</span><span class="text-sm">${v}</span></div>`).join('')}</dl>`);
     }
     if (t === 'espiritual') {
       const spTracks = store.tracks.filter(tr => tr.category === 'espiritual');
@@ -110,14 +129,11 @@ export function profileView(params) {
           const isAdmin = store.hasRole('ADMIN', 'SUPERVISOR');
           const timelineItems = milestones.map((m, idx) => {
             const color = COLOR_MAP[m.color] || '#64748b';
-
-            // Handle both "2024-05-10" and "2024-05-10T14:30:00.000Z" gracefully without timezone shift logic breaking ISO standard
-            let rawDateStrStr = m.date;
+            let rawDateStrStr = typeof m.date === 'string' ? m.date : m.date.toISOString();
             if (rawDateStrStr.indexOf('T') === -1) {
               rawDateStrStr = rawDateStrStr + 'T12:00:00Z';
             }
             const date = new Date(rawDateStrStr).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
-
             const isLast = idx === milestones.length - 1;
             return `<div class="flex gap-3 ${isLast ? '' : 'pb-5'} relative group">
               <div class="flex flex-col items-center shrink-0">
@@ -394,4 +410,5 @@ export function profileView(params) {
     show('dados');
   };
 }
+
 function card(title, content) { return `<div class="bg-white rounded-xl p-5 shadow-sm border border-slate-100"><h3 class="text-sm font-bold mb-4">${title}</h3>${content}</div>` }

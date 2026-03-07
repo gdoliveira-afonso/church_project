@@ -35,8 +35,7 @@ export function cellsView(params) {
       const leader = store.users.find(u => u.id === c.leaderId); const vice = c.viceLeaderId ? store.users.find(u => u.id === c.viceLeaderId) : null; const mem = store.getCellMembers(c.id);
       return `<a href="#/cell?id=${c.id}" class="block bg-white rounded-xl p-4 border border-slate-100 hover:border-primary/30 hover:shadow-sm transition group">
       <div class="flex items-center gap-3 mb-3"><div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600"><span class="material-symbols-outlined">diversity_3</span></div><div class="flex-1"><h3 class="text-sm font-bold">${c.name}</h3><p class="text-[11px] text-slate-500">${c.meetingDay || ''} ${c.meetingTime ? 'às ' + c.meetingTime : ''}</p></div><span class="material-symbols-outlined text-slate-300 group-hover:text-primary text-lg">chevron_right</span></div>
-      <div class="flex flex-col text-[11px] text-slate-500 mb-2 space-y-0.5"><span>Líder: ${leader?.name || 'N/A'}</span>${vice ? `<span>Vice: ${vice.name}</span>` : ''}</div>
-      <div class="flex justify-between text-[11px] text-slate-500"><span>Membros:</span><span>${mem.length}</span></div>
+      <div class="flex flex-col text-[11px] text-slate-500 mb-2 space-y-0.5"><span>Líder: ${leader?.name || 'N/A'}</span>${vice ? `<span>Vice: ${vice.name}</span>` : ''}<span>Membros: ${mem.length}</span></div>
     </a>`}).join('')}</div>` : `<div class="flex flex-col items-center justify-center py-16"><span class="material-symbols-outlined text-5xl text-slate-200 mb-3">group_off</span><p class="text-sm text-slate-400">Nenhuma célula encontrada</p>${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button id="btn-empty-add" class="mt-3 text-sm text-primary font-semibold">+ Criar primeira célula</button>` : ''}</div>`;
 
     document.getElementById('btn-empty-add')?.addEventListener('click', () => cellForm());
