@@ -1068,9 +1068,24 @@ function openTriageDetail(id) {
   }
   const addressKey = Object.keys(t.data).find(k => k.toLowerCase().includes('endereço') || k.toLowerCase().includes('endereco') || k.toLowerCase().includes('rua') || k.toLowerCase().includes('bairro'));
   const address = addressKey ? t.data[addressKey] : '';
+
+  // --- Mapeamento de Decisão ---
+  const decisionKey = Object.keys(t.data).find(k => k.toLowerCase().includes('decisão') || k.toLowerCase().includes('decisao'));
+  const decisionValue = decisionKey ? t.data[decisionKey] : '';
+  let mappedStatus = f?.personStatus || 'Novo Convertido';
+
+  // Se for apenas triagem (sem status fixo no form), tenta deduzir pela resposta
+  if (!f?.personStatus && decisionValue) {
+    if (decisionValue.toLowerCase().includes('jesus') || decisionValue.toLowerCase().includes('converte')) {
+      mappedStatus = 'Novo Convertido';
+    } else if (decisionValue.toLowerCase().includes('reconcilia')) {
+      mappedStatus = 'Reconciliação';
+    }
+  }
+
   const isDone = t.status === 'done' || t.status === 'rejected';
-  const statusLabel = f?.personStatus || 'Sem status definido';
-  const statusColor = f?.personStatus === 'Novo Convertido' ? 'emerald' : f?.personStatus === 'Reconciliação' ? 'purple' : 'slate';
+  const statusLabel = f?.personStatus || 'Sem status definido (Apenas Triagem)';
+  const statusColor = (f?.personStatus || mappedStatus) === 'Novo Convertido' ? 'emerald' : (f?.personStatus || mappedStatus) === 'Reconciliação' ? 'purple' : 'slate';
 
   openModal(`<div class="p-5 md:p-6 max-h-[85vh] overflow-y-auto">
     <div class="flex justify-between items-center mb-4">
@@ -1091,7 +1106,7 @@ function openTriageDetail(id) {
       .filter(([k]) => k !== 'generationId')
       .map(([k, v]) => `<div class="flex justify-between items-start gap-2">
           <span class="text-[11px] font-medium text-slate-500 shrink-0">${k}</span>
-          <span class="text-[11px] text-right font-semibold text-slate-700">${v || '<span class="text-slate-300 italic">vazio</span>'}</span>
+          <span class="text-[11px] text-right font-semibold text-slate-700 ${k === decisionKey ? 'text-primary' : ''}">${v || '<span class="text-slate-300 italic">vazio</span>'}</span>
         </div>`).join('')}
       </div>
     </div>
@@ -1100,18 +1115,34 @@ function openTriageDetail(id) {
         <label class="text-xs font-semibold text-slate-600 mb-1 block">Nome (corrigir se necessário)</label>
         <input id="tr-name" value="${name}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Nome completo"/>
       </div>
-      <div>
-        <label class="text-xs font-semibold text-slate-600 mb-1 block">Telefone</label>
-        <input id="tr-phone" value="${phone}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="(00) 00000-0000"/>
-      </div>
-      <div>
-        <label class="text-xs font-semibold text-slate-600 mb-1 block">Data de Nascimento</label>
-        <input id="tr-birth" type="date" value="${birthdate}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-1 block">Telefone</label>
+          <input id="tr-phone" value="${phone}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="(00) 00000-0000"/>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-1 block">Data Nascimento</label>
+          <input id="tr-birth" type="date" value="${birthdate}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+        </div>
       </div>
       <div>
         <label class="text-xs font-semibold text-slate-600 mb-1 block">Endereço</label>
         <input id="tr-address" value="${address}" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Rua, Bairro, CEP"/>
       </div>
+      
+      ${!f?.personStatus ? `
+      <div>
+        <label class="text-xs font-semibold text-slate-600 mb-1 block">Definir Status da Pessoa</label>
+        <select id="tr-status" class="w-full px-3 py-2 rounded-lg border border-primary/30 bg-primary/5 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20 transition">
+          <option value="Novo Convertido" ${mappedStatus === 'Novo Convertido' ? 'selected' : ''}>Novo Convertido</option>
+          <option value="Reconciliação" ${mappedStatus === 'Reconciliação' ? 'selected' : ''}>Reconciliação</option>
+          <option value="Visitante" ${mappedStatus === 'Visitante' ? 'selected' : ''}>Visitante</option>
+          <option value="Membro" ${mappedStatus === 'Membro' ? 'selected' : ''}>Membro</option>
+        </select>
+        ${decisionKey ? `<p class="text-[10px] text-primary mt-1 font-medium flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">info</span> Mapeado via campo "${decisionKey}"</p>` : ''}
+      </div>
+      ` : ''}
+
       <div>
         <label class="text-xs font-semibold text-slate-600 mb-1 block">Atribuir à Célula</label>
         <select id="tr-cell" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20">
@@ -1144,6 +1175,8 @@ function openTriageDetail(id) {
       const trBirth = document.getElementById('tr-birth').value;
       const trAddress = document.getElementById('tr-address').value.trim();
       const trCell = document.getElementById('tr-cell').value;
+      const trStatusSelect = document.getElementById('tr-status');
+      const trStatus = trStatusSelect ? trStatusSelect.value : (f?.personStatus || 'Novo Convertido');
       const trGenSelect = document.getElementById('tr-generation');
       const trGeneration = trGenSelect ? trGenSelect.value : '';
 
@@ -1156,12 +1189,22 @@ function openTriageDetail(id) {
         return;
       }
 
+      const extraData = {};
+      if (f?.fields) {
+        f.fields.forEach(field => {
+          if (field.isExtra && t.data[field.name] !== undefined) {
+            extraData[field.name] = t.data[field.name];
+          }
+        });
+      }
+
       const personData = {
         name: trName, phone: trPhone, birthdate: trBirth, address: trAddress,
-        status: f?.personStatus || 'Novo Convertido',
+        status: trStatus,
         cellId: trCell || undefined,
         createdAt: new Date().toISOString(),
         formData: t.data,
+        extraData: Object.keys(extraData).length ? JSON.stringify(extraData) : null,
         tracksData: {},
         discipleship: { primeiroContato: { done: true, date: new Date().toISOString().split('T')[0] } }
       };

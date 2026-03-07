@@ -87,6 +87,7 @@ router.post('/', async (req, res) => {
             prayerRequest: data.prayerRequest,
             prayerRequest: data.prayerRequest,
             cellId: data.cellId || null,
+            extraData: data.extraData || null,
         };
 
         // Salva as trilhas marcadas no formulário (PersonTrack table)
@@ -180,6 +181,7 @@ router.put('/:id', async (req, res) => {
             returnReason: data.returnReason,
             prayerRequest: data.prayerRequest,
             cellId: data.cellId || null,
+            extraData: data.extraData || undefined,
         };
 
         // Manipula o status de consolidação

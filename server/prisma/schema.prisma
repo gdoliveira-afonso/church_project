@@ -77,6 +77,7 @@ model Person {
   userId           String?  @unique
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  extraData        String?  // JSON with additional information from forms
 
   cell             Cell?    @relation(fields: [cellId], references: [id])
   user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)

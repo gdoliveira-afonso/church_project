@@ -434,10 +434,19 @@ export function formBuilderView(params) {
           <input type="hidden" id="fm-type" value="${initType}"/>
         </div>
         <div id="fm-config" class="rounded-xl border border-slate-100 bg-slate-50/50 p-3 space-y-3"></div>
-        <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition">
-          <input type="checkbox" id="fm-req" ${initReq ? 'checked' : ''} class="accent-primary w-4 h-4"/>
-          <div><p class="text-sm font-semibold">Obrigatório</p><p class="text-[11px] text-slate-400">O usuário deve preencher este campo</p></div>
-        </label>
+        <div class="space-y-2">
+          <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition">
+            <input type="checkbox" id="fm-req" ${initReq ? 'checked' : ''} class="accent-primary w-4 h-4"/>
+            <div><p class="text-sm font-semibold">Obrigatório</p><p class="text-[11px] text-slate-400">O usuário deve preencher este campo</p></div>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition">
+            <input type="checkbox" id="fm-extra" ${existing?.isExtra ? 'checked' : ''} class="accent-primary w-4 h-4"/>
+            <div>
+              <p class="text-sm font-semibold">Informação Adicional</p>
+              <p class="text-[11px] text-slate-400">Salva na aba "Adicional" do perfil da pessoa</p>
+            </div>
+          </label>
+        </div>
         <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 active:scale-[.98] transition-all">${isEdit ? 'Salvar Alterações' : 'Adicionar Campo'}</button>
       </form>
     </div>`);
@@ -513,14 +522,19 @@ export function formBuilderView(params) {
       const name = document.getElementById('fm-name').value.trim();
       if (!name) { toast('Nome obrigatório', 'error'); return; }
       const type = typeInput.value;
-      const field = { name, type, required: document.getElementById('fm-req').checked };
+      const field = {
+        name,
+        type,
+        required: document.getElementById('fm-req').checked,
+        isExtra: document.getElementById('fm-extra').checked
+      };
       if (type === 'select') field.options = currentOptions.filter(Boolean);
       if (type === 'checkbox') field.checkItems = currentCheckItems.filter(Boolean);
       const ph = document.getElementById('fm-placeholder')?.value;
       if (ph) field.placeholder = ph;
       if (isEdit) { form.fields[editIdx] = field; toast('Campo atualizado!'); }
       else { form.fields.push(field); toast('Campo adicionado!'); }
-      store.updateForm(form.id, form); closeModal(); render(); history.back();
+      store.updateForm(form.id, form); closeModal(); render();
     };
   }
 

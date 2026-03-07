@@ -28,7 +28,7 @@ export function profileView(params) {
       </div>
     </div>
     <!-- Tabs -->
-    <div class="flex gap-1 px-4 md:px-6 py-3 overflow-x-auto no-scrollbar">${['Dados', 'Espiritual', 'Retiros', 'Visitas', 'Marcos', 'Notas'].map((t, i) => `<button class="tab whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition ${i === 0 ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" data-t="${t.toLowerCase()}">${t}</button>`).join('')}</div>
+    <div class="flex gap-1 px-4 md:px-6 py-3 overflow-x-auto no-scrollbar">${['Dados', 'Espiritual', 'Retiros', 'Visitas', 'Marcos', 'Notas', 'Adicional'].map((t, i) => `<button class="tab whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium transition ${i === 0 ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}" data-t="${t.toLowerCase()}">${t}</button>`).join('')}</div>
     <div id="tab-c" class="px-4 md:px-6 lg:px-10 pb-6 max-w-4xl mx-auto w-full"></div>
   </div>
   <div class="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 px-4 md:px-6 py-3 z-10">
@@ -173,6 +173,12 @@ export function profileView(params) {
           <p class="text-sm text-slate-700">${n.text}</p>
         </div>`;
       }).join('') : '<p class="text-sm text-slate-400 text-center py-6">Nenhuma nota registrada</p>'}</div>`;
+    }
+    if (t === 'adicional') {
+      let extra = {};
+      try { extra = p.extraData ? JSON.parse(p.extraData) : {}; } catch (e) { console.error('Erro ao processar extraData:', e); }
+      const entries = Object.entries(extra);
+      tc.innerHTML = card('📋 Informações Adicionais', entries.length ? `<div class="space-y-4 pt-1">${entries.map(([k, v]) => `<div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">${k}</p><p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100">${v || '<span class="text-slate-300 italic">vazio</span>'}</p></div>`).join('')}</div>` : '<div class="flex flex-col items-center py-12 text-slate-300"><span class="material-symbols-outlined text-5xl mb-2">content_paste_off</span><p class="text-sm font-medium">Nenhuma informação adicional vinculada</p><p class="text-xs mt-1 text-center">Configure campos no formulário para salvar aqui.</p></div>');
     }
   }
 
