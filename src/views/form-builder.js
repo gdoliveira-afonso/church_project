@@ -10,6 +10,7 @@ const FIELD_TYPES = [
   { value: 'select', label: 'Seleção', icon: 'list' },
   { value: 'textarea', label: 'Texto Longo', icon: 'notes' },
   { value: 'checkbox', label: 'Caixa de Seleção', icon: 'check_box' },
+  { value: 'link', label: 'Link', icon: 'link' },
 ];
 
 // ── Form List ──
@@ -434,7 +435,7 @@ export function formBuilderView(params) {
           <input type="hidden" id="fm-type" value="${initType}"/>
         </div>
         <div id="fm-config" class="rounded-xl border border-slate-100 bg-slate-50/50 p-3 space-y-3"></div>
-        <div class="space-y-2">
+        <div class="space-y-2" id="fm-main-checks">
           <label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg border border-slate-100 hover:bg-slate-50 transition">
             <input type="checkbox" id="fm-req" ${initReq ? 'checked' : ''} class="accent-primary w-4 h-4"/>
             <div><p class="text-sm font-semibold">Obrigatório</p><p class="text-[11px] text-slate-400">O usuário deve preencher este campo</p></div>
@@ -479,6 +480,9 @@ export function formBuilderView(params) {
       if (type === 'text' || type === 'email' || type === 'phone' || type === 'number') {
         const ph = document.getElementById('fm-placeholder')?.value || initPlaceholder;
         html = '<div><label class="text-xs font-semibold text-slate-600 mb-1 block">Placeholder</label><input id="fm-placeholder" value="' + ph + '" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="Texto de exemplo..."/></div>';
+      } else if (type === 'link') {
+        const ph = document.getElementById('fm-placeholder')?.value || initPlaceholder;
+        html = '<div><label class="text-xs font-semibold text-slate-600 mb-1 block">URL de Redirecionamento</label><input id="fm-placeholder" value="' + ph + '" class="w-full px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm outline-none focus:ring-2 focus:ring-primary/20" placeholder="https://..."/></div>';
       } else if (type === 'select') {
         html = '<div><label class="text-xs font-semibold text-slate-600 mb-1.5 block">Opções de Seleção</label>' +
           '<div id="fm-opts-list" class="space-y-1.5 mb-2">' + currentOptions.map((o, i) => optionRow(o, i)).join('') + '</div>' +
@@ -499,6 +503,9 @@ export function formBuilderView(params) {
       }
       configPanel.innerHTML = html || '<p class="text-xs text-slate-400">Nenhuma configuração extra.</p>';
       configPanel.style.display = html ? '' : 'none';
+
+      const mainChecks = document.getElementById('fm-main-checks');
+      if (mainChecks) mainChecks.style.display = type === 'link' ? 'none' : '';
 
       if (type === 'select') {
         document.querySelectorAll('.opt-input').forEach(inp => inp.addEventListener('input', () => { currentOptions[+inp.dataset.idx] = inp.value; }));

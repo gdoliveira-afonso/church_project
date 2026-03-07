@@ -10,6 +10,11 @@ const FIELD_TYPE_MAP = {
   textarea: (f) => `<textarea id="pf-${f.name}" rows="3" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition resize-none" placeholder="${f.placeholder || f.name}" ${f.required ? 'required' : ''}></textarea>`,
   select: (f) => `<select id="pf-${f.name}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition" ${f.required ? 'required' : ''}><option value="">— Selecionar —</option>${(f.options || []).map(o => `<option value="${o}">${o}</option>`).join('')}</select>`,
   checkbox: (f) => { const items = f.checkItems || [f.checkLabel || f.name]; return `<div class="space-y-2">${items.map((ci, i) => `<label class="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" class="pf-chk accent-primary w-4 h-4" data-field="${f.name}" data-idx="${i}" ${f.required && items.length === 1 ? 'required' : ''}/><span class="text-sm text-slate-700">${ci}</span></label>`).join('')}</div>`; },
+  link: (f) => `
+    <a href="${f.placeholder?.startsWith('http') ? f.placeholder : 'https://' + (f.placeholder || '#')}" target="_blank" class="w-full h-11 flex items-center justify-center gap-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all font-bold text-sm shadow-sm group">
+      <span>${f.name || 'Acessar Link'}</span>
+      <span class="material-symbols-outlined text-base group-hover:translate-x-1 transition-transform">open_in_new</span>
+    </a>`,
 };
 
 export async function publicFormView(params) {
@@ -63,7 +68,7 @@ export async function publicFormView(params) {
               ${form.fields.map(f => {
       const renderer = FIELD_TYPE_MAP[f.type] || FIELD_TYPE_MAP.text;
       return `<div>
-                  <label class="text-xs font-semibold text-slate-600 mb-1.5 block">${f.name}${f.required ? ' <span class="text-red-400">*</span>' : ''}</label>
+                  ${f.type !== 'link' ? `<label class="text-xs font-semibold text-slate-600 mb-1.5 block">${f.name}${f.required ? ' <span class="text-red-400">*</span>' : ''}</label>` : ''}
                   ${renderer(f)}
                 </div>`;
     }).join('')}
@@ -123,6 +128,8 @@ export async function publicFormView(params) {
         const selected = [];
         checks.forEach((cb, i) => { if (cb.checked) selected.push(items[i]); });
         data[f.name] = selected.join(', ');
+      } else if (f.type === 'link') {
+        // Static field, skip
       } else {
         const el = document.getElementById('pf-' + f.name);
         if (el) data[f.name] = el.value;

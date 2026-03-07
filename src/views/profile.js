@@ -178,7 +178,22 @@ export function profileView(params) {
       let extra = {};
       try { extra = p.extraData ? JSON.parse(p.extraData) : {}; } catch (e) { console.error('Erro ao processar extraData:', e); }
       const entries = Object.entries(extra);
-      tc.innerHTML = card('📋 Informações Adicionais', entries.length ? `<div class="space-y-4 pt-1">${entries.map(([k, v]) => `<div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">${k}</p><p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100">${v || '<span class="text-slate-300 italic">vazio</span>'}</p></div>`).join('')}</div>` : '<div class="flex flex-col items-center py-12 text-slate-300"><span class="material-symbols-outlined text-5xl mb-2">content_paste_off</span><p class="text-sm font-medium">Nenhuma informação adicional vinculada</p><p class="text-xs mt-1 text-center">Configure campos no formulário para salvar aqui.</p></div>');
+      tc.innerHTML = card('📋 Informações Adicionais', entries.length ? `<div class="space-y-4 pt-1">${entries.map(([k, v]) => {
+        let valHtml = `<p class="text-sm text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100">${v || '<span class="text-slate-300 italic">vazio</span>'}</p>`;
+        if (v && v.includes('|') && (v.startsWith('http') || v.includes('www.'))) {
+          const [name, url] = v.split('|');
+          valHtml = `<a href="${url.startsWith('http') ? url : 'https://' + url}" target="_blank" class="flex items-center justify-between gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 transition text-sm font-semibold text-primary group">
+            <span class="truncate">${name || 'Acessar Link'}</span>
+            <span class="material-symbols-outlined text-base group-hover:translate-x-1 transition-transform">open_in_new</span>
+          </a>`;
+        } else if (v && (v.startsWith('http') || v.startsWith('www.'))) {
+          valHtml = `<a href="${v.startsWith('http') ? v : 'https://' + v}" target="_blank" class="flex items-center justify-between gap-3 p-3 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 transition text-sm font-semibold text-primary group">
+            <span class="truncate">${v}</span>
+            <span class="material-symbols-outlined text-base group-hover:translate-x-1 transition-transform">open_in_new</span>
+          </a>`;
+        }
+        return `<div><p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">${k}</p>${valHtml}</div>`;
+      }).join('')}</div>` : '<div class="flex flex-col items-center py-12 text-slate-300"><span class="material-symbols-outlined text-5xl mb-2">content_paste_off</span><p class="text-sm font-medium">Nenhuma informação adicional vinculada</p><p class="text-xs mt-1 text-center">Configure campos no formulário para salvar aqui.</p></div>');
     }
   }
 
