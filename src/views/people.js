@@ -131,10 +131,11 @@ export function personFormView(params) {
           ${(() => {
       const opts = ['Visitante', 'Novo Convertido', 'Membro', 'Reconciliação'];
       const inactiveOpts = ['Inativo', 'Afastado', 'Mudou-se'];
-      if (p?.status === 'Líder') opts.push('Líder');
-      if (p?.status === 'Vice-Líder') opts.push('Vice-Líder');
+      const isTeamMember = store.users.some(u => u.name.toLowerCase() === p?.name?.toLowerCase());
+      if (p?.status === 'Líder' || isTeamMember) opts.push('Líder');
+      if (p?.status === 'Vice-Líder' || isTeamMember) opts.push('Vice-Líder');
       if (p?.status && !opts.includes(p.status) && !inactiveOpts.includes(p.status)) opts.push(p.status);
-      return `<optgroup label="Ativos">${opts.map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('')}</optgroup>
+      return `<optgroup label="Ativos">${[...new Set(opts)].map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('')}</optgroup>
               <optgroup label="Inativos / Saída">${inactiveOpts.map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('')}</optgroup>`;
     })()}
         </select>
