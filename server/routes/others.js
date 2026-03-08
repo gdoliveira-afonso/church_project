@@ -106,11 +106,11 @@ const DEFAULT_DASHBOARD_CONFIG = {
 
 async function getDashboardConfig() {
     try {
-        const rows = await prisma.$queryRawUnsafe(
-            `SELECT value FROM "SystemConfig" WHERE key = 'dashboardActions' LIMIT 1`
-        );
-        if (rows && rows.length > 0) return JSON.parse(rows[0].value);
-    } catch (e) { /* tabela ainda não existe: retorna default */ }
+        const config = await prisma.systemConfig.findUnique({
+            where: { key: 'dashboardActions' }
+        });
+        if (config) return JSON.parse(config.value);
+    } catch (e) { /* fallback case */ }
     return DEFAULT_DASHBOARD_CONFIG;
 }
 
@@ -132,20 +132,20 @@ router.put('/config', async (req, res) => {
 
         if (dashboardActions) {
             const value = JSON.stringify(dashboardActions);
-            await prisma.$executeRawUnsafe(`
-                INSERT INTO "SystemConfig" ("key", "value", "updatedAt")
-                VALUES ('dashboardActions', ?, CURRENT_TIMESTAMP)
-                ON CONFLICT("key") DO UPDATE SET "value" = excluded.value, "updatedAt" = CURRENT_TIMESTAMP
-            `, value);
+            await prisma.systemConfig.upsert({
+                where: { key: 'dashboardActions' },
+                update: { value, updatedAt: new Date() },
+                create: { key: 'dashboardActions', value }
+            });
         }
 
         if (notificationConfig) {
             const value = JSON.stringify(notificationConfig);
-            await prisma.$executeRawUnsafe(`
-                INSERT INTO "SystemConfig" ("key", "value", "updatedAt")
-                VALUES ('notificationConfig', ?, CURRENT_TIMESTAMP)
-                ON CONFLICT("key") DO UPDATE SET "value" = excluded.value, "updatedAt" = CURRENT_TIMESTAMP
-            `, value);
+            await prisma.systemConfig.upsert({
+                where: { key: 'notificationConfig' },
+                update: { value, updatedAt: new Date() },
+                create: { key: 'notificationConfig', value }
+            });
         }
 
         res.json({ success: true });
