@@ -93,85 +93,49 @@ export async function calendarView() {
 
             const isToday = new Date().toISOString().split('T')[0] === dateStr;
 
-            let dayEvents = []; // Collect events to sort
-
-            let bdays = [...people, ...users].filter(p => p.birthdate && p.birthdate.slice(5) === dateStr.slice(5));
-            if (!isAdminSuper) {
-                const myCellIds = cells.map(c => c.id);
-                bdays = bdays.filter(p => myCellIds.includes(p.cellId) || p.id === store.currentUser?.id);
-            }
-            bdays.forEach(p => {
-                dayEvents.push({ sortVal: -1, html: `<div class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] bg-pink-100 text-pink-700 font-medium px-1 rounded mt-0.5" title="Aniversário: ${p.name}"><span>🎂</span><span class="hidden md:inline ml-1">${p.name.split(' ')[0]}</span></div>` });
-            });
-
-            // 2. Cells (Usually evening, but kept generic. Treating as sortVal -2 to float them near top but below birthdays)
-            cells.forEach(c => {
-                if (c.meetingDay && c.meetingDay.toLowerCase().startsWith(dayName.toLowerCase().slice(0, 3))) {
-                    const isCanceled = store.isCellCanceledOnDate(c.id, dateStr) || store.isCellCanceledOnDate('all', dateStr);
-                    const isJustified = store.getCellJustifications(c.id).find(j => j.date === dateStr);
-                    const isRealized = c.__attendanceCache && c.__attendanceCache.includes(dateStr);
+            const dayEvents = store.getEventsForDate(dateStr);
+            const dayEventsHtmls = dayEvents.map(ev => {
+                if (ev.type === 'birthday') {
+                    return `<div class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] bg-pink-100 text-pink-700 font-medium px-1 rounded mt-0.5" title="Aniversário: ${ev.person.name}"><span>🎂</span><span class="hidden md:inline ml-1">${ev.person.name.split(' ')[0]}</span></div>`;
+                } else if (ev.type === 'cell') {
+                    const isCanceled = ev.isCanceled;
+                    const isJustified = ev.isJustified;
+                    const isRealized = ev.isRealized;
 
                     let bgClass = isCanceled ? 'bg-slate-100 text-slate-500 line-through' : (isJustified ? 'bg-amber-100 text-amber-700' : (isRealized ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-700'));
                     let hoverClass = isAdminSuper || (!isCanceled && !isJustified) ? 'cursor-pointer hover:opacity-75 transition' : '';
                     let clickFn = '';
 
-                    if (isAdminSuper) clickFn = `onclick="window.toggleCalendarCell(event, '${c.id}', '${dateStr}')"`;
-                    else if (!isCanceled && !isJustified) clickFn = `onclick="window.calendarCellClick(event, '${c.id}', '${dateStr}')"`;
+                    if (isAdminSuper) clickFn = `onclick="window.toggleCalendarCell(event, '${ev.cellId}', '${dateStr}')"`;
+                    else if (!isCanceled && !isJustified) clickFn = `onclick="window.calendarCellClick(event, '${ev.cellId}', '${dateStr}')"`;
 
-                    let sortVal = -2;
-                    let displayLabel = `🏠 ${c.name}`;
-                    if (c.meetingTime) {
-                        const [h, m] = c.meetingTime.split(':').map(Number);
-                        if (!isNaN(h) && !isNaN(m)) sortVal = h + (m / 60) - 0.0001;
-                        displayLabel = `🏠 ${c.meetingTime} ${c.name}`;
-                    }
-
-                    dayEvents.push({ sortVal, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] ${bgClass} font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${isCanceled ? 'Cancelada: ' + isCanceled.reason : isJustified ? 'Justificada: ' + isJustified.reason : 'Célula: ' + c.name}"><span>🏠</span><span class="hidden md:inline ml-1">${displayLabel.replace('🏠 ', '')}</span></div>` });
-                }
-            });
-
-            // 3. Global Events (All Day & Timed)
-            allEvents.forEach(e => {
-                if (evaluateEvent(e, dateStr)) {
-                    const ex = store.getEventException(e.id, dateStr);
-                    if (ex && ex.canceled) return; // Skip if canceled for this day
-                    const title = ex && ex.newTitle ? ex.newTitle : e.title;
-                    const cColor = e.color || 'blue';
-                    const isAllDay = !e.startTime;
-
+                    return `<div ${clickFn} class="shrink-0 min-h-[18px] w-full truncate flex items-center text-[9px] md:text-[10px] ${bgClass} font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${isCanceled ? 'Cancelada' : isJustified ? 'Justificada' : 'Célula'}: ${ev.title}"><span>🏠</span><span class="hidden md:inline ml-1">${ev.time ? ev.time + ' ' : ''}${ev.title}</span></div>`;
+                } else {
+                    const cColor = ev.color || 'blue';
+                    const isAllDay = !ev.time;
                     let clickFn = '', hoverClass = '';
                     if (isAdminSuper) {
-                        clickFn = `onclick="window.manageEventClick(event, '${e.id}', '${dateStr}', '${e.recurrence || 'none'}', '${title}')"`;
+                        clickFn = `onclick="window.manageEventClick(event, '${ev.eventId}', '${dateStr}', '${ev.recurrence || 'none'}', '${ev.title}')"`;
                         hoverClass = `cursor-pointer hover:bg-${cColor}-200 transition`;
                     }
 
                     if (isAllDay) {
-                        const scopeIcon = e.icon || (e.category === 'geral' ? '🌐' : '🏘️');
-                        const noteHtml = e.description ? `<span class="day-note hidden text-[11px] text-${cColor}-700 opacity-70 mt-0.5 leading-snug">${e.description.replace(/'/g, "&apos;")}</span>` : '';
-                        const tooltipText = `${e.category === 'geral' ? '[Geral] ' : '[Local] '}${title}${e.description ? ' — ' + e.description : ''}`;
-                        dayEvents.push({ sortVal: 0, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] bg-${cColor}-100 text-${cColor}-800 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${tooltipText}"><span class="truncate"><span>${scopeIcon}</span><span class="hidden md:inline ml-1">${title}</span></span>${noteHtml}</div>` });
+                        const noteHtml = ev.description ? `<span class="day-note hidden text-[11px] text-${cColor}-700 opacity-70 mt-0.5 leading-snug">${ev.description.replace(/'/g, "&apos;")}</span>` : '';
+                        return `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] bg-${cColor}-100 text-${cColor}-800 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${ev.title}"><span class="truncate"><span>${ev.icon}</span><span class="hidden md:inline ml-1">${ev.title}</span></span>${noteHtml}</div>`;
                     } else {
-                        const [h, m] = e.startTime.split(':').map(Number);
-                        const sVal = h + (m / 60);
-                        const scopeIcon = e.icon || (e.category === 'geral' ? '🌐' : '');
-                        const noteHtml = e.description ? `<span class="day-note hidden text-[11px] text-${cColor}-600 opacity-70 mt-0.5 leading-snug col-span-2">${e.description.replace(/'/g, "&apos;")}</span>` : '';
-                        const tooltipText = `${e.category === 'geral' ? '[Geral] ' : '[Local] '}${e.startTime} - ${title}${e.description ? ' — ' + e.description : ''}`;
-                        dayEvents.push({ sortVal: sVal, html: `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] text-${cColor}-700 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${tooltipText}"><div class="flex items-center gap-1 w-full"><div class="w-1.5 h-1.5 rounded-full bg-${cColor}-500 flex-shrink-0"></div><span class="truncate">${scopeIcon ? `<span>${scopeIcon}</span>` : ''}<span class="${scopeIcon ? 'hidden md:inline ml-1' : ''}">${e.startTime}</span><span class="hidden md:inline ml-1">${title}</span></div>${noteHtml}</div>` });
+                        const noteHtml = ev.description ? `<span class="day-note hidden text-[11px] text-${cColor}-600 opacity-70 mt-0.5 leading-snug col-span-2">${ev.description.replace(/'/g, "&apos;")}</span>` : '';
+                        return `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] text-${cColor}-700 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${ev.time} - ${ev.title}"><div class="flex items-center gap-1 w-full"><div class="w-1.5 h-1.5 rounded-full bg-${cColor}-500 flex-shrink-0"></div><span class="truncate"><span>${ev.icon || ''}</span><span class="${ev.icon ? 'hidden md:inline ml-1' : ''}">${ev.time}</span><span class="hidden md:inline ml-1">${ev.title}</span></div>${noteHtml}</div>`;
                     }
                 }
             });
 
-            // Sort logic: -2 (Cells), -1 (BDays), 0 (AllDay), >0 (Timed chronologically)
-            dayEvents.sort((a, b) => a.sortVal - b.sortVal);
-            let dayEventsHtml = dayEvents.map(d => d.html).join('');
-
             if (!window.__calendarDayCache) window.__calendarDayCache = {};
-            window.__calendarDayCache[dateStr] = dayEventsHtml;
+            window.__calendarDayCache[dateStr] = dayEventsHtmls.join('');
 
             // Limit display in the grid but keep full list in modal cache
             const limit = 4;
-            const displayedEvents = dayEvents.slice(0, limit).map(d => d.html).join('');
-            const moreCount = dayEvents.length - limit;
+            const displayedEvents = dayEventsHtmls.slice(0, limit).join('');
+            const moreCount = dayEventsHtmls.length - limit;
             const moreHtml = moreCount > 0 ? `<div class="text-[9px] md:text-[10px] text-slate-400 font-bold px-1 mt-0.5">+ ${moreCount} mais...</div>` : '';
 
             html += `<div onclick="window.openDayModal('${dateStr}')" class="min-h-[100px] md:min-h-[140px] p-1 md:p-2 border border-slate-100 rounded-lg md:rounded-xl flex flex-col transition hover:border-slate-300 hover:shadow-sm cursor-pointer overflow-hidden">

@@ -38,36 +38,95 @@ export async function dashboardView() {
           ${kpi('volunteer_activism', 'Encontros', m.encounter + '%', `${m.total - Math.round(m.encounter * m.total / 100)} pendentes`, 'emerald')}
         </div>
       </section>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <section>
-          <h3 class="text-base font-bold mb-3">Ação Requerida</h3>
-          <div class="space-y-3">
-            ${(() => {
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+          <section>
+            <h3 class="text-base font-bold mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-primary">calendar_month</span> Programação da Semana</h3>
+            <div class="bg-white rounded-2xl border border-slate-100 max-h-[400px] overflow-y-auto custom-scrollbar">
+              ${(() => {
+      const schedule = store.getWeeklySchedule();
+      const todayStr = new Date().toISOString().split('T')[0];
+      return schedule.map((day, idx) => {
+        if (!day.events.length) return '';
+        const d = new Date(day.date + 'T12:00:00');
+        const isToday = day.date === todayStr;
+        const dayName = d.toLocaleDateString('pt-BR', { weekday: 'long' }).split('-')[0];
+        const dayNum = d.getDate();
+        const monthName = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+
+        return `
+                    <div class="p-4 ${idx !== 0 ? 'border-t border-slate-50' : ''}">
+                      <div class="flex gap-4">
+                        <div class="flex flex-col items-center justify-center min-w-[48px] h-12 rounded-xl ${isToday ? 'bg-primary text-white' : 'bg-slate-50 text-slate-400'}">
+                          <span class="text-[10px] font-bold uppercase leading-none mb-1">${dayName.slice(0, 3)}</span>
+                          <span class="text-lg font-extrabold leading-none">${dayNum}</span>
+                        </div>
+                        <div class="flex-1 space-y-2">
+                          ${day.events.map(ev => {
+          let icon = 'event';
+          let color = 'blue';
+          let label = ev.title;
+          let time = ev.time || 'Dia todo';
+
+          if (ev.type === 'birthday') { icon = 'cake'; color = 'pink'; }
+          else if (ev.type === 'cell') { icon = 'home'; color = 'indigo'; label = `Célula: ${ev.title}`; }
+          else { color = ev.color || 'blue'; icon = ev.icon || 'event'; }
+
+          return `
+                              <div class="flex items-center justify-between group cursor-pointer" onclick="location.hash='/calendar'">
+                                <div class="flex items-center gap-3">
+                                  <div class="w-2 h-2 rounded-full bg-${color}-500"></div>
+                                  <div>
+                                    <p class="text-sm font-bold text-slate-800 group-hover:text-primary transition-colors">${label}</p>
+                                    <p class="text-[11px] text-slate-400 font-medium">${time}</p>
+                                  </div>
+                                </div>
+                                <span class="material-symbols-outlined text-slate-200 group-hover:text-slate-400 transition-colors text-lg">chevron_right</span>
+                              </div>
+                            `;
+        }).join('')}
+                        </div>
+                      </div>
+                    </div>
+                  `;
+      }).join('') || '<div class="p-8 text-center text-slate-400"><p class="text-sm">Nenhuma programação esta semana</p></div>';
+    })()}
+            </div>
+          </section>
+
+          <section>
+            <h3 class="text-base font-bold mb-3">Ação Requerida</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              ${(() => {
       const cfg = store.config || {};
       const cards = [];
       if (cfg.noVisit?.enabled !== false && m.noVisit)
-        cards.push(actionCard('ac-novisit', 'person_alert', 'orange', `Sem Visita >${cfg.noVisit?.days ?? 60}d`, `<b>${m.noVisit}</b> pessoas em situação de abandono (última visita há mais de ${cfg.noVisit?.days ?? 60} dias).`, 'Urgente'));
+        cards.push(actionCard('ac-novisit', 'person_alert', 'orange', `Sem Visita >${cfg.noVisit?.days ?? 60}d`, `<b>${m.noVisit}</b> pessoas em situação de abandono.`, 'Urgente'));
       if (cfg.baptism?.enabled !== false && m.total - Math.round(m.waterBaptism * m.total / 100))
         cards.push(actionCard('ac-baptism', 'water_drop', 'blue', 'Pendentes de Batismo', `<b>${m.total - Math.round(m.waterBaptism * m.total / 100)}</b> pessoas não batizadas.`));
       if (cfg.consolidation?.enabled !== false && m.delayedConsolidations)
-        cards.push(actionCard('ac-cons', 'route', 'amber', 'Atraso na Consolidação', `<b>${m.delayedConsolidations}</b> novos convertidos sem receber visita há >${cfg.consolidation?.days ?? 15} dias.`, 'Atenção'));
+        cards.push(actionCard('ac-cons', 'route', 'amber', 'Atraso na Consolidação', `<b>${m.delayedConsolidations}</b> novos convertidos pendentes.`, 'Atenção'));
       if (cfg.reconciliation?.enabled !== false && m.reconciliations)
         cards.push(actionCard('ac-recon', 'handshake', 'purple', 'Reconciliações', `<b>${m.reconciliations}</b> em acompanhamento.`, 'Novo'));
       if (!cards.length)
-        cards.push(`<div class="text-center py-8 bg-white rounded-xl border border-slate-100"><span class="material-symbols-outlined text-3xl text-slate-200 mb-2">inbox</span><p class="text-sm text-slate-400">Nenhuma ação pendente</p><p class="text-xs text-slate-300 mt-1">${!m.total ? 'Cadastre membros para começar' : 'Tudo em dia!'}</p></div>`);
+        cards.push(`<div class="text-center py-8 bg-white rounded-xl border border-slate-100 col-span-2"><span class="material-symbols-outlined text-3xl text-slate-200 mb-2">inbox</span><p class="text-sm text-slate-400">Nenhuma ação pendente</p></div>`);
       return cards.join('');
     })()}
-          </div>
-        </section>
-        ${store.hasRole('ADMIN', 'SUPERVISOR', 'LIDER_GERACAO') ? `<section>
-          <div class="flex items-center justify-between mb-3"><h3 class="text-base font-bold">Triagem</h3><a href="#/triage" class="text-xs font-semibold text-primary">Ver tudo</a></div>
-          ${store.triageQueue.filter(t => t.status === 'new' || t.status === 'forwarded_generation').length ? store.triageQueue.filter(t => t.status === 'new' || t.status === 'forwarded_generation').slice(0, 3).map(t => {
+            </div>
+          </section>
+        </div>
+
+        <aside class="space-y-6">
+          ${store.hasRole('ADMIN', 'SUPERVISOR', 'LIDER_GERACAO') ? `<section>
+            <div class="flex items-center justify-between mb-3"><h3 class="text-base font-bold">Triagem</h3><a href="#/triage" class="text-xs font-semibold text-primary">Ver tudo</a></div>
+            ${store.triageQueue.filter(t => t.status === 'new' || t.status === 'forwarded_generation').length ? store.triageQueue.filter(t => t.status === 'new' || t.status === 'forwarded_generation').slice(0, 5).map(t => {
       const f = store.forms.find(x => x.id === t.formId);
       const formNameValue = t.data['Nome'] || t.data['Nome Completo'] || t.data['name'] || Object.values(t.data)[0];
       const displayStr = formNameValue ? String(formNameValue).trim() : 'Anônimo';
       return `<div class="flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 mb-2 hover:border-primary/30 cursor-pointer transition" onclick="location.hash='/triage'"><div class="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-primary font-bold text-sm">${displayStr.charAt(0).toUpperCase()}</div><div class="flex-1 min-w-0"><p class="text-sm font-semibold truncate">${displayStr}</p><p class="text-[11px] text-slate-500">${f?.name || 'Formulário'}</p></div><span class="material-symbols-outlined text-slate-300 text-lg">chevron_right</span></div>`
     }).join('') : '<div class="text-center py-8 bg-white rounded-xl border border-slate-100"><span class="material-symbols-outlined text-3xl text-slate-200">assignment_turned_in</span><p class="text-sm text-slate-400 mt-1">Triagem vazia</p></div>'}
-        </section>`: ''}
+          </section>`: ''}
+        </aside>
       </div>
     </div>
   </div>

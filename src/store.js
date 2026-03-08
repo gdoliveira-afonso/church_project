@@ -429,6 +429,110 @@ class Store {
         await this.apiFetch(`/events/${id}`, { method: 'DELETE' });
         this.events = this.events.filter(e => e.id !== id);
     }
+
+    evaluateRecurrence(e, targetDateStr) {
+        if (!e.recurrence || e.recurrence === 'none') return e.date === targetDateStr;
+        const evDate = new Date(e.date + 'T12:00:00');
+        const targetDate = new Date(targetDateStr + 'T12:00:00');
+        if (targetDate < evDate) return false;
+
+        if (e.recurrence === 'weekly') {
+            return evDate.getDay() === targetDate.getDay();
+        } else if (e.recurrence === 'monthly-date') {
+            return evDate.getDate() === targetDate.getDate();
+        } else if (e.recurrence === 'monthly-weekday') {
+            if (evDate.getDay() !== targetDate.getDay()) return false;
+            const getOccurrence = (d) => Math.floor((d.getDate() - 1) / 7);
+            return getOccurrence(evDate) === getOccurrence(targetDate);
+        } else if (e.recurrence === 'yearly') {
+            return evDate.getDate() === targetDate.getDate() && evDate.getMonth() === targetDate.getMonth();
+        }
+        return false;
+    }
+
+    getEventsForDate(dateStr) {
+        const dayEvents = [];
+        const dayOfWeekIndex = new Date(dateStr + 'T12:00:00').getDay();
+        const dayNamesMap = { 0: 'Domingo', 1: 'Segunda', 2: 'Terça', 3: 'Quarta', 4: 'Quinta', 5: 'Sexta', 6: 'Sábado' };
+        const dayName = dayNamesMap[dayOfWeekIndex];
+        const isAdminSuper = this.hasRole('ADMIN', 'SUPERVISOR');
+
+        // 1. Birthdays
+        let bdays = [...this.people, ...this.users].filter(p => p.birthdate && p.birthdate.slice(5) === dateStr.slice(5));
+        if (!isAdminSuper) {
+            const myCellIds = this.getVisibleCells().map(c => c.id);
+            bdays = bdays.filter(p => myCellIds.includes(p.cellId) || p.id === this.currentUser?.id);
+        }
+        bdays.forEach(p => dayEvents.push({ type: 'birthday', sortVal: -1, title: `Aniversário: ${p.name}`, person: p }));
+
+        // 2. Cells
+        this.getVisibleCells().forEach(c => {
+            if (c.meetingDay && c.meetingDay.toLowerCase().startsWith(dayName.toLowerCase().slice(0, 3))) {
+                const isCanceled = this.isCellCanceledOnDate(c.id, dateStr) || this.isCellCanceledOnDate('all', dateStr);
+                const isJustified = this.getCellJustifications(c.id).find(j => j.date === dateStr);
+
+                let sortVal = -2;
+                if (c.meetingTime) {
+                    const [h, m] = c.meetingTime.split(':').map(Number);
+                    if (!isNaN(h) && !isNaN(m)) sortVal = h + (m / 60) - 0.0001;
+                }
+
+                dayEvents.push({
+                    type: 'cell',
+                    sortVal,
+                    title: c.name,
+                    time: c.meetingTime,
+                    cellId: c.id,
+                    isCanceled,
+                    isJustified,
+                    isRealized: c.__attendanceCache?.includes(dateStr)
+                });
+            }
+        });
+
+        // 3. Global Events
+        this.getEvents().forEach(e => {
+            if (this.evaluateRecurrence(e, dateStr)) {
+                const ex = this.getEventException(e.id, dateStr);
+                if (ex && ex.canceled) return;
+                const title = ex && ex.newTitle ? ex.newTitle : e.title;
+                const isAllDay = !e.startTime;
+
+                let sortVal = 0;
+                if (!isAllDay) {
+                    const [h, m] = e.startTime.split(':').map(Number);
+                    sortVal = h + (m / 60);
+                }
+
+                dayEvents.push({
+                    type: 'event',
+                    sortVal,
+                    title,
+                    time: e.startTime,
+                    color: e.color || 'blue',
+                    icon: e.icon || (e.category === 'geral' ? '🌐' : '🏘️'),
+                    description: e.description,
+                    category: e.category,
+                    eventId: e.id
+                });
+            }
+        });
+
+        return dayEvents.sort((a, b) => a.sortVal - b.sortVal);
+    }
+
+    getWeeklySchedule() {
+        const schedule = [];
+        const today = new Date();
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
+            const dateStr = d.toISOString().split('T')[0];
+            const events = this.getEventsForDate(dateStr);
+            schedule.push({ date: dateStr, events });
+        }
+        return schedule;
+    }
     getEventException(eventId, date) {
         // Cache de exceptions carregado pelo loadEvents ou setEventException
         if (!this._eventExceptions) return null;
