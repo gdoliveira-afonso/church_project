@@ -283,6 +283,33 @@ export function settingsView() {
         </div>
       </section>
 
+      <section>
+        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-400 mb-3 ml-1 flex items-center gap-2"><span class="material-symbols-outlined text-lg text-primary">backup</span>Backup & Restauração de Dados</h3>
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-6">
+          <div class="flex flex-col sm:flex-row items-center gap-4">
+            <div class="flex-1">
+              <p class="text-sm font-semibold text-slate-800">Exportar Backup Completo</p>
+              <p class="text-[11px] text-slate-500 leading-snug">Gera um arquivo JSON contendo todos os dados da igreja (pessoas, células, eventos, logs, etc).</p>
+            </div>
+            <button id="btn-backup-download" class="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-primary text-white text-[13px] font-bold hover:bg-primary/90 transition shadow-sm flex items-center justify-center gap-2"><span class="material-symbols-outlined text-lg">download</span> Baixar Backup</button>
+          </div>
+          
+          <div class="border-t border-slate-50 pt-5">
+            <div class="flex flex-col sm:flex-row items-center gap-4">
+              <div class="flex-1">
+                <p class="text-sm font-semibold text-slate-800">Restaurar do Arquivo</p>
+                <p class="text-[11px] text-slate-500 leading-snug">Substitui permanentemente TODOS os dados atuais por um arquivo de backup anterior (.json).</p>
+              </div>
+              <div class="w-full sm:w-auto">
+                <input type="file" id="inp-restore-upload" accept=".json" class="hidden">
+                <button id="btn-restore-start" class="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-orange-50 text-orange-600 border border-orange-100 text-[13px] font-bold hover:bg-orange-100 transition shadow-sm flex items-center justify-center gap-2"><span class="material-symbols-outlined text-lg">upload_file</span> Restaurar Backup</button>
+              </div>
+            </div>
+          </div>
+          <p class="text-[10px] text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100 font-medium"><b>Aviso:</b> A restauração é uma ação destrutiva e reiniciará o servidor para garantir a integridade dos dados.</p>
+        </div>
+      </section>
+
       <section class="pb-10">
         <div class="bg-red-50 border border-red-100 rounded-xl p-6 text-center shadow-sm">
           <div class="w-12 h-12 rounded-full bg-red-100 mx-auto flex items-center justify-center text-red-600 mb-3"><span class="material-symbols-outlined text-2xl">warning</span></div>
@@ -634,6 +661,69 @@ export function settingsView() {
       }
       btn.innerHTML = orig;
       btn.disabled = false;
+    });
+
+    document.getElementById('btn-backup-download')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-backup-download');
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-lg">refresh</span>Gerando...';
+      btn.disabled = true;
+      try {
+        await store.downloadBackup();
+        toast('Backup concluído com sucesso!');
+      } catch (e) {
+        toast('Erro ao gerar backup', 'error');
+      }
+      btn.innerHTML = orig;
+      btn.disabled = false;
+    });
+
+    const inpRestore = document.getElementById('inp-restore-upload');
+    document.getElementById('btn-restore-start')?.addEventListener('click', () => inpRestore.click());
+
+    inpRestore?.addEventListener('change', async (e) => {
+      if (!e.target.files.length) return;
+      const file = e.target.files[0];
+
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+
+          openModal(`<div class="p-6 text-center">
+            <div class="w-16 h-16 rounded-full bg-orange-100 mx-auto mb-4 flex items-center justify-center">
+              <span class="material-symbols-outlined text-orange-600 text-4xl">warning</span>
+            </div>
+            <h3 class="text-lg font-extrabold text-slate-900 mb-2">Confirmar Restauração</h3>
+            <p class="text-sm text-slate-600 mb-5">Você está prestes a substituir <b>TODOS OS DADOS</b> do sistema pelo backup:<br><br><span class="text-slate-800 font-bold">${file.name}</span><br><br><span class="text-red-500 font-semibold">Esta ação é irreversível e o servidor será reiniciado.</span></p>
+            <div class="flex gap-3">
+              <button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="flex-1 py-3 border border-slate-200 rounded-xl bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 transition">Cancelar</button>
+              <button id="btn-confirm-restore" class="flex-1 py-3 rounded-xl bg-orange-600 text-white text-sm font-bold hover:bg-orange-700 transition shadow-sm">Sim, Restaurar Tudo</button>
+            </div>
+          </div>`);
+
+          document.getElementById('btn-confirm-restore').onclick = async () => {
+            const btn = document.getElementById('btn-confirm-restore');
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin mr-2">refresh</span> Restaurando...';
+            btn.disabled = true;
+            try {
+              await store.restoreBackup(data);
+              toast('Restauração concluída! Saindo...');
+              setTimeout(() => {
+                store.logout();
+                location.reload();
+              }, 2000);
+            } catch (err) {
+              toast('Erro na restauração: ' + err.message, 'error');
+              closeModal();
+            }
+          };
+        } catch (err) {
+          toast('Arquivo de backup inválido', 'error');
+        }
+      };
+      reader.readAsText(file);
+      inpRestore.value = ''; // Reset for next selection
     });
 
     document.getElementById('btn-reset').onclick = () => {

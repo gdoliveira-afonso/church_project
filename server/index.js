@@ -271,6 +271,7 @@ const settingsRouter = require('./routes/settings');
 const { getNotificationConfig } = require('./routes/config');
 const reportsRouter = require('./routes/reports');
 const logsRouter = require('./routes/logs');
+const adminRouter = require('./routes/admin');
 
 // API Pública v1 e gerenciamento admin
 const apiV1Router = require('./api/routes/v1/index');
@@ -288,6 +289,8 @@ app.use('/api/generations', authenticateToken, activityLoggerMiddleware, generat
 app.use('/api/settings', authenticateToken, activityLoggerMiddleware, settingsRouter);
 app.use('/api/reports', authenticateToken, activityLoggerMiddleware, reportsRouter);
 app.use('/api/logs', authenticateToken, logsRouter);
+app.use('/api/admin', authenticateToken, adminRouter);
+app.use('/api/admin', authenticateToken, adminRouter);
 
 // ----------------------------------------------------------------------------
 // API PÚBLICA v1 (autenticada por API Key) e Admin

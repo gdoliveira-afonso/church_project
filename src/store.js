@@ -589,6 +589,32 @@ class Store {
         this.config = res.dashboardActions || dashboardActions;
         return this.config;
     }
+
+    // Backup & Restore
+    async downloadBackup() {
+        if (!this.token) throw new Error('Not authenticated');
+        const res = await fetch(`${API_URL}/admin/backup`, {
+            headers: { 'Authorization': `Bearer ${this.token}` }
+        });
+        if (!res.ok) throw new Error('Falha ao gerar backup');
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup-igreja-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    }
+
+    async restoreBackup(data) {
+        return this.apiFetch('/admin/restore', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
 }
 
 export const store = new Store();
