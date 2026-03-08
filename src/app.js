@@ -26,7 +26,7 @@ route('/f', publicFormView);
 route('/dashboard', guard(dashboardView));
 route('/people', guard(peopleView));
 route('/people/new', roleGuard(['ADMIN', 'SUPERVISOR'], () => personFormView({ id: 'new' })));
-route('/people/edit', roleGuard(['ADMIN', 'SUPERVISOR'], personFormView));
+route('/people/edit', roleGuard(['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO', 'LEADER', 'VICE_LEADER'], personFormView));
 route('/profile', guard(profileView));
 route('/cells', guard(cellsView));
 route('/cell', guard(cellDetailView));

@@ -13,7 +13,7 @@ export function profileView(params) {
   const attPct = att.length ? Math.round(att.filter(a => a.status === 'present').length / att.length * 100) : 0;
 
   app.innerHTML = `
-  ${header('Perfil', true, store.hasRole('ADMIN', 'SUPERVISOR') ? `<a href="#/people/edit?id=${p.id}" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-500"><span class="material-symbols-outlined text-lg">edit</span></a>` : '')}
+  ${header('Perfil', true, store.hasRole('ADMIN', 'SUPERVISOR', 'LIDER_GERACAO', 'LEADER', 'VICE_LEADER') ? `<a href="#/people/edit?id=${p.id}" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-500"><span class="material-symbols-outlined text-lg">edit</span></a>` : '')}
   <div class="flex-1 overflow-y-auto pb-20">
     <div class="flex flex-col md:flex-row md:items-start md:gap-6 items-center bg-white px-5 md:px-6 pt-5 pb-6 border-b border-slate-100">
       <div class="relative shrink-0 mb-3 md:mb-0">${avatar(p.name, 'h-20 w-20 text-xl')}<span class="absolute bottom-0 right-0 w-5 h-5 ${p.riskLevel === 'high' ? 'bg-red-500' : p.riskLevel === 'medium' ? 'bg-amber-400' : 'bg-emerald-500'} border-2 border-white rounded-full flex items-center justify-center"><span class="material-symbols-outlined text-white text-[12px]">${p.riskLevel === 'low' ? 'check' : 'priority_high'}</span></span></div>

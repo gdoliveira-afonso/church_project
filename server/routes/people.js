@@ -70,9 +70,11 @@ router.get('/:id', async (req, res) => {
 
 // Cadastra nova pessoa
 router.post('/', async (req, res) => {
-    const data = req.body;
-
     try {
+        if (!['ADMIN', 'SUPERVISOR'].includes(req.user.role)) {
+            return res.status(403).json({ error: 'Acesso negado: apenas administradores podem adicionar pessoas' });
+        }
+        const data = req.body;
         // Configura os dados iniciais
         const createData = {
             name: data.name,
@@ -158,13 +160,38 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     const data = req.body;
     try {
-        // Busca status anterior para ver se virou novo convertido agora
+        // Role-based access control
+        const isStaff = ['ADMIN', 'SUPERVISOR'].includes(req.user.role);
+        const isGenLeader = req.user.role === 'LIDER_GERACAO';
+        const isCellLeader = ['LEADER', 'VICE_LEADER'].includes(req.user.role);
+
+        // Fetch existing to check ownership
         const existing = await prisma.person.findUnique({
             where: { id: req.params.id },
-            include: { consolidation: true, personTracks: true }
+            include: { consolidation: true, personTracks: true, cell: true }
         });
 
         if (!existing) return res.status(404).json({ error: 'Pessoa não encontrada' });
+
+        if (!isStaff) {
+            if (isGenLeader) {
+                if (!req.user.generationId || existing.cell?.generationId !== req.user.generationId) {
+                    return res.status(403).json({ error: 'Acesso negado: esta pessoa não pertence à sua geração' });
+                }
+            } else if (isCellLeader) {
+                // Check if the person is in a cell where the user is leader/vice
+                const myCells = await prisma.cell.findMany({
+                    where: { OR: [{ leaderId: req.user.id }, { viceLeaderId: req.user.id }] },
+                    select: { id: true }
+                });
+                const myCellIds = myCells.map(c => c.id);
+                if (!existing.cellId || !myCellIds.includes(existing.cellId)) {
+                    return res.status(403).json({ error: 'Acesso negado: esta pessoa não pertence à sua célula' });
+                }
+            } else {
+                return res.status(403).json({ error: 'Acesso negado' });
+            }
+        }
 
         const isNowConvert = data.status === 'Novo Convertido';
         const wasConvert = existing.status === 'Novo Convertido';
@@ -288,8 +315,15 @@ router.put('/:id', async (req, res) => {
 // Deleta pessoa
 router.delete('/:id', async (req, res) => {
     try {
-        const person = await prisma.person.findUnique({ where: { id: req.params.id }, select: { name: true } });
+        const person = await prisma.person.findUnique({
+            where: { id: req.params.id },
+            select: { name: true }
+        });
         if (!person) return res.status(404).json({ error: 'Pessoa não encontrada' });
+
+        if (!['ADMIN', 'SUPERVISOR'].includes(req.user.role)) {
+            return res.status(403).json({ error: 'Acesso negado: apenas administradores podem excluir pessoas' });
+        }
 
         await prisma.person.delete({
             where: { id: req.params.id }
@@ -297,6 +331,7 @@ router.delete('/:id', async (req, res) => {
         res.json({ success: true });
         req.log?.('DELETE', 'people', req.params.id, person.name);
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Erro ao deletar pessoa' });
     }
 });

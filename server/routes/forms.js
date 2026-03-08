@@ -122,23 +122,36 @@ router.put('/triage/:id', async (req, res) => {
         });
 
         // --- Create Notification for Generation Leaders ---
-        if (status === 'forwarded_generation' && payload?.generationId) {
-            const leaders = await prisma.user.findMany({
-                where: {
-                    role: 'LIDER_GERACAO',
-                    generationId: String(payload.generationId)
-                }
-            });
-            const nameField = updateData.data ? JSON.parse(updateData.data).Nome || JSON.parse(updateData.data)['Nome Completo'] || 'Um novo formulário' : 'Novo cadastro';
-            if (leaders.length > 0) {
-                await prisma.notification.createMany({
-                    data: leaders.map(leader => ({
-                        userId: leader.id,
-                        title: 'Nova Triagem',
-                        message: `${nameField} foi encaminhado(a) para a sua Geração!`,
-                        action: '#/triage'
-                    }))
+        if (status === 'forwarded_generation') {
+            const targetGenId = payload?.generationId;
+
+            if (targetGenId) {
+                console.log('[DEBUG] Triage forwarding to generationId:', targetGenId);
+                const leaders = await prisma.user.findMany({
+                    where: {
+                        role: 'LIDER_GERACAO',
+                        generationId: String(targetGenId)
+                    }
                 });
+
+                console.log('[DEBUG] Found leaders to notify:', leaders.length, leaders.map(l => l.name));
+
+                const nameField = updateData.data ?
+                    (JSON.parse(updateData.data).Nome || JSON.parse(updateData.data)['Nome Completo'] || 'Um novo formulário')
+                    : 'Novo cadastro';
+
+                if (leaders.length > 0) {
+                    await prisma.notification.createMany({
+                        data: leaders.map(leader => ({
+                            userId: leader.id,
+                            title: 'Nova Triagem',
+                            message: `${nameField} foi encaminhado(a) para a sua Geração!`,
+                            action: '#/triage'
+                        }))
+                    });
+                }
+            } else {
+                console.warn('[WARN] Triage forwarded_generation called without generationId in payload');
             }
         }
 
