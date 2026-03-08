@@ -1033,8 +1033,10 @@ function trackModal(id) {
   const colors = ['blue', 'emerald', 'orange', 'purple', 'sky', 'rose', 'amber', 'indigo'];
   const icons = ['water_drop', 'local_fire_department', 'school', 'volunteer_activism', 'workspace_premium', 'menu_book', 'verified', 'stars', 'favorite'];
 
-  openModal(`<div class="p-5 md:p-6"><div class="flex justify-between items-center mb-5"><h3 class="text-base font-bold">${t ? 'Editar' : 'Nova'} Trilha</h3><button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="p-1 rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-slate-400">close</span></button></div>
-  <form id="track-form" class="space-y-3">
+  const target = t?.targetMetadata ? JSON.parse(t.targetMetadata) : { everyone: true, statuses: [], generations: [] };
+
+  openModal(`<div class="p-5 md:p-6 max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center mb-5"><h3 class="text-base font-bold">${t ? 'Editar' : 'Nova'} Trilha</h3><button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="p-1 rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-slate-400">close</span></button></div>
+  <form id="track-form" class="space-y-4">
     <div><label class="text-xs font-semibold text-slate-600 mb-1 block">Nome do Marco/Evento</label><input id="tf-name" placeholder="Ex: Acampamento Jovem" value="${t?.name || ''}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20"/></div>
     <div>
       <label class="text-xs font-semibold text-slate-600 mb-1 block">Categoria</label>
@@ -1043,20 +1045,69 @@ function trackModal(id) {
         <option value="retiros" ${t?.category === 'retiros' ? 'selected' : ''}>Retiros e Acampamentos</option>
       </select>
     </div>
-    <div>
-      <label class="text-xs font-semibold text-slate-600 mb-1.5 block">Ícone</label>
-      <div class="flex flex-wrap gap-2" id="icon-picker">
-        ${icons.map(i => `<button type="button" class="icon-opt w-9 h-9 rounded-lg border flex items-center justify-center transition ${t?.icon === i || (!t && i === icons[0]) ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary' : 'border-slate-200 text-slate-400 hover:border-slate-300'}" data-i="${i}"><span class="material-symbols-outlined">${i}</span></button>`).join('')}
-      </div><input type="hidden" id="tf-icon" value="${t?.icon || icons[0]}"/>
+    
+    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+      <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Público Alvo</p>
+      
+      <label class="flex items-center gap-2 cursor-pointer group">
+        <input type="checkbox" id="target-everyone" ${target.everyone ? 'checked' : ''} class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"/>
+        <span class="text-sm font-semibold group-hover:text-primary transition-colors">Disponível para todos</span>
+      </label>
+      
+      <div id="target-specific" class="${target.everyone ? 'opacity-40 pointer-events-none' : ''} space-y-3 transition-opacity">
+        <div>
+          <p class="text-[10px] font-semibold text-slate-500 mb-1.5 uppercase">Por Status</p>
+          <div class="flex flex-wrap gap-2">
+            ${['Membro', 'Líder', 'Vice-Líder', 'Visitante', 'Novo Convertido', 'Reconciliação'].map(s => `
+              <label class="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-primary/30 transition-colors">
+                <input type="checkbox" name="target-status" value="${s}" ${target.statuses?.includes(s) ? 'checked' : ''} class="w-3.5 h-3.5 rounded border-slate-300 text-primary focus:ring-primary"/>
+                <span class="text-xs font-medium">${s}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+        
+        <div>
+          <p class="text-[10px] font-semibold text-slate-500 mb-1.5 uppercase">Por Geração</p>
+          <div class="flex flex-wrap gap-2">
+            ${(store.generations || []).map(g => `
+              <label class="flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-primary/30 transition-colors">
+                <input type="checkbox" name="target-gen" value="${g.id}" ${target.generations?.includes(g.id) ? 'checked' : ''} class="w-3.5 h-3.5 rounded border-slate-300 text-primary focus:ring-primary"/>
+                <span class="text-xs font-medium">${g.name}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+      </div>
     </div>
-    <div>
-      <label class="text-xs font-semibold text-slate-600 mb-1.5 block">Cor</label>
-      <div class="flex flex-wrap gap-2" id="color-picker">
-        ${colors.map(c => `<button type="button" class="color-opt w-8 h-8 rounded-full bg-${c}-500 ring-offset-2 transition ${t?.color === c || (!t && c === colors[0]) ? 'ring-2 ring-slate-400 scale-90' : 'hover:scale-110'}" data-c="${c}"></button>`).join('')}
-      </div><input type="hidden" id="tf-color" value="${t?.color || colors[0]}"/>
+
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-1.5 block">Ícone</label>
+          <div class="flex flex-wrap gap-2" id="icon-picker">
+            ${icons.map(i => `<button type="button" class="icon-opt w-9 h-9 rounded-lg border flex items-center justify-center transition ${t?.icon === i || (!t && i === icons[0]) ? 'border-primary bg-primary/10 text-primary ring-1 ring-primary' : 'border-slate-200 text-slate-400 hover:border-slate-300'}" data-i="${i}"><span class="material-symbols-outlined">${i}</span></button>`).join('')}
+          </div><input type="hidden" id="tf-icon" value="${t?.icon || icons[0]}"/>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-1.5 block">Cor</label>
+          <div class="flex flex-wrap gap-2" id="color-picker">
+            ${colors.map(c => `<button type="button" class="color-opt w-8 h-8 rounded-full bg-${c}-500 ring-offset-2 transition ${t?.color === c || (!t && c === colors[0]) ? 'ring-2 ring-slate-400 scale-90' : 'hover:scale-110'}" data-c="${c}"></button>`).join('')}
+          </div><input type="hidden" id="tf-color" value="${t?.color || colors[0]}"/>
+        </div>
     </div>
     <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 transition mt-2">${t ? 'Salvar Alterações' : 'Criar Trilha'}</button>
   </form></div>`);
+
+  const everyoneInp = document.getElementById('target-everyone');
+  const targetSpec = document.getElementById('target-specific');
+  everyoneInp.onchange = () => {
+    if (everyoneInp.checked) {
+      targetSpec.classList.add('opacity-40', 'pointer-events-none');
+      document.querySelectorAll('input[name="target-status"], input[name="target-gen"]').forEach(i => i.checked = false);
+    } else {
+      targetSpec.classList.remove('opacity-40', 'pointer-events-none');
+    }
+  };
 
   document.querySelectorAll('.icon-opt').forEach(b => b.onclick = () => {
     document.querySelectorAll('.icon-opt').forEach(x => { x.classList.remove('border-primary', 'bg-primary/10', 'text-primary', 'ring-1', 'ring-primary'); x.classList.add('border-slate-200', 'text-slate-400') });
@@ -1074,11 +1125,19 @@ function trackModal(id) {
     ev.preventDefault();
     const n = document.getElementById('tf-name').value.trim();
     if (!n) { toast('Dê um nome à trilha', 'error'); return; }
+
+    const targetMeta = {
+      everyone: document.getElementById('target-everyone').checked,
+      statuses: Array.from(document.querySelectorAll('input[name="target-status"]:checked')).map(i => i.value),
+      generations: Array.from(document.querySelectorAll('input[name="target-gen"]:checked')).map(i => i.value)
+    };
+
     const payload = {
       name: n,
       category: document.getElementById('tf-cat').value,
       icon: document.getElementById('tf-icon').value,
-      color: document.getElementById('tf-color').value
+      color: document.getElementById('tf-color').value,
+      targetMetadata: JSON.stringify(targetMeta)
     };
     if (t) { await store.updateTrack(id, payload); toast('Atualizado!') }
     else { await store.addTrack(payload); toast('Trilha criada!') }

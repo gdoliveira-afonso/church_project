@@ -7,6 +7,29 @@ export function profileView(params) {
   if (!p) { app.innerHTML = '<div class="flex-1 flex items-center justify-center"><p class="text-slate-400">Pessoa não encontrada</p></div>'; return }
   const cell = p.cellId ? store.getCell(p.cellId) : null;
 
+  function isTrackVisible(track, person) {
+    if (!track.targetMetadata) return true;
+    try {
+      const target = JSON.parse(track.targetMetadata);
+      if (target.everyone) return true;
+
+      // Check status
+      if (target.statuses && target.statuses.length > 0) {
+        if (target.statuses.includes(person.status)) return true;
+      }
+
+      // Check generation (from cell)
+      if (target.generations && target.generations.length > 0) {
+        const genId = person.cell?.generationId || person.generationId;
+        if (genId && target.generations.includes(genId)) return true;
+      }
+
+      return false;
+    } catch (e) {
+      return true; // Fallback
+    }
+  }
+
   function getVisits() { return store.getVisitsForPerson(p.id); }
   function getNotes() { return store.getNotesForPerson(p.id); }
   const att = store.getAttendanceForPerson(p.id);
@@ -88,18 +111,18 @@ export function profileView(params) {
       ].filter(Boolean).map(([i, v]) => `<div class="flex items-center gap-3"><span class="material-symbols-outlined text-slate-400 text-lg">${i}</span><span class="text-sm">${v}</span></div>`).join('')}</dl>`);
     }
     if (t === 'espiritual') {
-      const spTracks = store.tracks.filter(tr => tr.category === 'espiritual');
+      const spTracks = store.tracks.filter(tr => tr.category === 'espiritual' && isTrackVisible(tr, p));
       tc.innerHTML = card('🙏 Vida Espiritual', `<div class="space-y-3">${spTracks.length ? spTracks.map(tr => {
         const d = p.tracksData ? p.tracksData[tr.id] : false;
         return `<div class="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-0"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded-lg bg-${tr.color}-100 flex items-center justify-center"><span class="material-symbols-outlined text-${tr.color}-500 text-base">${tr.icon}</span></div><span class="text-sm font-medium">${tr.name}</span></div><span class="text-xs font-medium px-2.5 py-1 rounded-full ${d ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">${d ? '✓ Sim' : '✗ Não'}</span></div>`;
-      }).join('') : '<p class="text-sm text-slate-400 text-center py-4">Nenhum marco espiritual cadastrado no sistema</p>'}</div>`);
+      }).join('') : '<p class="text-sm text-slate-400 text-center py-4">Nenhum marco espiritual disponível para este perfil</p>'}</div>`);
     }
     if (t === 'retiros') {
-      const retTracks = store.tracks.filter(tr => tr.category === 'retiros');
+      const retTracks = store.tracks.filter(tr => tr.category === 'retiros' && isTrackVisible(tr, p));
       tc.innerHTML = card('🏕 Retiros', `<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${retTracks.length ? retTracks.map(tr => {
         const d = p.tracksData ? p.tracksData[tr.id] : false;
         return `<div class="p-4 bg-slate-50 rounded-lg text-center border border-slate-100 hover:border-${tr.color}-300 transition"><div class="w-10 h-10 mx-auto rounded-lg bg-${tr.color}-100 flex items-center justify-center mb-2"><span class="material-symbols-outlined text-${tr.color}-600">${tr.icon}</span></div><p class="text-sm font-semibold mb-2">${tr.name}</p><span class="text-xs font-medium px-2.5 py-1 rounded-full ${d ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}">${d ? '✓ Realizado' : '✗ Pendente'}</span></div>`;
-      }).join('') : '<p class="text-sm text-slate-400 text-center py-4 col-span-2">Nenhum retiro cadastrado no sistema</p>'}</div>`);
+      }).join('') : '<p class="text-sm text-slate-400 text-center py-4 col-span-2">Nenhum retiro disponível para este perfil</p>'}</div>`);
     }
     if (t === 'visitas') {
       const visits = getVisits();
@@ -288,6 +311,35 @@ export function profileView(params) {
         show('adicional');
       } catch (err) { toast('Erro ao salvar', 'error'); btn.innerHTML = orig; btn.disabled = false; }
     };
+  }
+
+  const D = {
+    currentUser: null,
+    users: [], people: [], cells: [], attendance: [], pastoralNotes: [], visits: [], events: [], cellCancellations: [], cellJustifications: [], eventExceptions: [],
+    forms: [], tracks: [], triageQueue: [], notifications: [], generations: []
+  };
+
+  function isTrackVisible(track, person) {
+    if (!track.targetMetadata) return true;
+    try {
+      const target = JSON.parse(track.targetMetadata);
+      if (target.everyone) return true;
+
+      // Check status
+      if (target.statuses && target.statuses.length > 0) {
+        if (target.statuses.includes(person.status)) return true;
+      }
+
+      // Check generation (from cell)
+      if (target.generations && target.generations.length > 0) {
+        const genId = person.cell?.generationId || person.generationId;
+        if (genId && target.generations.includes(genId)) return true;
+      }
+
+      return false;
+    } catch (e) {
+      return true; // Fallback
+    }
   }
 
   function openMarcoModal() {

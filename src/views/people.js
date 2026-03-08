@@ -110,8 +110,30 @@ export function peopleView() {
 // ── Add/Edit Person ──
 export function personFormView(params) {
   const app = document.getElementById('app');
-  const isEdit = params?.id && params.id !== 'new';
+  const isEdit = !!params?.id;
   const p = isEdit ? store.getPerson(params.id) : null;
+
+  const isTrackVisible = (track, person) => {
+    if (!track.targetMetadata) return true;
+    try {
+      const target = JSON.parse(track.targetMetadata);
+      if (target.everyone) return true;
+
+      const personStatus = person?.status || document.getElementById('inp-status')?.value;
+      if (target.statuses && target.statuses.length > 0) {
+        if (target.statuses.includes(personStatus)) return true;
+      }
+
+      if (target.generations && target.generations.length > 0) {
+        const cellId = person?.cellId || document.getElementById('inp-cell')?.value;
+        const cell = cellId ? store.getCell(cellId) : null;
+        const genId = cell?.generationId || person?.generationId;
+        if (genId && target.generations.includes(genId)) return true;
+      }
+
+      return false;
+    } catch (e) { return true; }
+  };
   const title = isEdit ? 'Editar Pessoa' : 'Nova Pessoa';
 
   app.innerHTML = `
@@ -150,8 +172,8 @@ export function personFormView(params) {
       </div>
       <div>
         <label class="text-xs font-semibold text-slate-600 mb-2 block">Marcos Espirituais & Retiros</label>
-        <div class="grid grid-cols-2 lg:grid-cols-3 gap-2">
-          ${store.tracks.map(t => {
+        <div class="grid grid-cols-2 lg:grid-cols-3 gap-2" id="tracks-container">
+          ${store.tracks.filter(t => isTrackVisible(t, p)).map(t => {
       const isChecked = p?.tracksData ? p.tracksData[t.id] : false;
       return `<label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50">
               <input type="checkbox" id="chk-${t.id}" ${isChecked ? 'checked' : ''} class="sr-only peer track-checkbox" data-track-id="${t.id}"/>
@@ -178,6 +200,26 @@ export function personFormView(params) {
     phoneInp.addEventListener('input', (e) => e.target.value = formatPhone(e.target.value));
     if (phoneInp.value) phoneInp.value = formatPhone(phoneInp.value);
   }
+
+  const updateTracks = () => {
+    const container = document.getElementById('tracks-container');
+    if (!container) return;
+    const currentStatus = document.getElementById('inp-status').value;
+    const currentCellId = document.getElementById('inp-cell').value;
+    const currentPerson = { ...p, status: currentStatus, cellId: currentCellId };
+
+    container.innerHTML = store.tracks.filter(t => isTrackVisible(t, currentPerson)).map(t => {
+      const isChecked = p?.tracksData ? p.tracksData[t.id] : false;
+      return `<label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50">
+              <input type="checkbox" id="chk-${t.id}" ${isChecked ? 'checked' : ''} class="sr-only peer track-checkbox" data-track-id="${t.id}"/>
+              <div class="w-8 h-8 rounded-lg bg-${t.color}-100 flex items-center justify-center text-${t.color}-400 peer-checked:bg-${t.color}-500 peer-checked:text-white transition shrink-0"><span class="material-symbols-outlined text-base">${t.icon}</span></div>
+              <span class="text-xs font-medium text-slate-600 leading-tight">${t.name}</span>
+            </label>`;
+    }).join('');
+  };
+
+  document.getElementById('inp-status').onchange = updateTracks;
+  document.getElementById('inp-cell').onchange = updateTracks;
 
   document.getElementById('person-form').onsubmit = async e => {
     e.preventDefault();

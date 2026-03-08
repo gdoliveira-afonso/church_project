@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
         const people = await prisma.person.findMany({
             where: whereClause,
             include: {
-                cell: { select: { id: true, name: true } },
+                cell: { select: { id: true, name: true, generationId: true } },
                 consolidation: true,
                 personTracks: true
             }
@@ -47,7 +47,7 @@ router.get('/:id', async (req, res) => {
         const person = await prisma.person.findUnique({
             where: { id: req.params.id },
             include: {
-                cell: { select: { id: true, name: true } },
+                cell: { select: { id: true, name: true, generationId: true } },
                 consolidation: true,
                 personTracks: { include: { track: true } },
                 pastoralNotes: { orderBy: { date: 'desc' } },

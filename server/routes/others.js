@@ -273,16 +273,20 @@ router.get('/metrics', async (req, res) => {
 // ------------------------------------------------------------------
 router.post('/tracks', async (req, res) => {
     try {
-        const track = await prisma.track.create({ data: req.body });
+        const { name, category, icon, color, targetMetadata } = req.body;
+        const track = await prisma.track.create({
+            data: { name, category, icon, color, targetMetadata }
+        });
         res.status(201).json(track);
     } catch (err) { res.status(500).json({ error: 'Erro ao criar trilha' }); }
 });
 
 router.put('/tracks/:id', async (req, res) => {
     try {
+        const { name, category, icon, color, targetMetadata } = req.body;
         const track = await prisma.track.update({
             where: { id: req.params.id },
-            data: req.body
+            data: { name, category, icon, color, targetMetadata }
         });
         res.json(track);
     } catch (err) { res.status(500).json({ error: 'Erro ao atualizar' }); }

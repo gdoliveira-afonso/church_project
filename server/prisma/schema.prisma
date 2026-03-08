@@ -240,13 +240,13 @@ model CellJustification {
 }
 
 model Track {
-  id        String   @id @default(cuid())
-  name      String
-  category  String   // spiritual, retreats
-  icon      String?
-  color     String   @default("blue")
-
-  persons   PersonTrack[]
+  id             String        @id @default(cuid())
+  name           String
+  category       String        // 'espiritual' ou 'retiros'
+  icon           String?
+  color          String?
+  targetMetadata String?       // JSON string for targeting (everyone, statuses, generations)
+  personTracks   PersonTrack[]
 }
 
 model PersonTrack {
