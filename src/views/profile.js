@@ -199,19 +199,35 @@ export function profileView(params) {
     }
     if (t === 'notas') {
       const notes = getNotes();
+      const isAdmin = store.hasRole('ADMIN', 'SUPERVISOR');
       tc.innerHTML = `<div class="space-y-3">${notes.length ? notes.map(n => {
         const author = store.getUser(n.authorId);
         const authorName = author ? author.name : 'Desconhecido';
         const typeStr = n.type || n.category || 'Outro';
-        return `<div class="p-4 bg-white rounded-xl border-l-4 ${typeStr === 'Visita' ? 'border-l-emerald-500' : typeStr === 'Desânimo' ? 'border-l-amber-500' : typeStr === 'Falta' ? 'border-l-red-500' : 'border-l-primary'} shadow-sm">
+        const isAuthor = n.authorId === store.currentUser.id;
+
+        return `<div class="p-4 bg-white rounded-xl border-l-4 ${typeStr === 'Visita' ? 'border-l-emerald-500' : typeStr === 'Desânimo' ? 'border-l-amber-500' : typeStr === 'Falta' ? 'border-l-red-500' : 'border-l-primary'} shadow-sm relative group">
           <div class="flex justify-between mb-1">
             <span class="text-[11px] font-medium px-1.5 py-0.5 bg-slate-100 rounded text-slate-600">${authorName}</span>
             <span class="text-[11px] text-slate-400">${n.date}</span>
           </div>
           <p class="text-[11px] text-slate-500 font-bold mb-1">${typeStr}</p>
           <p class="text-sm text-slate-700">${n.text}</p>
+          ${(isAdmin || isAuthor) ? `<button data-id="${n.id}" class="btn-del-note absolute top-2 right-2 w-7 h-7 flex items-center justify-center text-red-500/50 hover:text-red-600 hover:bg-red-50 rounded-full transition opacity-0 group-hover:opacity-100" title="Excluir Nota"><span class="material-symbols-outlined text-[18px]">delete</span></button>` : ''}
         </div>`;
       }).join('') : '<p class="text-sm text-slate-400 text-center py-6">Nenhuma nota registrada</p>'}</div>`;
+
+      document.querySelectorAll('.btn-del-note').forEach(btn => {
+        btn.onclick = async () => {
+          if (confirm('Tem certeza que deseja excluir esta nota?')) {
+            try {
+              await store.deleteNote(btn.dataset.id);
+              toast('Nota excluída');
+              show('notas');
+            } catch (e) { toast('Erro ao excluir', 'error'); }
+          }
+        };
+      });
     }
     if (t === 'adicional') {
       let extra = {};

@@ -393,6 +393,10 @@ class Store {
         this.pastoralNotes.unshift(res);
         return res;
     }
+    async deleteNote(id) {
+        await this.apiFetch(`/dash/notes/${id}`, { method: 'DELETE' });
+        this.pastoralNotes = this.pastoralNotes.filter(n => n.id !== id);
+    }
 
     // Attendance
     async loadAttendanceForCell(cid) {

@@ -58,6 +58,13 @@ router.post('/notes', async (req, res) => {
     } catch (err) { res.status(500).json({ error: 'Erro ao criar nota' }); }
 });
 
+router.delete('/notes/:id', async (req, res) => {
+    try {
+        await prisma.pastoralNote.delete({ where: { id: req.params.id } });
+        res.json({ success: true });
+    } catch (err) { res.status(500).json({ error: 'Erro ao deletar nota' }); }
+});
+
 // ------------------------------------------------------------------
 // TRILHAS (BATISMO, ESCOLA, ENCONTRO)
 // ------------------------------------------------------------------
