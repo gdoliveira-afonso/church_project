@@ -32,7 +32,7 @@ route('/cells', guard(cellsView));
 route('/cell', guard(cellDetailView));
 route('/attendance', guard(attendanceView));
 route('/reports', roleGuard(['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO'], reportsView));
-route('/settings', roleGuard(['ADMIN', 'SUPERVISOR'], settingsView));
+route('/settings', roleGuard(['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO', 'LEADER', 'VICE_LEADER'], settingsView));
 route('/forms', roleGuard(['ADMIN', 'SUPERVISOR'], formListView));
 route('/form-builder', roleGuard(['ADMIN', 'SUPERVISOR'], formBuilderView));
 route('/triage', roleGuard(['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO'], triageView));

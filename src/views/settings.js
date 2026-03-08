@@ -11,11 +11,13 @@ export function settingsView() {
   <div class="bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 md:px-6 sticky top-14 z-10 shrink-0">
     <div class="flex gap-6 overflow-x-auto no-scrollbar max-w-5xl mx-auto" id="settings-tabs">
       <button class="settings-tab active whitespace-nowrap py-3.5 text-sm font-bold text-primary border-b-2 border-primary transition-colors" data-target="tab-account">Conta & Perfil</button>
+      ${['ADMIN', 'SUPERVISOR'].includes(u.role) ? `
       <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-team">Equipe</button>
       <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-tools">Ferramentas & Acesso</button>
       ${u.role === 'ADMIN' ? `<button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-system">Sistema &amp; Alertas</button>
       <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-custom-fields">Métricas &amp; Campos</button>
       <button class="settings-tab whitespace-nowrap py-3.5 text-sm font-medium text-slate-500 hover:text-slate-800 border-b-2 border-transparent transition-colors" data-target="tab-logs"><span class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[15px]">history</span>Logs</span></button>` : ''}
+      ` : ''}
     </div>
   </div>
 
@@ -40,6 +42,7 @@ export function settingsView() {
       </section>
     </div>
 
+    ${['ADMIN', 'SUPERVISOR'].includes(u.role) ? `
     <!-- TAG TEAM -->
     <div id="tab-team" class="tab-content hidden space-y-6">
       <section>
@@ -56,7 +59,7 @@ export function settingsView() {
           <select id="team-role-filter" class="md:w-40 px-2 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs outline-none focus:ring-2 focus:ring-primary/20">
             <option value="">Todos Perfis</option>
             ${(store.currentUser.role === 'ADMIN' ? Object.entries(RL) : Object.entries(RL).filter(([k]) => !['ADMIN', 'SUPERVISOR'].includes(k)))
-      .map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
+        .map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}
           </select>
           <select id="team-sort" class="md:w-44 px-2 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs outline-none focus:ring-2 focus:ring-primary/20">
             <option value="alpha">Ordem Alfabética</option>
@@ -88,7 +91,7 @@ export function settingsView() {
         </div>
         <div id="tracks-list"></div>
       </section>
-    </div>
+    </div>` : ''}
 
     <!-- TAG SYSTEM -->
     ${u.role === 'ADMIN' ? `<div id="tab-system" class="tab-content hidden space-y-8">
@@ -457,9 +460,9 @@ export function settingsView() {
     };
   });
 
-  document.getElementById('btn-name').onclick = () => editNameModal();
-  document.getElementById('btn-pass').onclick = () => editPassModal();
-  document.getElementById('btn-add-user').onclick = () => userModal();
+  document.getElementById('btn-name')?.addEventListener('click', () => editNameModal());
+  document.getElementById('btn-pass')?.addEventListener('click', () => editPassModal());
+  document.getElementById('btn-add-user')?.addEventListener('click', () => userModal());
 
   const tSearch = document.getElementById('team-search');
   const tRole = document.getElementById('team-role-filter');
@@ -469,7 +472,7 @@ export function settingsView() {
   if (tRole) tRole.onchange = renderTeam;
   if (tSort) tSort.onchange = renderTeam;
 
-  document.getElementById('btn-logout').onclick = () => { store.logout(); document.getElementById('sidebar').classList.add('sidebar-hidden'); location.hash = '/login'; toast('Deslogado') };
+  document.getElementById('btn-logout')?.addEventListener('click', () => { store.logout(); document.getElementById('sidebar').classList.add('sidebar-hidden'); location.hash = '/login'; toast('Deslogado') });
 
   if (u.role === 'ADMIN') {
     document.getElementById('btn-log-filter')?.addEventListener('click', initLogs);
@@ -721,11 +724,12 @@ export function settingsView() {
         } catch (err) {
           toast('Arquivo de backup inválido', 'error');
         }
+        inpRestore.value = ''; // Reset for next selection
       };
       reader.readAsText(file);
-      inpRestore.value = ''; // Reset for next selection
     });
 
+    document.getElementById('btn-add-track')?.addEventListener('click', () => trackModal());
     document.getElementById('btn-reset').onclick = () => {
       openModal(`<div class="p-6 text-center">
         <div class="w-16 h-16 rounded-full bg-red-100 mx-auto mb-4 flex items-center justify-center">

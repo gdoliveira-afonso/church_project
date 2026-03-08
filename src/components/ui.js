@@ -61,7 +61,7 @@ export function updateSidebar(active) {
     { id: 'forms', icon: 'description', label: 'Formulários', route: '/forms', roles: ['ADMIN'] },
     { id: 'triage', icon: 'assignment', label: 'Triagem', route: '/triage', roles: ['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO'] },
     { id: 'generations', icon: 'groups', label: 'Gerações', route: '/generations', roles: ['ADMIN', 'SUPERVISOR'] },
-    { id: 'settings', icon: 'settings', label: 'Configurações', route: '/settings', roles: ['ADMIN', 'SUPERVISOR'] },
+    { id: 'settings', icon: 'settings', label: 'Configurações', route: '/settings', roles: ['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO', 'LEADER', 'VICE_LEADER'] },
   ].filter(t => t.roles.includes(store.currentUser.role));
   // Auto-detect active from hash if not explicitly set
   if (!active) {
@@ -106,7 +106,7 @@ export function bottomNav(active) {
     { id: 'calendar', icon: 'calendar_month', label: 'Agenda', route: '/calendar' },
     { id: 'reports', icon: 'pie_chart', label: 'Relatórios', route: '/reports', roles: ['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO'] },
     { id: 'generations', icon: 'groups', label: 'Gerações', route: '/generations', roles: ['ADMIN', 'SUPERVISOR'] },
-    { id: 'settings', icon: 'settings', label: 'Config', route: '/settings', roles: ['ADMIN', 'SUPERVISOR'] },
+    { id: 'settings', icon: 'settings', label: 'Config', route: '/settings', roles: ['ADMIN', 'SUPERVISOR', 'LIDER_GERACAO', 'LEADER', 'VICE_LEADER'] },
   ].filter(t => !t.roles || t.roles.includes(store.currentUser?.role));
 
   return `<nav class="mobile-nav w-full shrink-0 md:hidden z-20 bg-white border-t border-slate-200 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] px-1">
