@@ -19,7 +19,7 @@ export async function calendarView(params = {}) {
     }
 
     app.innerHTML = `
-  ${header('Calendário', false, store.hasRole('ADMIN', 'SUPERVISOR') ? `<button id="btn-add-event" class="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20"><span class="material-symbols-outlined text-lg">add</span></button>` : '')}
+  ${header('Calendário', false)}
   <div class="flex-1 overflow-y-auto bg-slate-50 flex flex-col">
     <div class="px-4 py-3 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-10">
       <button id="btn-prev-month" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100"><span class="material-symbols-outlined text-slate-600">chevron_left</span></button>
@@ -31,6 +31,7 @@ export async function calendarView(params = {}) {
     </div>
     <div id="calendar-grid" class="flex-1 bg-white px-4 pb-4 grid grid-cols-7 gap-1 md:gap-2 auto-rows-fr"></div>
   </div>
+  ${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button id="btn-float-add-event" class="fixed bottom-20 md:bottom-8 right-4 md:right-8 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition"><span class="material-symbols-outlined text-2xl">add</span></button>` : ''}
   ${bottomNav('calendar')}`;
 
     const render = () => {
@@ -167,7 +168,7 @@ export async function calendarView(params = {}) {
     document.getElementById('btn-prev-month').onclick = () => { currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } render(); };
     document.getElementById('btn-next-month').onclick = () => { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } render(); };
 
-    const addBtn = document.getElementById('btn-add-event');
+    const addBtn = document.getElementById('btn-float-add-event');
     if (addBtn) addBtn.onclick = () => eventForm(null, null, { month: currentMonth, year: currentYear });
 
     window.quickCreateEvent = (dateStr) => {
