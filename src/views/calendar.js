@@ -121,10 +121,12 @@ export async function calendarView(params = {}) {
 
                     if (isAllDay) {
                         const noteHtml = ev.description ? `<span class="day-note hidden text-[11px] text-${cColor}-700 opacity-70 mt-0.5 leading-snug">${ev.description.replace(/'/g, "&apos;")}</span>` : '';
-                        return `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] bg-${cColor}-100 text-${cColor}-800 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${ev.title}"><span class="truncate"><span>${ev.icon}</span><span class="hidden md:inline ml-1">${ev.title}</span></span>${noteHtml}</div>`;
+                        const scopeClass = ev.category === 'geral' ? 'border-l-2 border-purple-600' : 'border-l-2 border-primary/50';
+                        return `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] bg-${cColor}-100 text-${cColor}-800 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass} ${scopeClass}" title="${ev.title}${ev.category === 'geral' ? ' (Geral)' : ' (Local)'}"><span class="truncate"><span>${ev.icon}</span><span class="hidden md:inline ml-1">${ev.title}</span></span>${noteHtml}</div>`;
                     } else {
                         const noteHtml = ev.description ? `<span class="day-note hidden text-[11px] text-${cColor}-600 opacity-70 mt-0.5 leading-snug col-span-2">${ev.description.replace(/'/g, "&apos;")}</span>` : '';
-                        return `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] text-${cColor}-700 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass}" title="${ev.time} - ${ev.title}"><div class="flex items-center gap-1 w-full"><div class="w-1.5 h-1.5 rounded-full bg-${cColor}-500 flex-shrink-0"></div><span class="truncate"><span>${ev.icon || ''}</span><span class="${ev.icon ? 'hidden md:inline ml-1' : ''}">${ev.time}</span><span class="hidden md:inline ml-1">${ev.title}</span></div>${noteHtml}</div>`;
+                        const scopeClass = ev.category === 'geral' ? 'border-l-2 border-purple-600' : 'border-l-2 border-primary/50';
+                        return `<div ${clickFn} class="shrink-0 min-h-[18px] w-full flex flex-col text-[9px] md:text-[10px] text-${cColor}-700 font-medium px-1 py-0.5 rounded mt-0.5 ${hoverClass} ${scopeClass}" title="${ev.time} - ${ev.title}${ev.category === 'geral' ? ' (Geral)' : ' (Local)'}"><div class="flex items-center gap-1 w-full"><div class="w-1.5 h-1.5 rounded-full bg-${cColor}-500 flex-shrink-0 ml-0.5"></div><span class="truncate"><span>${ev.icon || ''}</span><span class="${ev.icon ? 'hidden md:inline ml-1' : ''}">${ev.time}</span><span class="hidden md:inline ml-1">${ev.title}</span></div>${noteHtml}</div>`;
                     }
                 }
             });
