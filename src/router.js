@@ -1,3 +1,4 @@
+import { store } from './store.js';
 import { updateSidebar } from './components/ui.js';
 const routes = {};
 export function route(p, h) { routes[p] = h }
