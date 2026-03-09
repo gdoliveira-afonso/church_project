@@ -106,6 +106,8 @@ function cellForm(cellId) {
 
 export async function cellDetailView(params) {
   const app = document.getElementById('app');
+  app.innerHTML = '<div class="flex-1 flex flex-col items-center justify-center bg-slate-50/50"><div class="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div><p class="text-sm text-slate-500 font-medium">Carregando detalhes da célula...</p></div>';
+
   const c = store.getCell(params?.id);
   if (!c) { app.innerHTML = '<div class="flex-1 flex items-center justify-center text-slate-400">Célula não encontrada</div>'; return }
 

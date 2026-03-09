@@ -17,8 +17,8 @@ import { webhooksView } from './views/webhooks.js';
 import { apiDocsView } from './views/api-docs.js';
 
 function restoreTheme() { const t = localStorage.getItem('theme'); if (t === 'dark') { document.documentElement.classList.add('dark'); } }
-function guard(fn) { return (p) => { if (!store.isLoggedIn()) { navigate('/login'); return } restoreTheme(); fn(p) } }
-function roleGuard(roles, fn) { return (p) => { if (!store.isLoggedIn()) { navigate('/login'); return } if (!store.hasRole(...roles)) { navigate('/dashboard'); return } restoreTheme(); fn(p) } }
+function guard(fn) { return async (p) => { if (!store.isLoggedIn()) { navigate('/login'); return } restoreTheme(); await fn(p) } }
+function roleGuard(roles, fn) { return async (p) => { if (!store.isLoggedIn()) { navigate('/login'); return } if (!store.hasRole(...roles)) { navigate('/dashboard'); return } restoreTheme(); await fn(p) } }
 
 route('/login', loginView);
 route('/form/public', publicFormView);
