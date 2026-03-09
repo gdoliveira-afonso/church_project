@@ -4,8 +4,7 @@ import { header, bottomNav, toast, openModal, closeModal } from '../components/u
 export function generationsView() {
   const app = document.getElementById('app');
   app.innerHTML = `
-  app.innerHTML = `
-  ${ header('Gerações', false) }
+  ${header('Gerações', false)}
   <div class="flex-1 overflow-y-auto px-4 md:px-6 py-4">
     ${(store.generations || []).length ? `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">${(store.generations || []).map(g => {
     const leaders = store.users.filter(u => u.generationId === g.id && u.role === 'LIDER_GERACAO');
@@ -38,7 +37,7 @@ export function generationsView() {
     }
   </div>
   <button id="btn-float-add-gen" class="fixed bottom-20 md:bottom-8 right-4 md:right-8 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center z-30 hover:scale-105 active:scale-95 transition"><span class="material-symbols-outlined text-2xl">add</span></button>
-  ${ bottomNav('generations') } `;
+  ${bottomNav('generations')} `;
 
   document.getElementById('btn-empty-add-gen')?.addEventListener('click', () => generationModal());
   document.getElementById('btn-float-add-gen')?.addEventListener('click', () => generationModal());
