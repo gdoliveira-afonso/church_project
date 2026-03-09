@@ -137,11 +137,10 @@ export function personFormView(params) {
   const title = isEdit ? 'Editar Pessoa' : 'Nova Pessoa';
 
   app.innerHTML = `
-  app.innerHTML = `
-    < header class="sticky top-0 z-20 bg-white border-b border-slate-100 flex items-center px-4 min-h-[calc(3.5rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] gap-3" >
+  <header class="sticky top-0 z-20 bg-white border-b border-slate-100 flex items-center px-4 min-h-[calc(3.5rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] gap-3">
     <button onclick="history.back()" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-xl">arrow_back</span></button>
     <h2 class="text-base font-bold flex-1">${title}</h2>
-  </header >
+  </header>
     <div class="flex-1 overflow-y-auto px-4 md:px-6 lg:px-10 py-5 md:max-w-2xl md:mx-auto w-full">
       <form id="person-form" class="space-y-4">
         ${field('Nome', 'inp-name', p?.name || '')}
@@ -152,15 +151,15 @@ export function personFormView(params) {
           <label class="text-xs font-semibold text-slate-600 mb-1 block">Status</label>
           <select id="inp-status" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20">
             ${(() => {
-              const opts = ['Visitante', 'Novo Convertido', 'Membro', 'Reconciliação'];
-              const inactiveOpts = ['Inativo', 'Afastado', 'Mudou-se'];
-              const isTeamMember = store.users.some(u => u.name.toLowerCase() === p?.name?.toLowerCase());
-              if (p?.status === 'Líder' || isTeamMember) opts.push('Líder');
-              if (p?.status === 'Vice-Líder' || isTeamMember) opts.push('Vice-Líder');
-              if (p?.status && !opts.includes(p.status) && !inactiveOpts.includes(p.status)) opts.push(p.status);
-              return `<optgroup label="Ativos">${[...new Set(opts)].map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('')}</optgroup>
+      const opts = ['Visitante', 'Novo Convertido', 'Membro', 'Reconciliação'];
+      const inactiveOpts = ['Inativo', 'Afastado', 'Mudou-se'];
+      const isTeamMember = store.users.some(u => u.name.toLowerCase() === p?.name?.toLowerCase());
+      if (p?.status === 'Líder' || isTeamMember) opts.push('Líder');
+      if (p?.status === 'Vice-Líder' || isTeamMember) opts.push('Vice-Líder');
+      if (p?.status && !opts.includes(p.status) && !inactiveOpts.includes(p.status)) opts.push(p.status);
+      return `<optgroup label="Ativos">${[...new Set(opts)].map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('')}</optgroup>
               <optgroup label="Inativos / Saída">${inactiveOpts.map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('')}</optgroup>`;
-            })()}
+    })()}
           </select>
         </div>
         <div>
@@ -175,13 +174,13 @@ export function personFormView(params) {
           <label class="text-xs font-semibold text-slate-600 mb-2 block">Marcos Espirituais & Retiros</label>
           <div class="grid grid-cols-2 lg:grid-cols-3 gap-2" id="tracks-container">
             ${store.tracks.filter(t => isTrackVisible(t, p)).map(t => {
-              const isChecked = p?.tracksData ? p.tracksData[t.id] : false;
-              return `<label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50">
+      const isChecked = p?.tracksData ? p.tracksData[t.id] : false;
+      return `<label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50">
               <input type="checkbox" id="chk-${t.id}" ${isChecked ? 'checked' : ''} class="sr-only peer track-checkbox" data-track-id="${t.id}"/>
               <div class="w-8 h-8 rounded-lg bg-${t.color}-100 flex items-center justify-center text-${t.color}-400 peer-checked:bg-${t.color}-500 peer-checked:text-white transition shrink-0"><span class="material-symbols-outlined text-base">${t.icon}</span></div>
               <span class="text-xs font-medium text-slate-600 leading-tight">${t.name}</span>
             </label>`;
-            }).join('')}
+    }).join('')}
           </div>
         </div>
         <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 active:scale-[.98] transition-all">${isEdit ? 'Salvar Alterações' : 'Cadastrar Pessoa'}</button>
