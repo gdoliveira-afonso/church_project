@@ -1,5 +1,5 @@
 import { store } from '../store.js';
-import { bottomNav, avatar, badge, riskDot, statusColor, toast, openModal, closeModal } from '../components/ui.js';
+import { header, bottomNav, avatar, badge, riskDot, statusColor, toast, openModal, closeModal } from '../components/ui.js';
 
 export function peopleView() {
   const app = document.getElementById('app');
