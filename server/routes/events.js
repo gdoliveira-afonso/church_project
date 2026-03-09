@@ -60,8 +60,8 @@ async function ensureExceptionTable() {
 
 router.get('/exceptions/all', async (req, res) => {
     try {
-        const rows = await prisma.$queryRawUnsafe(`SELECT * FROM "EventException"`);
-        res.json(rows.map(r => ({ ...r, canceled: r.canceled === 1 || r.canceled === true })));
+        const rows = await prisma.eventException.findMany();
+        res.json(rows);
     } catch (e) {
         res.status(500).json({ error: 'Erro ao buscar todas as exceptions' });
     }
@@ -69,32 +69,42 @@ router.get('/exceptions/all', async (req, res) => {
 
 router.get('/:id/exceptions', async (req, res) => {
     try {
-        const rows = await prisma.$queryRawUnsafe(
-            `SELECT * FROM "EventException" WHERE eventId = ?`,
-            req.params.id
-        );
-        res.json(rows.map(r => ({ ...r, canceled: r.canceled === 1 || r.canceled === true })));
+        const rows = await prisma.eventException.findMany({
+            where: { eventId: req.params.id }
+        });
+        res.json(rows);
     } catch (e) {
         res.status(500).json({ error: 'Erro ao buscar exceptions' });
     }
 });
 
 router.post('/:id/exceptions', async (req, res) => {
-    console.log('[DEBUG] Recebeu POST em /:id/exceptions', req.params.id);
+    console.log('[DEBUG-V3] Recebeu POST em /:id/exceptions', req.params.id);
     const { date, canceled, newTitle } = req.body;
     if (!date) return res.status(400).json({ error: 'date obrigatorio' });
     try {
-        await prisma.$executeRawUnsafe(`
-            INSERT INTO "EventException" ("eventId", "date", "canceled", "newTitle")
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT("eventId", "date") DO UPDATE SET
-                "canceled" = excluded.canceled,
-                "newTitle" = excluded.newTitle
-        `, req.params.id, date, canceled ? 1 : 0, newTitle || null);
+        await prisma.eventException.upsert({
+            where: {
+                eventId_date: {
+                    eventId: req.params.id,
+                    date: date
+                }
+            },
+            update: {
+                canceled: canceled || false,
+                newTitle: newTitle || null
+            },
+            create: {
+                eventId: req.params.id,
+                date: date,
+                canceled: canceled || false,
+                newTitle: newTitle || null
+            }
+        });
         res.json({ success: true });
     } catch (e) {
-        console.error('[EventException] erro:', e.message);
-        res.status(500).json({ error: 'Erro ao salvar exception' });
+        console.error('[EventException-V3] erro crítico:', e);
+        res.status(500).json({ error: 'Erro ao salvar exception', details: e.message });
     }
 });
 

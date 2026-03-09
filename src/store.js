@@ -513,7 +513,8 @@ class Store {
                     icon: e.icon || (e.category === 'geral' ? '🌐' : '🏘️'),
                     description: e.description,
                     category: e.category,
-                    eventId: e.id
+                    eventId: e.id,
+                    recurrence: e.recurrence
                 });
             }
         });
