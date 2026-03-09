@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
     <title>Gestão Celular - CRM Celular</title>
     <link rel="manifest" href="/api/public/settings/manifest.json">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -119,6 +119,16 @@
 
         .material-symbols-outlined {
             font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        /* Prevent auto-zoom on mobile inputs */
+        @media screen and (max-width: 767px) {
+
+            input,
+            select,
+            textarea {
+                font-size: 16px !important;
+            }
         }
 
         .material-symbols-outlined.filled {

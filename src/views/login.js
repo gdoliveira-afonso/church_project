@@ -79,14 +79,14 @@ export async function loginView() {
               <label class="text-xs font-semibold text-slate-600 mb-1 block">Usuário</label>
               <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">person</span>
-                <input id="username" type="text" placeholder="Digite seu usuário" autocomplete="username" class="w-full pl-10 pr-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition"/>
+                <input id="username" type="text" placeholder="Digite seu usuário" autocomplete="username" class="w-full pl-10 pr-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-base md:text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition"/>
               </div>
             </div>
             <div>
               <label class="text-xs font-semibold text-slate-600 mb-1 block">Senha</label>
               <div class="relative">
                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">lock</span>
-                <input id="password" type="password" placeholder="Digite sua senha" class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition"/>
+                <input id="password" type="password" placeholder="Digite sua senha" class="w-full pl-10 pr-10 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-base md:text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition"/>
                 <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors" onclick="const i = document.getElementById('password'); i.type = i.type === 'password' ? 'text' : 'password'; this.firstElementChild.textContent = i.type === 'password' ? 'visibility' : 'visibility_off'"><span class="material-symbols-outlined text-lg">visibility</span></button>
               </div>
             </div>
