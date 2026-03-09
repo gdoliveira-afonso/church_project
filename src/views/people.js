@@ -103,7 +103,7 @@ export function peopleView() {
 // ── Add/Edit Person ──
 export function personFormView(params) {
   const app = document.getElementById('app');
-  const isEdit = !!params?.id;
+  const isEdit = !!params?.id && params.id !== 'new';
   const p = isEdit ? store.getPerson(params.id) : null;
 
   const isTrackVisible = (track, person) => {
