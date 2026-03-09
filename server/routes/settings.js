@@ -56,6 +56,40 @@ router.get('/public', async (req, res) => {
     }
 });
 
+// ROTA PÚBLICA: GET /api/public/settings/manifest.json
+router.get('/manifest.json', async (req, res) => {
+    try {
+        const settings = await getOrCreateSettings();
+        const appName = settings.appName || 'Gestão Celular';
+        const logoUrl = settings.logoUrl || '';
+
+        const manifest = {
+            name: appName,
+            short_name: appName,
+            start_url: '/',
+            display: 'standalone',
+            background_color: '#ffffff',
+            theme_color: settings.primaryColor || '#0f172a',
+            icons: []
+        };
+
+        if (logoUrl) {
+            // Se tiver logo, adicionamos como ícone
+            // Idealmente teríamos vários tamanhos, mas vamos usar a original
+            manifest.icons.push({
+                src: logoUrl,
+                sizes: '512x512',
+                type: 'image/png',
+                purpose: 'any maskable'
+            });
+        }
+
+        res.json(manifest);
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao gerar manifesto' });
+    }
+});
+
 // ROTA PRIVADA: PUT /api/settings
 router.put('/', async (req, res) => {
     try {

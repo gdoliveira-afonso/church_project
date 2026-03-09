@@ -5,8 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gestão Celular - CRM Celular</title>
-    <link rel="icon"
-        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛪</text></svg>">
+    <link rel="manifest" href="/api/public/settings/manifest.json">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
@@ -14,6 +13,36 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
         rel="stylesheet" />
+    <script>
+        // Early initialization of branding (favicon, title, theme)
+        (function () {
+            // Theme
+            const t = localStorage.getItem('theme');
+            if (t === 'dark') document.documentElement.classList.add('dark');
+
+            // Branding
+            try {
+                const s = JSON.parse(localStorage.getItem('system-settings'));
+                if (s) {
+                    if (s.appName) document.title = s.appName;
+                    if (s.logoUrl) {
+                        let l = document.createElement('link');
+                        l.rel = 'icon';
+                        l.href = s.logoUrl;
+                        document.head.appendChild(l);
+                    }
+                    if (s.primaryColor) {
+                        const hexToRgb = h => {
+                            let r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(h);
+                            return r ? `${parseInt(r[1], 16)} ${parseInt(r[2], 16)} ${parseInt(r[3], 16)}` : null;
+                        };
+                        const rgb = hexToRgb(s.primaryColor);
+                        if (rgb) document.documentElement.style.setProperty('--color-primary', rgb);
+                    }
+                }
+            } catch (e) { }
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
@@ -32,17 +61,6 @@
             --color-primary: 19 91 236;
         }
     </style>
-    <script>
-            // Apply theme before paint to prevent flash
-            (function () {
-                const t = localStorage.getItem('theme');
-                if (t === 'dark') {
-                    document.documentElement.classList.add('dark');
-                }
-            })();
-
-
-    </script>
     <style>
         /* ── Splash Screen & Preload ── */
         #splash-screen {
@@ -337,8 +355,10 @@
         <nav id="sidebar"
             class="hidden w-[260px] bg-white border-r border-slate-200 flex-col shrink-0 h-full overflow-y-auto z-30">
             <div class="flex items-center gap-3 px-5 py-5 border-b border-slate-100">
-                <div class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><span
-                        class="material-symbols-outlined text-xl">church</span></div>
+                <div id="brand-logo-container"
+                    class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary overflow-hidden">
+                    <span id="brand-logo-icon" class="material-symbols-outlined text-xl">church</span>
+                </div>
                 <div>
                     <p class="text-sm font-bold text-slate-900 leading-tight">Gestão Celular</p>
                     <p class="text-[10px] text-slate-400 leading-tight">CRM Celular v3.0</p>

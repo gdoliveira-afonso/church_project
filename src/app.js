@@ -46,13 +46,14 @@ window.addEventListener('system-settings-loaded', () => {
     const s = store.systemSettings;
     if (!s) return;
 
-    // Sidebar update if exists
-    const titleEl = document.querySelector('#sidebar .text-sm.font-bold');
+    // Sidebar update
+    const titleEl = document.querySelector('#sidebar p.text-sm.font-bold');
     if (titleEl && s.appName) titleEl.textContent = s.appName;
 
-    const logoEl = document.querySelector('#sidebar .w-9.h-9');
-    if (logoEl && s.logoUrl) {
-        logoEl.innerHTML = `<img src="${s.logoUrl}" alt="${s.appName}" class="max-h-full max-w-full rounded-lg" />`;
+    const logoContainer = document.getElementById('brand-logo-container');
+    if (logoContainer && s.logoUrl) {
+        logoContainer.innerHTML = `<img src="${s.logoUrl}" alt="${s.appName || 'Logo'}" class="max-h-full max-w-full object-contain" />`;
+        logoContainer.classList.remove('bg-primary/10', 'text-primary');
     }
 });
 
