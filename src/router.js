@@ -35,6 +35,9 @@ export function startRouter() {
         }
     };
     window.addEventListener('hashchange', handle);
-    if (!window.location.hash) window.location.hash = '/login'; else handle();
+    if (!window.location.hash) {
+        if (store.isLoggedIn()) window.location.hash = '/dashboard';
+        else window.location.hash = '/login';
+    } else handle();
 }
 

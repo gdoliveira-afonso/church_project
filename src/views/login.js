@@ -3,6 +3,10 @@ import { toast } from '../components/ui.js';
 import { navigate } from '../router.js';
 
 export async function loginView() {
+  if (store.isLoggedIn()) {
+    navigate('/dashboard');
+    return;
+  }
   const app = document.getElementById('app');
   const sb = document.getElementById('sidebar'); if (sb) sb.classList.add('sidebar-hidden');
   document.documentElement.classList.remove('dark');
