@@ -66,16 +66,22 @@ router.get('/manifest.json', async (req, res) => {
         const manifest = {
             name: appName,
             short_name: appName,
+            description: settings.loginMessage || 'Sistema de Gestão Celular',
             start_url: '/',
             display: 'standalone',
+            orientation: 'portrait',
             background_color: '#ffffff',
             theme_color: settings.primaryColor || '#0f172a',
             icons: []
         };
 
         if (logoUrl) {
-            // Se tiver logo, adicionamos como ícone
-            // Idealmente teríamos vários tamanhos, mas vamos usar a original
+            manifest.icons.push({
+                src: logoUrl,
+                sizes: '192x192',
+                type: 'image/png',
+                purpose: 'any'
+            });
             manifest.icons.push({
                 src: logoUrl,
                 sizes: '512x512',

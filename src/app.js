@@ -58,6 +58,15 @@ window.addEventListener('system-settings-loaded', () => {
 });
 
 startRouter();
+
+// Registro do Service Worker para PWA
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.warn('SW registration failed:', err);
+        });
+    });
+}
 // Função global que remove a Splash Screen de forma segura
 window.__removeSplashScreen = function () {
     if (!document.body.classList.contains('app-ready')) {
