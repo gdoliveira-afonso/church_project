@@ -1,11 +1,11 @@
 import { store } from '../store.js';
 import { header, bottomNav, toast, openModal, closeModal } from '../components/ui.js';
 
-export async function calendarView() {
+export async function calendarView(params = {}) {
     const app = document.getElementById('app');
     const d = new Date();
-    let currentMonth = d.getMonth();
-    let currentYear = d.getFullYear();
+    let currentMonth = params.month !== undefined ? params.month : d.getMonth();
+    let currentYear = params.year !== undefined ? params.year : d.getFullYear();
 
     app.innerHTML = '<div class="flex items-center justify-center p-12 text-slate-400"><span class="material-symbols-outlined animate-spin mr-2">refresh</span> Carregando calendário...</div>';
 
@@ -162,11 +162,11 @@ export async function calendarView() {
     document.getElementById('btn-next-month').onclick = () => { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } render(); };
 
     const addBtn = document.getElementById('btn-add-event');
-    if (addBtn) addBtn.onclick = () => eventForm();
+    if (addBtn) addBtn.onclick = () => eventForm(null, null, { month: currentMonth, year: currentYear });
 
     window.quickCreateEvent = (dateStr) => {
         if (!store.hasRole('ADMIN', 'SUPERVISOR')) return;
-        eventForm(null, dateStr);
+        eventForm(null, dateStr, { month: currentMonth, year: currentYear });
     };
 
     window.openDayModal = (dateStr) => {
@@ -199,14 +199,14 @@ export async function calendarView() {
     // Expose functions for inline onclick handler from rendering string
     window.calendarCellClick = (e, cellId, dateStr) => {
         e.stopPropagation();
-        cellActionsModal(cellId, dateStr);
+        cellActionsModal(cellId, dateStr, { month: currentMonth, year: currentYear });
     };
 
     window.toggleCalendarCell = async (e, cellId, dateStr) => {
         e.stopPropagation();
         if (store.hasRole('ADMIN', 'SUPERVISOR')) {
             await store.toggleCellCancellation(cellId, dateStr, store.currentUser.id);
-            calendarView();
+            calendarView({ month: currentMonth, year: currentYear });
         }
     };
 
@@ -235,8 +235,8 @@ export async function calendarView() {
         <div class="p-4 bg-red-50/50 border border-red-100 rounded-xl">
             <h4 class="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2"><span class="material-symbols-outlined text-base">public</span> Evento Completo</h4>
             <div class="space-y-2">
-                <button type="button" onclick="window.editGlobalEvent('${eventId}')" class="w-full bg-white text-slate-700 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-50 border border-slate-200 transition">Editar Regra ou Data do Evento Inteiro</button>
-                <button type="button" onclick="window.deleteGlobalEvent('${eventId}')" class="w-full bg-red-50 text-red-700 py-2.5 rounded-lg text-sm font-bold hover:bg-red-100 border border-red-200 transition">Excluir Evento Definitivamente</button>
+                <button type="button" onclick="window.editGlobalEvent('${eventId}', { month: ${currentMonth}, year: ${currentYear} })" class="w-full bg-white text-slate-700 py-2.5 rounded-lg text-sm font-bold hover:bg-slate-50 border border-slate-200 transition">Editar Regra ou Data do Evento Inteiro</button>
+                <button type="button" onclick="window.deleteGlobalEvent('${eventId}', { month: ${currentMonth}, year: ${currentYear} })" class="w-full bg-red-50 text-red-700 py-2.5 rounded-lg text-sm font-bold hover:bg-red-100 border border-red-200 transition">Excluir Evento Definitivamente</button>
             </div>
         </div>
         
@@ -247,32 +247,32 @@ export async function calendarView() {
             const t = document.getElementById('mef-title').value.trim();
             if (!t) return;
             await store.setEventException(eventId, dateStr, false, t);
-            closeModal(); calendarView();
+            closeModal(); calendarView({ month: currentMonth, year: currentYear });
         };
 
         const cancelDayBtn = document.getElementById('mef-cancel-day');
         if (cancelDayBtn) {
             cancelDayBtn.onclick = async () => {
                 await store.setEventException(eventId, dateStr, true, '');
-                closeModal(); toast('Ocorrência cancelada!'); calendarView();
+                closeModal(); toast('Ocorrência cancelada!'); calendarView({ month: currentMonth, year: currentYear });
             };
         }
     };
 }
 
-window.editGlobalEvent = (eventId) => {
+window.editGlobalEvent = (eventId, viewParams) => {
     closeModal();
-    eventForm(eventId);
+    eventForm(eventId, null, viewParams);
 };
 
-window.deleteGlobalEvent = async (eventId) => {
+window.deleteGlobalEvent = async (eventId, viewParams) => {
     if (confirm('Tem certeza que deseja apagar este evento para sempre? Ele sumirá de todos os meses do calendário.')) {
         await store.deleteEvent(eventId);
-        closeModal(); toast('Evento excluído permanentemente.'); calendarView();
+        closeModal(); toast('Evento excluído permanentemente.'); calendarView(viewParams);
     }
 };
 
-function eventForm(existingEventId = null, prefilledDateStr = null) {
+function eventForm(existingEventId = null, prefilledDateStr = null, viewParams = {}) {
     const ev = existingEventId ? store.events.find(e => e.id === existingEventId) : null;
     const today = ev ? ev.date : (prefilledDateStr || new Date().toISOString().split('T')[0]);
     const initialTitle = ev ? ev.title : '';
@@ -420,12 +420,12 @@ function eventForm(existingEventId = null, prefilledDateStr = null) {
                 toast('Evento criado!');
             }
             closeModal();
-            calendarView();
+            calendarView(viewParams);
         } catch (err) { toast('Servidor indisponível', 'error'); btn.innerHTML = orig; btn.disabled = false; }
     };
 }
 
-function cellActionsModal(cellId, dateStr) {
+function cellActionsModal(cellId, dateStr, viewParams = {}) {
     const c = store.getCell(cellId);
     if (!c) return;
 
@@ -514,7 +514,7 @@ function cellActionsModal(cellId, dateStr) {
         if (btnUndo) {
             btnUndo.onclick = async () => {
                 await store.toggleCellCancellation(c.id, dateStr, store.currentUser.id);
-                closeModal(); toast('Cancelamento desfeito com sucesso!'); calendarView();
+                closeModal(); toast('Cancelamento desfeito com sucesso!'); calendarView(viewParams);
             };
         }
 
@@ -522,7 +522,7 @@ function cellActionsModal(cellId, dateStr) {
         if (btnCancel) {
             btnCancel.onclick = async () => {
                 await store.toggleCellCancellation(c.id, dateStr, store.currentUser.id);
-                closeModal(); toast('Célula cancelada com sucesso!'); calendarView();
+                closeModal(); toast('Célula cancelada com sucesso!'); calendarView(viewParams);
             };
         }
 
@@ -542,7 +542,7 @@ function cellActionsModal(cellId, dateStr) {
                     const reason = document.getElementById('jf-reason').value.trim();
                     await store.justifyCellAbsence(cellId, dateStr, reason, store.currentUser.id);
                     closeModal(); toast('Justificativa enviada!');
-                    calendarView();
+                    calendarView(viewParams);
                 };
             };
         }
