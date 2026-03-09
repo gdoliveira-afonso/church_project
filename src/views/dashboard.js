@@ -8,12 +8,19 @@ export async function dashboardView() {
   const m = await store.fetchMetrics();
   const u = store.currentUser;
   if (!m || !u) return;
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'Bom dia';
+    if (hour >= 12 && hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  };
+
   app.innerHTML = `
   <header class="sticky top-0 z-20 bg-white border-b border-slate-100 px-4 md:px-6 py-3">
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="relative"><div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">${u.name.charAt(0)}</div><div class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white"></div></div>
-        <div><p class="text-[11px] font-medium text-slate-400">Bom dia,</p><h1 class="text-sm font-bold text-slate-900 leading-tight">${u.name}</h1></div>
+        <div><p class="text-[11px] font-medium text-slate-400">${getGreeting()},</p><h1 class="text-sm font-bold text-slate-900 leading-tight">${u.name}</h1></div>
       </div>
       <div class="flex items-center gap-1">
         <div class="relative">
