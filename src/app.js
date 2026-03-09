@@ -66,7 +66,13 @@ window.__removeSplashScreen = function () {
 };
 
 window.addEventListener('store-data-loaded', () => {
-    window.dispatchEvent(new Event('hashchange'));
+    // Apenas dispara hashchange se NÃO estiver na tela de login
+    // Isso evita o "pisca" durante o fluxo de login manual
+    const isLoginPage = !window.location.hash || window.location.hash === '#/login';
+    if (!isLoginPage) {
+        window.dispatchEvent(new Event('hashchange'));
+    }
+
     if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(window.__removeSplashScreen);
     } else {
