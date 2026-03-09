@@ -90,7 +90,11 @@ export async function loginView() {
                 <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors" onclick="const i = document.getElementById('password'); i.type = i.type === 'password' ? 'text' : 'password'; this.firstElementChild.textContent = i.type === 'password' ? 'visibility' : 'visibility_off'"><span class="material-symbols-outlined text-lg">visibility</span></button>
               </div>
             </div>
-            <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold shadow-sm hover:bg-primary/90 active:scale-[.98] transition-all mt-2">Entrar</button>
+            <div class="flex items-center gap-2 px-1">
+              <input type="checkbox" id="remember" class="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer"/>
+              <label for="remember" class="text-xs font-medium text-slate-600 cursor-pointer">Lembrar acesso neste aparelho</label>
+            </div>
+            <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold shadow-sm hover:bg-primary/90 active:scale-[.98] transition-all mt-1">Entrar</button>
           </form>
           ${formButtons}
         </div>
@@ -105,7 +109,8 @@ export async function loginView() {
       btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-sm mr-2">refresh</span> Entrando...';
       btn.disabled = true;
 
-      const u = await store.login(document.getElementById('username').value.trim(), document.getElementById('password').value);
+      const remember = document.getElementById('remember').checked;
+      const u = await store.login(document.getElementById('username').value.trim(), document.getElementById('password').value, remember);
 
       if (u) {
         toast(`Bem-vindo, ${u.name}!`);

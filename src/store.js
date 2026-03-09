@@ -9,14 +9,13 @@ const D = {
 class Store {
     constructor() {
         Object.assign(this, JSON.parse(JSON.stringify(D)));
-        this.token = localStorage.getItem('crm_token');
 
-        // localStorage check removed for triage since it's now in backend
+        // Try localStorage first (persistent), then sessionStorage (temporary)
+        this.token = localStorage.getItem('crm_token') || sessionStorage.getItem('crm_token');
+        const savedUser = localStorage.getItem('crm_user') || sessionStorage.getItem('crm_user');
 
-        const savedUser = localStorage.getItem('crm_user');
         if (savedUser) {
             this.currentUser = JSON.parse(savedUser);
-            // Carrega todos os dados do servidor pro cache em memória (como era no array local)
             this.loadInitialData();
         }
 
@@ -196,7 +195,7 @@ class Store {
     }
 
     // Auth
-    async login(username, password) {
+    async login(username, password, remember = false) {
         try {
             const res = await fetch(`${API_URL}/login`, {
                 method: 'POST',
@@ -210,8 +209,9 @@ class Store {
             this.token = data.token;
             this.currentUser = data.user;
 
-            localStorage.setItem('crm_token', data.token);
-            localStorage.setItem('crm_user', JSON.stringify(data.user));
+            const storage = remember ? localStorage : sessionStorage;
+            storage.setItem('crm_token', data.token);
+            storage.setItem('crm_user', JSON.stringify(data.user));
 
             await this.loadInitialData();
             return this.currentUser;
@@ -226,6 +226,8 @@ class Store {
         this.token = null;
         localStorage.removeItem('crm_token');
         localStorage.removeItem('crm_user');
+        sessionStorage.removeItem('crm_token');
+        sessionStorage.removeItem('crm_user');
         window.location.href = '#/';
         window.location.reload();
     }
