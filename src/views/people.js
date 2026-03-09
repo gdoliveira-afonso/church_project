@@ -4,7 +4,7 @@ import { header, bottomNav, avatar, badge, riskDot, statusColor, toast, openModa
 export function peopleView() {
   const app = document.getElementById('app');
   app.innerHTML = `
-  ${header('Diretório de Pessoas', false, store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="location.hash='/people/new'" class="w-9 h-9 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"><span class="material-symbols-outlined text-lg">person_add</span></button>` : '')}
+  ${header('Diretório de Pessoas', false)}
   <div class="bg-white border-b border-slate-100 px-4 md:px-6 py-3 flex flex-col md:flex-row gap-2">
       <div class="relative flex-1">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>

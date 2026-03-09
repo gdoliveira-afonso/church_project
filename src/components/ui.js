@@ -129,15 +129,15 @@ export function header(title, back = false, right = '') {
   const unreadCount = notifs.length;
 
   return `<header class="sticky top-0 z-20 flex items-center justify-between bg-white/95 dark:bg-slate-900/95 md:bg-white md:dark:bg-slate-900 backdrop-blur-md px-4 md:px-6 h-[calc(3.5rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] border-b border-slate-100 dark:border-slate-800 shrink-0">
-    <div class="flex items-center w-20">
+    <div class="flex items-center w-24">
       ${back ? `<button onclick="history.back()" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 -ml-1"><span class="material-symbols-outlined text-xl">arrow_back</span></button>` : ''}
     </div>
     
     <div class="flex-1 flex justify-center min-w-0">
       <h2 class="text-base font-bold text-slate-900 dark:text-white md:text-lg truncate">${title}</h2>
     </div>
-
-    <div class="flex items-center justify-end gap-1 w-20">
+ 
+    <div class="flex items-center justify-end gap-3 w-24">
       <div class="relative">
         <button id="notif-btn" onclick="window.__toggleNotifications(this)" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-colors">
           <span class="material-symbols-outlined text-lg">notifications</span>
