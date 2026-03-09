@@ -4,15 +4,8 @@ import { bottomNav, avatar, badge, riskDot, statusColor, toast, openModal, close
 export function peopleView() {
   const app = document.getElementById('app');
   app.innerHTML = `
-  <header class="sticky top-0 z-20 bg-white border-b border-slate-100 shrink-0 pt-[env(safe-area-inset-top)]">
-    <div class="flex items-center justify-between px-4 md:px-6 h-14">
-      <h1 class="text-base font-bold md:text-lg">Diretório de Pessoas</h1>
-      <div class="flex items-center gap-2">
-        <button onclick="window.__globalLogout()" class="w-8 h-8 flex md:hidden items-center justify-center rounded-full bg-slate-50 text-slate-400 hover:text-red-500 transition"><span class="material-symbols-outlined text-lg">logout</span></button>
-        ${store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="location.hash='/people/new'" class="w-8 h-8 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition"><span class="material-symbols-outlined text-lg">person_add</span></button>` : ''}
-      </div>
-    </div>
-    <div class="px-4 md:px-6 pb-3 flex flex-col md:flex-row gap-2">
+  ${header('Diretório de Pessoas', false, store.hasRole('ADMIN', 'SUPERVISOR') ? `<button onclick="location.hash='/people/new'" class="w-9 h-9 flex items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"><span class="material-symbols-outlined text-lg">person_add</span></button>` : '')}
+  <div class="bg-white border-b border-slate-100 px-4 md:px-6 py-3 flex flex-col md:flex-row gap-2">
       <div class="relative flex-1">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
         <input id="search" class="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none" placeholder="Buscar por nome…"/>
