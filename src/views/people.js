@@ -4,7 +4,7 @@ import { bottomNav, avatar, badge, riskDot, statusColor, toast, openModal, close
 export function peopleView() {
   const app = document.getElementById('app');
   app.innerHTML = `
-  <header class="sticky top-0 z-20 bg-white border-b border-slate-100 shrink-0">
+  <header class="sticky top-0 z-20 bg-white border-b border-slate-100 shrink-0 pt-[env(safe-area-inset-top)]">
     <div class="flex items-center justify-between px-4 md:px-6 h-14">
       <h1 class="text-base font-bold md:text-lg">Diretório de Pessoas</h1>
       <div class="flex items-center gap-2">
@@ -137,56 +137,57 @@ export function personFormView(params) {
   const title = isEdit ? 'Editar Pessoa' : 'Nova Pessoa';
 
   app.innerHTML = `
-  <header class="sticky top-0 z-20 bg-white border-b border-slate-100 flex items-center px-4 h-14 gap-3">
+  app.innerHTML = `
+    < header class="sticky top-0 z-20 bg-white border-b border-slate-100 flex items-center px-4 min-h-[calc(3.5rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] gap-3" >
     <button onclick="history.back()" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-xl">arrow_back</span></button>
     <h2 class="text-base font-bold flex-1">${title}</h2>
-  </header>
-  <div class="flex-1 overflow-y-auto px-4 md:px-6 lg:px-10 py-5 md:max-w-2xl md:mx-auto w-full">
-    <form id="person-form" class="space-y-4">
-      ${field('Nome', 'inp-name', p?.name || '')}
-      ${field('Telefone', 'inp-phone', p?.phone || '', 'tel')}
-      ${field('Data de Nascimento', 'inp-birth', p?.birthdate || '', 'date')}
-      ${field('Endereço', 'inp-addr', p?.address || '')}
-      <div>
-        <label class="text-xs font-semibold text-slate-600 mb-1 block">Status</label>
-        <select id="inp-status" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20">
-          ${(() => {
-      const opts = ['Visitante', 'Novo Convertido', 'Membro', 'Reconciliação'];
-      const inactiveOpts = ['Inativo', 'Afastado', 'Mudou-se'];
-      const isTeamMember = store.users.some(u => u.name.toLowerCase() === p?.name?.toLowerCase());
-      if (p?.status === 'Líder' || isTeamMember) opts.push('Líder');
-      if (p?.status === 'Vice-Líder' || isTeamMember) opts.push('Vice-Líder');
-      if (p?.status && !opts.includes(p.status) && !inactiveOpts.includes(p.status)) opts.push(p.status);
-      return `<optgroup label="Ativos">${[...new Set(opts)].map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('')}</optgroup>
+  </header >
+    <div class="flex-1 overflow-y-auto px-4 md:px-6 lg:px-10 py-5 md:max-w-2xl md:mx-auto w-full">
+      <form id="person-form" class="space-y-4">
+        ${field('Nome', 'inp-name', p?.name || '')}
+        ${field('Telefone', 'inp-phone', p?.phone || '', 'tel')}
+        ${field('Data de Nascimento', 'inp-birth', p?.birthdate || '', 'date')}
+        ${field('Endereço', 'inp-addr', p?.address || '')}
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-1 block">Status</label>
+          <select id="inp-status" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20">
+            ${(() => {
+              const opts = ['Visitante', 'Novo Convertido', 'Membro', 'Reconciliação'];
+              const inactiveOpts = ['Inativo', 'Afastado', 'Mudou-se'];
+              const isTeamMember = store.users.some(u => u.name.toLowerCase() === p?.name?.toLowerCase());
+              if (p?.status === 'Líder' || isTeamMember) opts.push('Líder');
+              if (p?.status === 'Vice-Líder' || isTeamMember) opts.push('Vice-Líder');
+              if (p?.status && !opts.includes(p.status) && !inactiveOpts.includes(p.status)) opts.push(p.status);
+              return `<optgroup label="Ativos">${[...new Set(opts)].map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('')}</optgroup>
               <optgroup label="Inativos / Saída">${inactiveOpts.map(s => `<option ${p?.status === s ? 'selected' : ''}>${s}</option>`).join('')}</optgroup>`;
-    })()}
-        </select>
-      </div>
-      <div>
-        <label class="text-xs font-semibold text-slate-600 mb-1 block">Célula</label>
-        <select id="inp-cell" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50" ${(p?.status === 'Líder' || p?.status === 'Vice-Líder') ? 'disabled' : ''}>
-          <option value="">Sem célula</option>
-          ${store.getVisibleCells().map(c => `<option value="${c.id}" ${p?.cellId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
-        </select>
-        ${(p?.status === 'Líder' || p?.status === 'Vice-Líder') ? `<p class="text-[10px] text-slate-400 mt-1">A célula de líderes só pode ser alterada no menu de Células.</p>` : ''}
-      </div>
-      <div>
-        <label class="text-xs font-semibold text-slate-600 mb-2 block">Marcos Espirituais & Retiros</label>
-        <div class="grid grid-cols-2 lg:grid-cols-3 gap-2" id="tracks-container">
-          ${store.tracks.filter(t => isTrackVisible(t, p)).map(t => {
-      const isChecked = p?.tracksData ? p.tracksData[t.id] : false;
-      return `<label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50">
+            })()}
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-1 block">Célula</label>
+          <select id="inp-cell" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50" ${(p?.status === 'Líder' || p?.status === 'Vice-Líder') ? 'disabled' : ''}>
+            <option value="">Sem célula</option>
+            ${store.getVisibleCells().map(c => `<option value="${c.id}" ${p?.cellId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+          </select>
+          ${(p?.status === 'Líder' || p?.status === 'Vice-Líder') ? `<p class="text-[10px] text-slate-400 mt-1">A célula de líderes só pode ser alterada no menu de Células.</p>` : ''}
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-600 mb-2 block">Marcos Espirituais & Retiros</label>
+          <div class="grid grid-cols-2 lg:grid-cols-3 gap-2" id="tracks-container">
+            ${store.tracks.filter(t => isTrackVisible(t, p)).map(t => {
+              const isChecked = p?.tracksData ? p.tracksData[t.id] : false;
+              return `<label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50">
               <input type="checkbox" id="chk-${t.id}" ${isChecked ? 'checked' : ''} class="sr-only peer track-checkbox" data-track-id="${t.id}"/>
               <div class="w-8 h-8 rounded-lg bg-${t.color}-100 flex items-center justify-center text-${t.color}-400 peer-checked:bg-${t.color}-500 peer-checked:text-white transition shrink-0"><span class="material-symbols-outlined text-base">${t.icon}</span></div>
               <span class="text-xs font-medium text-slate-600 leading-tight">${t.name}</span>
             </label>`;
-    }).join('')}
+            }).join('')}
+          </div>
         </div>
-      </div>
-      <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 active:scale-[.98] transition-all">${isEdit ? 'Salvar Alterações' : 'Cadastrar Pessoa'}</button>
-      ${isEdit && store.hasRole('ADMIN', 'SUPERVISOR') ? `<button type="button" id="btn-del-person" class="w-full bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-100 transition">Excluir Pessoa</button>` : ''}
-    </form>
-  </div>`;
+        <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg text-sm font-bold hover:bg-primary/90 active:scale-[.98] transition-all">${isEdit ? 'Salvar Alterações' : 'Cadastrar Pessoa'}</button>
+        ${isEdit && store.hasRole('ADMIN', 'SUPERVISOR') ? `<button type="button" id="btn-del-person" class="w-full bg-red-50 text-red-600 border border-red-200 py-2.5 rounded-lg text-sm font-semibold hover:bg-red-100 transition">Excluir Pessoa</button>` : ''}
+      </form>
+    </div>`;
 
   const phoneInp = document.getElementById('inp-phone');
   if (phoneInp) {
@@ -210,11 +211,11 @@ export function personFormView(params) {
 
     container.innerHTML = store.tracks.filter(t => isTrackVisible(t, currentPerson)).map(t => {
       const isChecked = p?.tracksData ? p.tracksData[t.id] : false;
-      return `<label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50">
+      return `< label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50" >
               <input type="checkbox" id="chk-${t.id}" ${isChecked ? 'checked' : ''} class="sr-only peer track-checkbox" data-track-id="${t.id}"/>
               <div class="w-8 h-8 rounded-lg bg-${t.color}-100 flex items-center justify-center text-${t.color}-400 peer-checked:bg-${t.color}-500 peer-checked:text-white transition shrink-0"><span class="material-symbols-outlined text-base">${t.icon}</span></div>
               <span class="text-xs font-medium text-slate-600 leading-tight">${t.name}</span>
-            </label>`;
+            </label > `;
     }).join('');
   };
 
@@ -257,7 +258,7 @@ export function personFormView(params) {
   if (isEdit) {
     document.getElementById('btn-del-person')?.addEventListener('click', (e) => {
       e.preventDefault();
-      openModal(`<div class="p-6 text-center">
+      openModal(`< div class="p-6 text-center" >
         <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <span class="material-symbols-outlined text-3xl">warning</span>
         </div>
@@ -267,7 +268,7 @@ export function personFormView(params) {
           <button onclick="closeModal()" class="flex-1 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition">Cancelar</button>
           <button id="btn-confirm-del-person" class="flex-1 py-2.5 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition shadow-sm border border-red-700">Excluir</button>
         </div>
-      </div>`);
+      </div > `);
 
       document.getElementById('btn-confirm-del-person').onclick = async () => {
         const btn = document.getElementById('btn-confirm-del-person');
@@ -283,5 +284,5 @@ export function personFormView(params) {
   }
 }
 function field(label, id, val = '', type = 'text') {
-  return `<div><label class="text-xs font-semibold text-slate-600 mb-1 block">${label}</label><input id="${id}" type="${type}" value="${val}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition"/></div>`;
+  return `< div ><label class="text-xs font-semibold text-slate-600 mb-1 block">${label}</label><input id="${id}" type="${type}" value="${val}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition"/></div > `;
 }
