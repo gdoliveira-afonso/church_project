@@ -254,7 +254,7 @@ export function personFormView(params) {
         <h3 class="text-lg font-bold text-slate-800 mb-2">Excluir esta pessoa?</h3>
         <p class="text-sm text-slate-500 mb-6">Esta ação não pode ser desfeita. Todos os dados desta pessoa serão removidos permanentemente.</p>
         <div class="flex gap-3">
-          <button onclick="closeModal()" class="flex-1 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition">Cancelar</button>
+          <button onclick="document.getElementById('modal-overlay').classList.add('hidden')" class="flex-1 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition">Cancelar</button>
           <button id="btn-confirm-del-person" class="flex-1 py-2.5 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition shadow-sm border border-red-700">Excluir</button>
         </div>
       </div>`);
