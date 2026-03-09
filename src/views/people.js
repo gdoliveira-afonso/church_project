@@ -127,13 +127,10 @@ export function personFormView(params) {
       return false;
     } catch (e) { return true; }
   };
-  const title = isEdit ? 'Editar Pessoa' : 'Nova Pessoa';
+  const title = isEdit ? 'Editar Membro' : 'Cadastrar Membro';
 
   app.innerHTML = `
-  <header class="sticky top-0 z-20 bg-white border-b border-slate-100 flex items-center px-4 min-h-[calc(3.5rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] gap-3">
-    <button onclick="history.back()" class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100"><span class="material-symbols-outlined text-xl">arrow_back</span></button>
-    <h2 class="text-base font-bold flex-1">${title}</h2>
-  </header>
+  ${header(title, true)}
     <div class="flex-1 overflow-y-auto px-4 md:px-6 lg:px-10 py-5 md:max-w-2xl md:mx-auto w-full">
       <form id="person-form" class="space-y-4">
         ${field('Nome', 'inp-name', p?.name || '')}
@@ -203,11 +200,11 @@ export function personFormView(params) {
 
     container.innerHTML = store.tracks.filter(t => isTrackVisible(t, currentPerson)).map(t => {
       const isChecked = p?.tracksData ? p.tracksData[t.id] : false;
-      return `< label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50" >
+      return `<label class="flex items-center gap-2.5 px-3 py-3 rounded-xl border border-slate-200 bg-white hover:border-${t.color}-300 hover:bg-${t.color}-50/30 transition cursor-pointer has-[:checked]:border-${t.color}-400 has-[:checked]:bg-${t.color}-50/50">
               <input type="checkbox" id="chk-${t.id}" ${isChecked ? 'checked' : ''} class="sr-only peer track-checkbox" data-track-id="${t.id}"/>
               <div class="w-8 h-8 rounded-lg bg-${t.color}-100 flex items-center justify-center text-${t.color}-400 peer-checked:bg-${t.color}-500 peer-checked:text-white transition shrink-0"><span class="material-symbols-outlined text-base">${t.icon}</span></div>
               <span class="text-xs font-medium text-slate-600 leading-tight">${t.name}</span>
-            </label > `;
+            </label>`;
     }).join('');
   };
 
@@ -250,7 +247,7 @@ export function personFormView(params) {
   if (isEdit) {
     document.getElementById('btn-del-person')?.addEventListener('click', (e) => {
       e.preventDefault();
-      openModal(`< div class="p-6 text-center" >
+      openModal(`<div class="p-6 text-center">
         <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
           <span class="material-symbols-outlined text-3xl">warning</span>
         </div>
@@ -260,7 +257,7 @@ export function personFormView(params) {
           <button onclick="closeModal()" class="flex-1 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition">Cancelar</button>
           <button id="btn-confirm-del-person" class="flex-1 py-2.5 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700 transition shadow-sm border border-red-700">Excluir</button>
         </div>
-      </div > `);
+      </div>`);
 
       document.getElementById('btn-confirm-del-person').onclick = async () => {
         const btn = document.getElementById('btn-confirm-del-person');
@@ -276,5 +273,5 @@ export function personFormView(params) {
   }
 }
 function field(label, id, val = '', type = 'text') {
-  return `< div ><label class="text-xs font-semibold text-slate-600 mb-1 block">${label}</label><input id="${id}" type="${type}" value="${val}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition"/></div > `;
+  return `<div><label class="text-xs font-semibold text-slate-600 mb-1 block">${label}</label><input id="${id}" type="${type}" value="${val}" class="w-full px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition"/></div>`;
 }
